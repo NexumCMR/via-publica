@@ -355,17 +355,23 @@ async function fetchEmpresas({ rubro, zona = "", cerca = "", exclude = [], canti
     ? `ubicadas lo más cerca posible de "${cerca}" (Argentina)`
     : `ubicadas en ${zona || "CABA y Provincia de Buenos Aires"}, Argentina`;
   const prompt = `Buscá en la web la MAYOR cantidad posible de empresas REALES y ACTUALES del rubro "${rubro}" ${lugar}, que sean buenos candidatos para contratar publicidad en vía pública (carteles, pantallas LED, medianeras).
-LO MÁS IMPORTANTE: para cada empresa, esforzate al máximo por conseguir el EMAIL DE CONTACTO y el TELÉFONO. Son los datos más valiosos.
-- Priorizá el email del área de MARKETING, prensa o comunicación si existe; si no, usá el email general de contacto (por ejemplo info@, contacto@, ventas@, marketing@).
-- Buscá el teléfono comercial / de contacto (formato argentino).
-REGLAS OBLIGATORIAS:
+LO MÁS IMPORTANTE: para cada empresa, conseguir el EMAIL DE CONTACTO y el TELÉFONO. Son los datos más valiosos. Esforzate muchísimo en esto.
+Dónde buscar el email y el teléfono (revisá varias fuentes):
+- La página oficial de la empresa: secciones "Contacto", "Contactanos", "Quiénes somos" y el pie de página (footer).
+- La biografía de Instagram y Facebook, y la página de LinkedIn de la empresa.
+- Google Maps / perfil de Google de la empresa, y directorios argentinos (Páginas Amarillas, guías del rubro).
+- Priorizá el email del área de MARKETING, prensa o comunicación; si no, el general (info@, contacto@, ventas@, marketing@).
+REGLAS IMPORTANTES SOBRE EL EMAIL:
+- NUNCA devuelvas "email protected", "[email protected]" ni direcciones ocultas/ofuscadas. Si solo encontrás eso, tratá el email como vacío ("").
+- Si encontrás el SITIO WEB pero no un email publicado, ofrecé las direcciones más probables para ese dominio (por ejemplo info@dominio, contacto@dominio) y aclaralo en "nota" con "(email probable, a confirmar)".
+REGLAS GENERALES:
 - SOLO empresas con sede en ARGENTINA. Nunca de otros países.
-- Apuntá a al menos ${cantidad} empresas DISTINTAS. Cuantas más reales con email y/o teléfono, mejor.
-- Incluí también, si están disponibles, el sitio web y las redes (Instagram o LinkedIn), pero NO son la prioridad: el foco es email y teléfono.
-- Datos públicos y verificables. Lo que no encuentres, dejalo como "". No inventes emails ni teléfonos.${excludeTxt}
+- Apuntá a al menos ${cantidad} empresas DISTINTAS. Dale prioridad a las que SÍ tengan email y/o teléfono reales.
+- Incluí también, si están, el sitio web y las redes (Instagram o LinkedIn), pero el foco es email y teléfono.
+- Datos públicos y verificables. No inventes datos (salvo los "email probable" del propio dominio, bien aclarados).${excludeTxt}
 Respondé EXCLUSIVAMENTE con un array JSON válido (sin markdown ni texto extra), con esta forma exacta:
 [{"nombre":"","web":"","telefono":"","email":"","redes":"","nota":""}]
-En "nota" poné una frase corta de por qué le puede servir publicidad en vía pública.`;
+En "nota" poné una frase corta de por qué le puede servir publicidad en vía pública (y aclaraciones del email si corresponde).`;
   const res = await fetch("/api/anthropic", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -383,6 +389,33 @@ const dedupeEmpresas = (arr) => {
   for (const e of arr) { const k = (e.nombre || "").trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); out.push(e); } }
   return out;
 };
+
+// Búsqueda DEDICADA y a fondo de los datos de contacto de UNA empresa puntual.
+async function fetchContacto({ nombre, web = "" }) {
+  const prompt = `Necesito los DATOS DE CONTACTO de esta empresa argentina puntual: "${nombre}"${web ? ` (sitio: ${web})` : ""}.
+Buscá a fondo en la web (sitio oficial: secciones Contacto/Contactanos y el pie de página; bio de Instagram y Facebook; LinkedIn; Google Maps; directorios argentinos).
+Quiero, sobre todo:
+- EMAIL de contacto (preferí marketing@, prensa@, comunicacion@; si no, info@, contacto@, ventas@).
+- TELÉFONO de contacto (formato argentino).
+REGLAS:
+- NUNCA devuelvas "email protected" ni direcciones ofuscadas; si solo ves eso, dejá el email vacío.
+- Si encontrás el dominio del sitio pero no un email publicado, ofrecé el más probable (info@dominio o contacto@dominio) y aclaralo en "nota" como "(probable, a confirmar)".
+- No inventes datos (salvo el email probable del propio dominio, aclarado).
+Respondé EXCLUSIVAMENTE con un objeto JSON válido (sin markdown ni texto extra), con esta forma exacta:
+{"email":"","telefono":"","web":"","redes":"","nota":""}`;
+  const res = await fetch("/api/anthropic", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: AI_MODEL, max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 12 }],
+    }),
+  });
+  const j = await res.json();
+  const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  const arr = parseLooseJson(text);
+  return Array.isArray(arr) ? (arr[0] || {}) : (arr || {});
+}
 
 const ESTADOS = ["Prospecto", "Contactado", "Interesado", "En negociación", "Cliente activo", "Sin respuesta"];
 const estadoClass = (e) => ({
@@ -683,7 +716,7 @@ function Dashboard({ data, update, go }) {
     <>
       <div className="greeting">
         <div>
-          <div className="greeting-hi">{saludo} 👋</div>
+          <div className="greeting-hi">{saludo}, Mónica 👋</div>
           <div className="greeting-date">{fechaLarga}</div>
         </div>
       </div>
@@ -1611,6 +1644,28 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
   const [saved, setSaved] = useState({});
   const [showManual, setShowManual] = useState(false);
   const [draft, setDraft] = useState({ empresa: "", web: "", telefono: "", email: "", red: "" });
+  const [buscandoC, setBuscandoC] = useState({});
+
+  const buscarContacto = async (i) => {
+    const e = resultados[i];
+    setBuscandoC((s) => ({ ...s, [i]: true })); setError("");
+    try {
+      const c = await fetchContacto({ nombre: e.nombre, web: e.web });
+      addUsage && addUsage(COSTO_BUSQUEDA);
+      const emailOk = c.email && !/protected|\[email/i.test(c.email);
+      setResultados((rs) => rs.map((x, idx) => idx === i ? {
+        ...x,
+        email: emailOk ? c.email : x.email,
+        telefono: c.telefono || x.telefono,
+        web: x.web || c.web,
+        redes: x.redes || c.redes,
+        nota: c.nota ? (x.nota ? x.nota + " · " + c.nota : c.nota) : x.nota,
+      } : x));
+    } catch {
+      setError("No pude buscar el contacto ahora. Reintentá en unos segundos.");
+    }
+    setBuscandoC((s) => ({ ...s, [i]: false }));
+  };
 
   const savedCount = Object.keys(saved).length;
 
@@ -1736,6 +1791,9 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
                     {e.redes && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.redes}</div>}
                     {!e.telefono && !e.email && !e.web && <div className="cell-sub">Sin datos de contacto públicos encontrados.</div>}
                   </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => buscarContacto(i)} disabled={buscandoC[i]} style={{ alignSelf: "flex-start" }}>
+                    {buscandoC[i] ? <><span className="spinner sm" /> Buscando contacto…</> : <><Sparkles size={15} /> Buscar mail y teléfono</>}
+                  </button>
                   <div className="rowactions" style={{ marginTop: "auto" }}>
                     {tel && <a className="btn btn-icon ico-wa" href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"><MessageCircle size={18} /></a>}
                     {e.telefono && <a className="btn btn-icon ico-call" href={`tel:${e.telefono}`}><Phone size={18} /></a>}
