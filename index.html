@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Vía Pública — Asistente Comercial</title>
+<meta name="theme-color" content="#15233b" /><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="manifest" href="data:application/json,%7B%22name%22%3A%22V%C3%ADa%20P%C3%BAblica%20%E2%80%94%20Asistente%20Comercial%22%2C%22short_name%22%3A%22V%C3%ADa%20P%C3%BAblica%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b1422%22%2C%22theme_color%22%3A%22%2315233b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%253E%253Crect%20width%3D'512'%20height%3D'512'%20rx%3D'112'%20fill%3D'%2523e8590c'%2F%253E%253Crect%20x%3D'126'%20y%3D'150'%20width%3D'260'%20height%3D'150'%20rx%3D'20'%20fill%3D'white'%2F%253E%253Crect%20x%3D'244'%20y%3D'300'%20width%3D'24'%20height%3D'96'%20fill%3D'white'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
+<meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-title" content="Vía Pública" />
+<style>html,body{margin:0;padding:0;background:#f4f1ea;}#boot{position:fixed;inset:0;display:grid;place-items:center;background:#0b1422;color:#9fb0cc;font-family:system-ui,sans-serif;z-index:1;}</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+</head><body>
+<div id="root"></div><div id="boot">Cargando…</div>
+<script type="text/babel" data-type="module" data-presets="react">
+import React, { useState, useEffect, useMemo, useRef } from "https://esm.sh/react@18.2.0";
+import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+import { LayoutDashboard, Users, BellRing, LayoutPanelTop, MapPin, FileText, Search, Sparkles, Plus, Pencil, Phone, Mail, MessageCircle, History, X, Trash2, Star, ExternalLink, Printer, ChevronRight, CheckCircle2, AlertTriangle, AlertCircle, Calendar, Menu, ClipboardList, Building2, Download, Upload, ShieldCheck } from "https://esm.sh/lucide-react@0.383.0?deps=react@18.2.0";
+if (!window.storage) { window.storage = { get: async (k) => { const v = localStorage.getItem(k); return v ? { value: v } : null; }, set: async (k, v) => { try { localStorage.setItem(k, v); } catch (e) { alert("El teléfono se quedó sin espacio (suele pasar por muchas fotos). Quitá algunas. Tus datos anteriores siguen guardados."); throw e; } return { value: v }; } }; }
+
+/* ====================== ESTILOS ====================== */
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root{
+  --ink:#15233b; --ink2:#33425c; --muted:#6b7790;
+  --bg:#f4f1ea; --panel:#ffffff; --line:#e6e1d6;
+  --accent:#e8590c; --accent-d:#c54708;
+  --green:#1f9d57; --amber:#d98a00; --red:#dc2f3c; --blue:#2563c9;
+  --green-bg:#e6f5ec; --amber-bg:#fbf1da; --red-bg:#fce8ea; --blue-bg:#e7effb;
+  --shadow:0 1px 2px rgba(21,35,59,.06),0 8px 24px rgba(21,35,59,.07);
+}
+.app, .app *{ font-family:'Plus Jakarta Sans',system-ui,sans-serif; }
+.app{ display:flex; min-height:100vh; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
+h1,h2,h3,.brand{ font-family:'Bricolage Grotesque',sans-serif; letter-spacing:-.01em; }
+
+/* ---- Sidebar ---- */
+.sidebar{ width:264px; background:linear-gradient(180deg,#1b2d4b 0%,#0e1a2f 100%); color:#fff; padding:20px 14px 16px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; flex-shrink:0; overflow:hidden; }
+.sidebar::before{ content:""; position:absolute; top:-90px; left:-50px; width:240px; height:240px; background:radial-gradient(circle,rgba(232,89,12,.3),transparent 70%); pointer-events:none; }
+.brand{ display:flex; align-items:center; gap:13px; padding:6px 8px 18px; position:relative; }
+.brand-mark{ width:46px; height:46px; border-radius:14px; background:linear-gradient(145deg,#f2711c,#c54708); display:grid; place-items:center; color:#fff; flex-shrink:0; box-shadow:0 8px 22px rgba(232,89,12,.5),inset 0 1px 0 rgba(255,255,255,.25); }
+.brand-name{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:20px; line-height:1.05; color:#fff; }
+.brand-sub{ font-size:11px; font-weight:600; color:#9fb0cc; letter-spacing:.05em; text-transform:uppercase; display:flex; align-items:center; gap:6px; margin-top:4px; }
+.live-dot{ width:7px; height:7px; border-radius:50%; background:#2ee06a; animation:livepulse 2s infinite; }
+@keyframes livepulse{ 0%{ box-shadow:0 0 0 0 rgba(46,224,106,.5) } 70%{ box-shadow:0 0 0 7px rgba(46,224,106,0) } 100%{ box-shadow:0 0 0 0 rgba(46,224,106,0) } }
+.navwrap{ display:flex; flex-direction:column; gap:5px; flex:1; overflow-y:auto; position:relative; }
+.navbtn{ display:flex; align-items:center; gap:14px; width:100%; border:0; background:transparent; color:#c4cfe0; font-size:16px; font-weight:600; padding:13px 14px; border-radius:12px; cursor:pointer; text-align:left; transition:.18s; position:relative; }
+.navbtn:hover{ background:rgba(255,255,255,.07); color:#fff; }
+.navbtn.active{ background:linear-gradient(90deg,rgba(232,89,12,.96),rgba(197,71,8,.96)); color:#fff; box-shadow:0 8px 20px rgba(232,89,12,.42); }
+.navbtn.active::before{ content:""; position:absolute; left:-14px; top:50%; transform:translateY(-50%); width:4px; height:22px; border-radius:0 4px 4px 0; background:#fff; }
+.navbtn svg{ flex-shrink:0; }
+.sidefoot{ margin-top:12px; padding:14px 10px 2px; border-top:1px solid rgba(255,255,255,.08); }
+.ai-badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#ffd24a; background:rgba(255,210,74,.1); padding:6px 11px; border-radius:999px; }
+.sidefoot-ver{ font-size:11px; color:#6f82a5; margin-top:10px; font-weight:500; }
+.budget-lbl{ font-size:12px; font-weight:700; color:#c4cfe0; display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.budget-bar{ height:7px; border-radius:999px; background:rgba(255,255,255,.14); overflow:hidden; }
+.budget-bar span{ display:block; height:100%; border-radius:999px; transition:width .3s ease; }
+.budget-num{ font-size:13px; font-weight:800; color:#fff; margin-top:7px; }
+.budget-panel{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; justify-content:space-between; margin-top:14px; padding:14px 16px; border:1.5px dashed var(--line); border-radius:14px; background:#faf8f3; }
+
+/* ---- Splash ---- */
+.splash{ position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:radial-gradient(circle at 50% 34%,#1b2c49,#0b1422 72%); overflow:hidden; transition:opacity .6s ease,transform .6s ease; }
+.splash.leaving{ opacity:0; transform:scale(1.05); pointer-events:none; }
+.splash-bg{ position:absolute; inset:-2px; background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px); background-size:46px 46px; -webkit-mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%); mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%); animation:gridmove 16s linear infinite; }
+@keyframes gridmove{ to{ background-position:46px 46px; } }
+.splash-inner{ position:relative; text-align:center; animation:splashUp .8s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes splashUp{ from{ opacity:0; transform:translateY(16px) } to{ opacity:1; transform:none } }
+.splash-mark{ width:90px; height:90px; margin:0 auto 24px; border-radius:26px; display:grid; place-items:center; color:#fff; background:linear-gradient(145deg,#f2711c,#c54708); box-shadow:0 0 0 1px rgba(255,255,255,.12),0 18px 55px rgba(232,89,12,.55); position:relative; animation:markfloat 2.6s ease-in-out infinite; }
+.splash-mark::after{ content:""; position:absolute; inset:-12px; border-radius:34px; border:1.5px solid rgba(242,113,28,.45); animation:ring 2.6s ease-out infinite; }
+@keyframes markfloat{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-7px) } }
+@keyframes ring{ 0%{ transform:scale(.8); opacity:.6 } 100%{ transform:scale(1.45); opacity:0 } }
+.splash-title{ font-family:'Bricolage Grotesque',sans-serif; font-size:34px; font-weight:800; letter-spacing:.16em; background:linear-gradient(90deg,#fff,#9fb0cc); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.splash-sub{ font-size:14px; color:#9fb0cc; font-weight:600; letter-spacing:.24em; text-transform:uppercase; margin-top:9px; }
+.splash-bar{ width:210px; height:5px; border-radius:999px; background:rgba(255,255,255,.12); margin:36px auto 14px; overflow:hidden; }
+.splash-bar span{ display:block; height:100%; width:40%; border-radius:999px; background:linear-gradient(90deg,#f2711c,#ffb47a); animation:loadbar 1.6s ease-in-out infinite; }
+@keyframes loadbar{ 0%{ transform:translateX(-130%) } 100%{ transform:translateX(380%) } }
+.splash-load{ font-size:13px; color:#6f82a5; font-weight:600; letter-spacing:.04em; }
+.app{ animation:appfade .5s ease both; }
+@keyframes appfade{ from{ opacity:0 } to{ opacity:1 } }
+.content{ animation:screenIn .34s ease both; }
+@keyframes screenIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+
+/* ---- Main ---- */
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{ display:flex; align-items:center; gap:14px; padding:20px 30px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
+.topbar h1{ font-size:24px; font-weight:800; }
+.topbar .sub{ font-size:14px; color:var(--muted); font-weight:500; }
+.content{ padding:28px 30px 60px; max-width:1280px; width:100%; }
+.hamb{ display:none; background:var(--ink); color:#fff; border:0; width:46px; height:46px; border-radius:12px; cursor:pointer; }
+
+/* ---- Cards / grid ---- */
+.grid{ display:grid; gap:18px; }
+.cols-3{ grid-template-columns:repeat(3,1fr); }
+.cols-4{ grid-template-columns:repeat(4,1fr); }
+.cols-2{ grid-template-columns:repeat(2,1fr); }
+.card{ background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:var(--shadow); }
+.stat{ display:flex; flex-direction:column; gap:6px; }
+.stat .lbl{ font-size:14px; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:8px; }
+.stat .val{ font-size:40px; font-weight:800; font-family:'Bricolage Grotesque'; line-height:1; }
+.stat .hint{ font-size:13px; font-weight:600; }
+
+.section-title{ font-size:20px; font-weight:800; margin:30px 0 14px; display:flex; align-items:center; gap:10px; }
+.section-title:first-child{ margin-top:0; }
+
+/* ---- Status chips ---- */
+.chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px; font-size:13px; font-weight:700; white-space:nowrap; }
+.dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+.s-green{ background:var(--green-bg); color:var(--green); }
+.s-amber{ background:var(--amber-bg); color:var(--amber); }
+.s-red{ background:var(--red-bg); color:var(--red); }
+.s-blue{ background:var(--blue-bg); color:var(--blue); }
+.s-gray{ background:#eef0f4; color:var(--ink2); }
+
+/* ---- Buttons ---- */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:9px; border:0; border-radius:12px; font-size:15px; font-weight:700; padding:12px 18px; cursor:pointer; transition:.15s; font-family:'Plus Jakarta Sans'; }
+.btn:hover{ transform:translateY(-1px); }
+.btn-primary{ background:var(--accent); color:#fff; box-shadow:0 6px 16px rgba(232,89,12,.3); }
+.btn-primary:hover{ background:var(--accent-d); }
+.btn-ghost{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+.btn-ghost:hover{ border-color:var(--ink2); }
+.btn-sm{ padding:9px 12px; font-size:14px; border-radius:10px; }
+.btn-icon{ width:42px; height:42px; padding:0; border-radius:11px; }
+.ico-wa{ background:#25d366; color:#fff; }
+.ico-call{ background:var(--blue); color:#fff; }
+.ico-mail{ background:var(--ink2); color:#fff; }
+.ico-hist{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+.ico-edit{ background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+a.btn{ text-decoration:none; }
+
+/* ---- Toolbar ---- */
+.toolbar{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+.searchbox{ flex:1; min-width:220px; display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--line); border-radius:13px; padding:12px 15px; }
+.searchbox input{ border:0; outline:0; font-size:16px; width:100%; background:transparent; color:var(--ink); }
+.select{ background:#fff; border:1.5px solid var(--line); border-radius:13px; padding:12px 15px; font-size:15px; font-weight:600; color:var(--ink); cursor:pointer; outline:0; }
+
+/* ---- Table ---- */
+.tablewrap{ background:var(--panel); border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+table{ width:100%; border-collapse:collapse; }
+th{ text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; padding:14px 16px; background:#faf8f3; border-bottom:1px solid var(--line); }
+td{ padding:14px 16px; border-bottom:1px solid var(--line); font-size:15px; vertical-align:middle; }
+tr:last-child td{ border-bottom:0; }
+tr:hover td{ background:#fcfbf8; }
+.cell-strong{ font-weight:700; font-size:16px; }
+.cell-sub{ font-size:13px; color:var(--muted); }
+.rowactions{ display:flex; gap:7px; }
+
+/* ---- Modal ---- */
+.overlay{ position:fixed; inset:0; background:rgba(21,35,59,.45); backdrop-filter:blur(3px); display:grid; place-items:center; z-index:100; padding:20px; }
+.modal{ background:#fff; border-radius:20px; width:100%; max-width:560px; max-height:90vh; overflow:auto; box-shadow:0 30px 70px rgba(21,35,59,.3); }
+.modal.wide{ max-width:860px; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:22px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:2; }
+.modal-head h2{ font-size:21px; font-weight:800; }
+.modal-body{ padding:24px; }
+.modal-foot{ display:flex; gap:12px; justify-content:flex-end; padding:18px 24px; border-top:1px solid var(--line); position:sticky; bottom:0; background:#fff; }
+.iconclose{ background:#f1efe9; border:0; width:40px; height:40px; border-radius:11px; cursor:pointer; display:grid; place-items:center; color:var(--ink2); }
+
+/* ---- Forms ---- */
+.field{ display:flex; flex-direction:column; gap:7px; margin-bottom:16px; }
+.field label{ font-size:14px; font-weight:700; color:var(--ink2); }
+.field input, .field select, .field textarea{ font-size:16px; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; outline:0; font-family:'Plus Jakarta Sans'; color:var(--ink); width:100%; }
+.field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--accent); }
+.field textarea{ resize:vertical; min-height:80px; }
+.form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+
+/* ---- Misc ---- */
+.empty{ text-align:center; padding:50px 20px; color:var(--muted); }
+.empty svg{ opacity:.4; margin-bottom:12px; }
+.alert{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px; margin-bottom:12px; font-weight:600; }
+.alert.r{ background:var(--red-bg); color:#9c1f29; }
+.alert.a{ background:var(--amber-bg); color:#8a5a00; }
+.todo-item{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); }
+.todo-item:last-child{ border-bottom:0; }
+.todo-dot{ width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+
+/* ---- Billboard cards ---- */
+.bb-card{ background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; }
+.bb-photo{ height:160px; background:#e9e4d8 center/cover; position:relative; display:grid; place-items:center; color:#b3ab98; }
+.bb-photo .bb-tags{ position:absolute; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; gap:6px; flex-wrap:wrap; }
+.bb-photo .premium{ background:#15233b; color:#ffd24a; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:800; display:flex; gap:5px; align-items:center; white-space:nowrap; }
+.bb-body{ padding:16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+.bb-body h3{ font-size:18px; font-weight:800; }
+.bb-meta{ font-size:14px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.bb-price{ font-size:22px; font-weight:800; font-family:'Bricolage Grotesque'; color:var(--ink); margin-top:auto; }
+
+/* ---- Map ---- */
+.map{ position:relative; height:520px; border-radius:18px; border:1px solid var(--line); overflow:hidden;
+  background:
+    linear-gradient(rgba(21,35,59,.05) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg, rgba(21,35,59,.05) 1px, transparent 1px) 0 0/40px 40px,
+    radial-gradient(circle at 30% 20%, #e9f1ea, transparent 60%),
+    radial-gradient(circle at 80% 80%, #eef2fb, transparent 55%),
+    #f6f4ee; box-shadow:var(--shadow); }
+.pin{ position:absolute; transform:translate(-50%,-100%); cursor:pointer; transition:.15s; }
+.pin:hover{ transform:translate(-50%,-100%) scale(1.18); z-index:5; }
+.pin .head{ width:30px; height:30px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); box-shadow:0 4px 10px rgba(0,0,0,.25); border:2.5px solid #fff; }
+.map-pop{ position:absolute; bottom:18px; left:18px; right:18px; max-width:380px; background:#fff; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.2); overflow:hidden; }
+.legend{ position:absolute; top:14px; right:14px; background:rgba(255,255,255,.92); border-radius:12px; padding:10px 14px; display:flex; flex-direction:column; gap:7px; font-size:13px; font-weight:700; box-shadow:var(--shadow); }
+.legend span{ display:flex; align-items:center; gap:8px; }
+
+/* ---- Assistant ---- */
+.chat{ display:flex; flex-direction:column; gap:14px; max-width:760px; }
+.suggestions{ display:flex; flex-wrap:wrap; gap:10px; }
+.sug{ background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; }
+.sug:hover{ border-color:var(--accent); color:var(--accent); }
+.bubble{ padding:16px 18px; border-radius:16px; font-size:15px; line-height:1.55; max-width:90%; }
+.bubble.user{ background:var(--ink); color:#fff; align-self:flex-end; border-bottom-right-radius:5px; }
+.bubble.bot{ background:#fff; border:1px solid var(--line); align-self:flex-start; border-bottom-left-radius:5px; box-shadow:var(--shadow); }
+.bubble.bot ul{ margin:8px 0 0 2px; list-style:none; display:flex; flex-direction:column; gap:8px; }
+.bubble.bot li{ padding:9px 12px; background:#faf8f3; border-radius:10px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.ans-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; background:#faf8f3; border:1px solid var(--line); border-radius:12px; }
+.askbar{ display:flex; gap:10px; margin-top:6px; }
+.askbar input{ flex:1; font-size:16px; padding:14px 16px; border:1.5px solid var(--line); border-radius:14px; outline:0; }
+.askbar input:focus{ border-color:var(--accent); }
+
+/* ---- Proposal print ---- */
+.prop-pick{ display:flex; align-items:center; gap:12px; padding:12px; border:1.5px solid var(--line); border-radius:12px; cursor:pointer; }
+.prop-pick.on{ border-color:var(--accent); background:#fff6f0; }
+.prop-pick input{ width:20px; height:20px; accent-color:var(--accent); }
+.print-area{ display:none; }
+
+/* ---- Leaflet map (tech) ---- */
+.leaf-map{ height:540px; width:100%; border-radius:18px; box-shadow:var(--shadow); background:#0b1422; }
+.leaflet-container{ font-family:'Plus Jakarta Sans',sans-serif; background:#0b1422 !important; border-radius:18px; }
+.mapwrap.neon .leaflet-tile-pane{ filter:invert(1) hue-rotate(190deg) brightness(.95) contrast(1.05) saturate(.9); }
+.mapwrap.neon .leaf-map{ box-shadow:0 0 0 1px #1d2c47, 0 14px 40px rgba(0,0,0,.35); }
+.leaf-pin{ position:relative; width:28px; height:28px; }
+.leaf-dot{ position:absolute; inset:8px; border-radius:50%; background:var(--c); border:2px solid #fff; box-shadow:0 0 12px var(--c),0 0 5px var(--c); }
+.leaf-pulse{ position:absolute; inset:6px; border-radius:50%; background:var(--c); opacity:.5; animation:pulse 1.9s ease-out infinite; }
+@keyframes pulse{ 0%{ transform:scale(.5); opacity:.55 } 100%{ transform:scale(1.9); opacity:0 } }
+.tech-pop .leaflet-popup-content-wrapper{ background:#101a2c; border:1px solid #28406a; border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.5); padding:0; overflow:hidden; }
+.tech-pop .leaflet-popup-content{ margin:0; }
+.tech-pop .leaflet-popup-tip{ background:#101a2c; border:1px solid #28406a; }
+.tech-pop a.leaflet-popup-close-button{ color:#9fb0cc; }
+.addhint{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; z-index:1000; box-shadow:0 6px 18px rgba(232,89,12,.45); }
+
+/* ---- Spinner ---- */
+.spinner{ width:34px; height:34px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto; }
+.spinner.sm{ width:16px; height:16px; border-width:2px; display:inline-block; vertical-align:-3px; margin:0 4px 0 0; border-top-color:#fff; }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+.checkbox{ background:transparent; border:0; cursor:pointer; padding:0; display:grid; place-items:center; }
+.checkbox-empty{ width:20px; height:20px; border:2px solid var(--line); border-radius:6px; display:block; }
+.checkbox:hover .checkbox-empty{ border-color:var(--accent); }
+
+/* ---- Client cards (responsive, sin scroll horizontal) ---- */
+.client-list{ display:flex; flex-direction:column; gap:12px; }
+.client-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.cc-main{ min-width:0; flex:1 1 240px; }
+.cc-name{ font-weight:800; font-size:18px; }
+.cc-sub{ font-size:14px; color:var(--muted); margin-top:2px; }
+.cc-contact{ display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:8px; font-size:14px; color:var(--ink2); font-weight:600; }
+.cc-contact span{ display:inline-flex; align-items:center; gap:6px; }
+.cc-contact svg{ color:var(--muted); }
+.ficha-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #ece7db; font-size:15px; }
+.ficha-row:last-child{ border-bottom:0; }
+.ficha-lbl{ color:var(--muted); font-weight:600; min-width:120px; }
+.ficha-val{ font-weight:600; color:var(--ink); word-break:break-word; }
+.ficha-val.link{ color:var(--blue); text-decoration:none; }
+.cc-meta{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; }
+.cc-date{ font-size:13px; color:var(--ink2); font-weight:600; }
+.cc-actions{ display:flex; gap:7px; flex-wrap:wrap; }
+
+/* ---- Rank list ---- */
+.rank-list{ display:flex; flex-direction:column; gap:10px; }
+.rank-item{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 16px; box-shadow:var(--shadow); display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.rank-num{ font-weight:800; font-size:20px; color:var(--accent); flex-shrink:0; }
+
+/* ---- Anti-overflow global ---- */
+.app, .main, .content{ max-width:100%; }
+.main{ overflow-x:hidden; }
+.select, .searchbox input, .field input, .field select{ min-width:0; }
+
+/* ---- Saludo / ejemplo / toques tech ---- */
+.greeting{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.greeting-hi{ font-family:'Bricolage Grotesque',sans-serif; font-size:26px; font-weight:800; }
+.greeting-date{ font-size:14px; color:var(--muted); font-weight:600; text-transform:capitalize; margin-top:2px; }
+.example-banner{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:linear-gradient(90deg,#fff6ed,#fdf0e2); border:1.5px dashed #e8a55c; color:#8a5a1a; border-radius:14px; padding:14px 18px; margin-bottom:16px; font-size:14px; }
+.ejemplo-chip{ background:#fff4e6; color:#b5650a; border:1px dashed #e8a55c; }
+.bb-ejemplo{ position:absolute; bottom:12px; left:12px; background:#fff4e6; color:#b5650a; border:1px dashed #e8a55c; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800; }
+/* brillo (shine) en botón principal */
+.btn-primary{ position:relative; overflow:hidden; }
+.btn-primary::after{ content:""; position:absolute; top:0; left:-120%; width:60%; height:100%; background:linear-gradient(120deg,transparent,rgba(255,255,255,.45),transparent); transform:skewX(-20deg); transition:left .6s ease; }
+.btn-primary:hover::after{ left:140%; }
+/* realce suave de tarjetas */
+.card, .bb-card, .client-card, .rank-item{ transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.client-card:hover, .bb-card:hover, .rank-item:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(21,35,59,.12); border-color:#d9d2c4; }
+
+@media print{
+  body * { visibility:hidden; }
+  .print-area, .print-area *{ visibility:visible; }
+  .print-area{ display:block !important; position:absolute; left:0; top:0; width:100%; padding:30px; }
+  .app{ background:#fff; }
+}
+
+@media (max-width:980px){
+  .cols-4{ grid-template-columns:repeat(2,1fr); }
+  .cols-3{ grid-template-columns:1fr 1fr; }
+  .cols-2{ grid-template-columns:1fr; }
+  .form-grid{ grid-template-columns:1fr; }
+}
+@media (max-width:760px){
+  .sidebar{ position:fixed; z-index:200; left:0; top:0; transform:translateX(-100%); transition:.25s; }
+  .sidebar.open{ transform:translateX(0); }
+  .hamb{ display:grid; place-items:center; }
+  .cols-4,.cols-3{ grid-template-columns:1fr 1fr; }
+  .content{ padding:20px 16px 60px; }
+  .topbar{ padding:16px; }
+  .scrollx{ overflow-x:auto; }
+  .scrollx table{ min-width:760px; }
+}
+`;
+
+/* ====================== HELPERS ====================== */
+const uid = () => Math.random().toString(36).slice(2, 10);
+const today = () => new Date().toISOString().slice(0, 10);
+const daysSince = (d) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 9999;
+const fmtDate = (d) => d ? new Date(d + "T00:00").toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+const money = (n) => "$" + Number(n || 0).toLocaleString("es-AR");
+const onlyDigits = (s) => (s || "").replace(/\D/g, "");
+const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Migra coordenadas relativas (0..1) del mapa viejo a coordenadas geográficas de Buenos Aires
+function migrateBB(list) {
+  const north = -34.53, south = -34.70, west = -58.53, east = -58.35;
+  return (list || []).map((b) => {
+    let { lat, lng } = b;
+    const isRel = typeof lat !== "number" || typeof lng !== "number" || (Math.abs(lat) <= 1.5 && Math.abs(lng) <= 1.5);
+    if (isRel) {
+      const rl = typeof lat === "number" ? lat : 0.5;
+      const rg = typeof lng === "number" ? lng : 0.5;
+      lat = north - rl * (north - south);
+      lng = west + rg * (east - west);
+    }
+    return { ...b, lat, lng };
+  });
+}
+
+// Parser tolerante: extrae un array JSON aunque venga con texto o esté truncado
+function parseLooseJson(text) {
+  if (!text) return [];
+  const t = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const s = t.indexOf("["), e = t.lastIndexOf("]");
+  if (s >= 0 && e > s) { try { return JSON.parse(t.slice(s, e + 1)); } catch { } }
+  const objs = []; const re = /\{[^{}]*\}/g; let m;
+  while ((m = re.exec(t))) { try { objs.push(JSON.parse(m[0])); } catch { } }
+  return objs;
+}
+
+// Modelo de IA (al publicar, el generador lo cambia a un modelo de la API real)
+const AI_MODEL = "claude-sonnet-4-5";
+// Costo ESTIMADO por uso de IA (en dólares). Son aproximados, para orientar el gasto.
+const COSTO_BUSQUEDA = 0.05;   // "Buscar empresas" / "empresas cerca"
+const COSTO_ASISTENTE = 0.015; // pregunta escrita al asistente
+
+// Búsqueda de empresas reales con IA + búsqueda web. La usan el buscador y el mapa.
+async function fetchEmpresas({ rubro, zona = "", cerca = "", exclude = [], cantidad = 12 }) {
+  const excludeTxt = exclude.length ? `\n- NO repitas estas empresas que ya tengo: ${exclude.slice(0, 80).join(", ")}.` : "";
+  const lugar = cerca
+    ? `ubicadas lo más cerca posible de "${cerca}" (Argentina)`
+    : `ubicadas en ${zona || "CABA y Provincia de Buenos Aires"}, Argentina`;
+  const prompt = `Buscá en la web la MAYOR cantidad posible de empresas REALES y ACTUALES del rubro "${rubro}" ${lugar}, que sean buenos candidatos para contratar publicidad en vía pública (carteles, pantallas LED, medianeras).
+LO MÁS IMPORTANTE: para cada empresa, esforzate al máximo por conseguir el EMAIL DE CONTACTO y el TELÉFONO. Son los datos más valiosos.
+- Priorizá el email del área de MARKETING, prensa o comunicación si existe; si no, usá el email general de contacto (por ejemplo info@, contacto@, ventas@, marketing@).
+- Buscá el teléfono comercial / de contacto (formato argentino).
+REGLAS OBLIGATORIAS:
+- SOLO empresas con sede en ARGENTINA. Nunca de otros países.
+- Apuntá a al menos ${cantidad} empresas DISTINTAS. Cuantas más reales con email y/o teléfono, mejor.
+- Incluí también, si están disponibles, el sitio web y las redes (Instagram o LinkedIn), pero NO son la prioridad: el foco es email y teléfono.
+- Datos públicos y verificables. Lo que no encuentres, dejalo como "". No inventes emails ni teléfonos.${excludeTxt}
+Respondé EXCLUSIVAMENTE con un array JSON válido (sin markdown ni texto extra), con esta forma exacta:
+[{"nombre":"","web":"","telefono":"","email":"","redes":"","nota":""}]
+En "nota" poné una frase corta de por qué le puede servir publicidad en vía pública.`;
+  const res = await fetch("/.netlify/functions/anthropic", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: AI_MODEL, max_tokens: 2200,
+      messages: [{ role: "user", content: prompt }],
+      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+    }),
+  });
+  const j = await res.json();
+  const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  return parseLooseJson(text).filter((x) => x && x.nombre);
+}
+const dedupeEmpresas = (arr) => {
+  const seen = new Set(); const out = [];
+  for (const e of arr) { const k = (e.nombre || "").trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); out.push(e); } }
+  return out;
+};
+
+const ESTADOS = ["Prospecto", "Contactado", "Interesado", "En negociación", "Cliente activo", "Sin respuesta"];
+const estadoClass = (e) => ({
+  "Prospecto": "s-gray", "Contactado": "s-blue", "Interesado": "s-amber",
+  "En negociación": "s-amber", "Cliente activo": "s-green", "Sin respuesta": "s-red"
+}[e] || "s-gray");
+
+const TIPOS = ["Cartel", "Tótem", "Pantalla LED", "Mupi", "Medianera", "Otro"];
+const BB_ESTADOS = ["Disponible", "Reservado", "Ocupado", "Próximo a liberarse"];
+const bbColor = (e) => ({ "Disponible": "var(--green)", "Reservado": "var(--amber)", "Ocupado": "var(--red)", "Próximo a liberarse": "var(--blue)" }[e] || "var(--muted)");
+const bbChip = (e) => ({ "Disponible": "s-green", "Reservado": "s-amber", "Ocupado": "s-red", "Próximo a liberarse": "s-blue" }[e] || "s-gray");
+
+const RUBROS = [
+  "Constructoras", "Desarrolladoras inmobiliarias", "Inmobiliarias", "Concesionarias de autos",
+  "Clínicas y centros médicos", "Odontología y estética", "Prepagas y obras sociales",
+  "Laboratorios y farmacias", "Bancos y financieras", "Aseguradoras",
+  "Universidades e institutos", "Restaurantes y gastronomía", "Supermercados y mayoristas",
+  "Shoppings y retail", "Indumentaria y calzado", "Gimnasios y wellness",
+  "Agencias de marketing y publicidad", "Estudios jurídicos", "Turismo y hoteles",
+  "Telecomunicaciones e internet", "Electrodomésticos y tecnología", "Casinos y entretenimiento",
+  "Empresas de eventos", "Logística y transporte", "Mutuales y cooperativas",
+  "Franquicias", "Bodegas y bebidas", "Repuestos y automotores",
+  "Educación y cursos", "Veterinarias y pet shops"
+];
+
+/* ====================== SEED DATA (solo ejemplos, borrables) ====================== */
+const SEED = {
+  clients: [
+    { id: uid(), ejemplo: true, empresa: "Constructora Ejemplo S.A.", contacto: "María Gómez", cargo: "Gerente de Marketing", telefono: "+5491100000000", whatsapp: "+5491100000000", email: "contacto@ejemplo.com", rubro: "Constructoras", estado: "En negociación", ultimoContacto: daysAgo(18), historial: [{ fecha: daysAgo(18), tipo: "Llamada", nota: "Cliente de ejemplo: pidió una propuesta de carteles." }] },
+  ],
+  billboards: [
+    { id: uid(), ejemplo: true, nombre: "Cartel de ejemplo (Obelisco)", ubicacion: "Av. 9 de Julio y Corrientes, CABA", tipo: "Pantalla LED", medidas: "8 x 4 m", foto: "", estado: "Disponible", precio: 850000, premium: true, lat: -34.6037, lng: -58.3816, obs: "Espacio de ejemplo. Editalo o borralo cuando quieras." },
+  ],
+  meetings: [
+    { id: uid(), ejemplo: true, titulo: "Reunión de ejemplo con Constructora Ejemplo", fecha: today(), nota: "" },
+  ],
+  tasks: [
+    { id: uid(), ejemplo: true, titulo: "Tarea de ejemplo: llamar a un cliente", tipo: "Llamada", done: false },
+  ],
+};
+function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+
+/* ====================== APP ====================== */
+const KEY = "pvp_data_v4";
+
+function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [data, setData] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [sideOpen, setSideOpen] = useState(false);
+  const [minTime, setMinTime] = useState(false);
+  const [hideSplash, setHideSplash] = useState(false);
+
+  /* pantalla de carga: mínimo de tiempo visible */
+  useEffect(() => { const t = setTimeout(() => setMinTime(true), 2400); return () => clearTimeout(t); }, []);
+
+  /* load */
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get(KEY);
+        const d = r && r.value ? JSON.parse(r.value) : SEED;
+        d.billboards = migrateBB(d.billboards);
+        if (!d.meetings) d.meetings = [];
+        if (!d.tasks) d.tasks = [];
+        if (typeof d.budget !== "number") d.budget = 5;
+        const mes = new Date().toISOString().slice(0, 7);
+        if (!d.usage || d.usage.month !== mes) d.usage = { month: mes, gasto: 0, busquedas: 0 };
+        setData(d);
+      } catch { setData(SEED); }
+      setLoaded(true);
+    })();
+  }, []);
+
+  /* save (debounced) */
+  const saveT = useRef(null);
+  useEffect(() => {
+    if (!loaded || !data) return;
+    clearTimeout(saveT.current);
+    saveT.current = setTimeout(() => {
+      window.storage.set(KEY, JSON.stringify(data)).catch(() => {});
+    }, 300);
+  }, [data, loaded]);
+
+  const update = (patch) => setData((d) => ({ ...d, ...patch }));
+  const addUsage = (cost) => setData((d) => {
+    const mes = new Date().toISOString().slice(0, 7);
+    const u = d.usage && d.usage.month === mes ? d.usage : { month: mes, gasto: 0, busquedas: 0 };
+    return { ...d, usage: { month: mes, gasto: +(u.gasto + cost).toFixed(4), busquedas: u.busquedas + 1 } };
+  });
+
+  const booting = !(loaded && data && minTime);
+  useEffect(() => {
+    if (!booting && !hideSplash) { const t = setTimeout(() => setHideSplash(true), 700); return () => clearTimeout(t); }
+  }, [booting, hideSplash]);
+
+  const NAV = [
+    { id: "dashboard", label: "Inicio", icon: LayoutDashboard },
+    { id: "clientes", label: "Clientes", icon: Users },
+    { id: "seguimiento", label: "Seguimiento", icon: BellRing },
+    { id: "inventario", label: "Carteles", icon: LayoutPanelTop },
+    { id: "mapa", label: "Mapa", icon: MapPin },
+    { id: "propuestas", label: "Propuestas", icon: FileText },
+    { id: "prospectar", label: "Buscar empresas", icon: Search },
+    { id: "mails", label: "Enviar mails", icon: Mail },
+    { id: "asistente", label: "Asistente", icon: Sparkles },
+  ];
+  const titles = {
+    dashboard: ["Inicio", "Tu resumen del día"],
+    clientes: ["Clientes", "Tu cartera de contactos"],
+    seguimiento: ["Seguimiento comercial", "No pierdas ningún cliente"],
+    inventario: ["Inventario de carteles", "Tus espacios publicitarios"],
+    mapa: ["Mapa de ubicaciones", "Dónde está cada cartel"],
+    propuestas: ["Propuestas comerciales", "Armá y exportá propuestas"],
+    prospectar: ["Buscar empresas", "Encontrá nuevos anunciantes"],
+    mails: ["Enviar mails", "Escribí a varios prospectos a la vez"],
+    asistente: ["Asistente", "Preguntá sobre tu información"],
+  };
+
+  return (
+    <>
+      <style>{CSS}</style>
+      {!hideSplash && <Splash leaving={!booting} />}
+      {data && (
+        <div className="app">
+          <aside className={"sidebar" + (sideOpen ? " open" : "")}>
+            <div className="brand">
+              <span className="brand-mark"><LayoutPanelTop size={24} /></span>
+              <div>
+                <div className="brand-name">Vía Pública</div>
+                <div className="brand-sub"><span className="live-dot" /> Asistente comercial</div>
+              </div>
+            </div>
+            <div className="navwrap">
+              {NAV.map((n) => (
+                <button key={n.id} className={"navbtn" + (tab === n.id ? " active" : "")}
+                  onClick={() => { setTab(n.id); setSideOpen(false); }}>
+                  <n.icon size={21} /> {n.label}
+                </button>
+              ))}
+            </div>
+            <div className="sidefoot">
+              {(() => {
+                const restante = Math.max(0, (data.budget || 0) - (data.usage?.gasto || 0));
+                const pct = data.budget ? Math.min(100, ((data.usage?.gasto || 0) / data.budget) * 100) : 0;
+                const low = restante <= (data.budget || 0) * 0.15;
+                return (
+                  <>
+                    <div className="budget-lbl"><Sparkles size={13} /> Crédito IA estimado (mes)</div>
+                    <div className="budget-bar"><span style={{ width: pct + "%", background: low ? "var(--red)" : "var(--accent)" }} /></div>
+                    <div className="budget-num" style={low ? { color: "#ffb1b1" } : {}}>
+                      US$ {restante.toFixed(2)} de US$ {(data.budget || 0).toFixed(2)}</div>
+                  </>
+                );
+              })()}
+              <div className="sidefoot-ver">Valor estimado · {data.usage?.busquedas || 0} búsquedas este mes</div>
+            </div>
+          </aside>
+
+          <div className="main">
+            <div className="topbar">
+              <button className="hamb" onClick={() => setSideOpen((s) => !s)}><Menu size={22} /></button>
+              <div>
+                <h1>{titles[tab][0]}</h1>
+                <div className="sub">{titles[tab][1]}</div>
+              </div>
+            </div>
+            <div className="content" key={tab}>
+              {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
+              {tab === "clientes" && <Clientes data={data} update={update} />}
+              {tab === "seguimiento" && <Seguimiento data={data} update={update} />}
+              {tab === "inventario" && <Inventario data={data} update={update} />}
+              {tab === "mapa" && <Mapa data={data} update={update} go={setTab} addUsage={addUsage} />}
+              {tab === "propuestas" && <Propuestas data={data} />}
+              {tab === "prospectar" && <Prospectar data={data} update={update} go={setTab} addUsage={addUsage} setBudget={(v) => update({ budget: v })} />}
+              {tab === "mails" && <Mails data={data} />}
+              {tab === "asistente" && <Asistente data={data} addUsage={addUsage} />}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ====================== SPLASH (pantalla de carga) ====================== */
+function Splash({ leaving }) {
+  return (
+    <div className={"splash" + (leaving ? " leaving" : "")}>
+      <div className="splash-bg" />
+      <div className="splash-inner">
+        <div className="splash-mark"><LayoutPanelTop size={42} /></div>
+        <div className="splash-title">VÍA PÚBLICA</div>
+        <div className="splash-sub">Asistente Comercial</div>
+        <div className="splash-bar"><span /></div>
+        <div className="splash-load">Preparando tu espacio de trabajo…</div>
+      </div>
+    </div>
+  );
+}
+
+/* ====================== CONTACT BUTTONS ====================== */
+function ContactBtns({ c, onLog }) {
+  const wa = onlyDigits(c.whatsapp || c.telefono);
+  return (
+    <div className="rowactions">
+      {wa && <a className="btn btn-icon ico-wa" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer"
+        title="WhatsApp" onClick={() => onLog && onLog("WhatsApp")}><MessageCircle size={19} /></a>}
+      {c.telefono && <a className="btn btn-icon ico-call" href={`tel:${c.telefono}`} title="Llamar"
+        onClick={() => onLog && onLog("Llamada")}><Phone size={19} /></a>}
+      {c.email && <a className="btn btn-icon ico-mail" href={`mailto:${c.email}`} title="Email"
+        onClick={() => onLog && onLog("Email")}><Mail size={19} /></a>}
+    </div>
+  );
+}
+
+/* ====================== DASHBOARD ====================== */
+function Dashboard({ data, update, go }) {
+  const { clients, billboards, meetings, tasks } = data;
+  const pendientes = clients.filter((c) => ["Prospecto", "Contactado", "Interesado"].includes(c.estado));
+  const negociacion = clients.filter((c) => c.estado === "En negociación");
+  const premiumDisp = billboards.filter((b) => b.premium && b.estado === "Disponible");
+  const vencidos = clients.filter((c) => daysSince(c.ultimoContacto) > 15 && c.estado !== "Cliente activo");
+  const reunionesHoy = meetings.filter((m) => m.fecha >= today());
+  const tareasPend = tasks.filter((t) => !t.done);
+
+  const semaforo = vencidos.length > 2 ? "r" : (pendientes.length > 0 || vencidos.length > 0) ? "a" : "g";
+  const Stat = ({ icon: I, lbl, val, color, hint }) => (
+    <div className="card stat">
+      <div className="lbl"><I size={18} /> {lbl}</div>
+      <div className="val" style={{ color }}>{val}</div>
+      {hint && <div className="hint" style={{ color }}>{hint}</div>}
+    </div>
+  );
+
+  // tareas recomendadas automáticas
+  const reco = [];
+  vencidos.slice(0, 3).forEach((c) => reco.push({ t: `Llamar a ${c.empresa} (hace ${daysSince(c.ultimoContacto)} días)`, c: "var(--red)" }));
+  negociacion.slice(0, 2).forEach((c) => reco.push({ t: `Enviar propuesta a ${c.empresa}`, c: "var(--amber)" }));
+  premiumDisp.slice(0, 2).forEach((b) => reco.push({ t: `Ofrecer cartel premium disponible: ${b.nombre}`, c: "var(--green)" }));
+  if (!reco.length) reco.push({ t: "Todo al día. Buen momento para prospectar nuevas empresas.", c: "var(--green)" });
+
+  const [mtTitle, setMtTitle] = useState(""); const [mtDate, setMtDate] = useState(today());
+  const addMeeting = () => {
+    if (!mtTitle.trim()) return;
+    update({ meetings: [...meetings, { id: uid(), titulo: mtTitle, fecha: mtDate, nota: "" }] });
+    setMtTitle("");
+  };
+  const [tkTitle, setTkTitle] = useState(""); const [tkTipo, setTkTipo] = useState("Tarea");
+  const addTask = () => {
+    if (!tkTitle.trim()) return;
+    update({ tasks: [...tasks, { id: uid(), titulo: tkTitle, tipo: tkTipo, done: false }] });
+    setTkTitle("");
+  };
+  const toggleTask = (id) => update({ tasks: tasks.map((t) => t.id === id ? { ...t, done: !t.done } : t) });
+  const delTask = (id) => update({ tasks: tasks.filter((t) => t.id !== id) });
+
+  const hasExamples = [...clients, ...billboards, ...meetings, ...tasks].some((x) => x.ejemplo);
+  const clearExamples = () => {
+    if (!confirm("¿Borrar los datos de ejemplo? Esto deja la app vacía para empezar a cargar datos reales.")) return;
+    update({
+      clients: clients.filter((c) => !c.ejemplo),
+      billboards: billboards.filter((b) => !b.ejemplo),
+      meetings: meetings.filter((m) => !m.ejemplo),
+      tasks: tasks.filter((t) => !t.ejemplo),
+    });
+  };
+  const hora = new Date().getHours();
+  const saludo = hora < 13 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+  const fechaLarga = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+
+  const hacerBackup = () => {
+    try {
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `respaldo-via-publica-${today()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { alert("No se pudo crear la copia."); }
+  };
+  const restaurar = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!d || typeof d !== "object" || !Array.isArray(d.clients)) throw 0;
+        if (!confirm("Esto reemplazará los datos actuales por los del archivo de copia. ¿Querés continuar?")) return;
+        update(d);
+        alert("¡Copia restaurada con éxito! 🎉");
+      } catch { alert("Ese archivo no parece una copia válida de la app."); }
+    };
+    r.readAsText(file);
+  };
+
+  return (
+    <>
+      <div className="greeting">
+        <div>
+          <div className="greeting-hi">{saludo} 👋</div>
+          <div className="greeting-date">{fechaLarga}</div>
+        </div>
+      </div>
+
+      {hasExamples && (
+        <div className="example-banner">
+          <div><b>Estás viendo datos de ejemplo.</b> Sirven para entender cómo funciona la app. Cuando quieras, borralos y cargá los reales.</div>
+          <button className="btn btn-ghost btn-sm" onClick={clearExamples}><Trash2 size={16} /> Borrar ejemplos</button>
+        </div>
+      )}
+
+      <div className={"alert " + (semaforo === "r" ? "r" : semaforo === "a" ? "a" : "")}
+        style={semaforo === "g" ? { background: "var(--green-bg)", color: "#157a43" } : {}}>
+        {semaforo === "r" ? <AlertCircle /> : semaforo === "a" ? <AlertTriangle /> : <CheckCircle2 />}
+        {semaforo === "r" ? "🔴 Urgente: tenés varios seguimientos vencidos."
+          : semaforo === "a" ? "🟡 Requiere atención: hay tareas pendientes para hoy."
+            : "🟢 Todo al día. Excelente trabajo."}
+      </div>
+
+      <div className="grid cols-3" style={{ marginBottom: 10 }}>
+        <Stat icon={Users} lbl="Pendientes de contactar" val={pendientes.length} color="var(--blue)" />
+        <Stat icon={FileText} lbl="Propuestas / negociación" val={negociacion.length} color="var(--amber)" hint={negociacion.length ? "Requieren propuesta" : ""} />
+        <Stat icon={Star} lbl="Carteles premium libres" val={premiumDisp.length} color="var(--green)" />
+        <Stat icon={Calendar} lbl="Reuniones programadas" val={reunionesHoy.length} color="var(--ink)" />
+        <Stat icon={ClipboardList} lbl="Tareas pendientes" val={tareasPend.length} color={tareasPend.length ? "var(--accent)" : "var(--green)"} />
+        <Stat icon={BellRing} lbl="Seguimientos vencidos" val={vencidos.length} color={vencidos.length ? "var(--red)" : "var(--green)"} hint={vencidos.length ? "+15 días sin contacto" : "Sin vencidos"} />
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
+          <Sparkles size={22} color="var(--accent)" /> Qué hacer hoy</h2>
+        {reco.map((t, i) => (
+          <div className="todo-item" key={i}>
+            <span className="todo-dot" style={{ background: t.c }} />
+            <span style={{ fontWeight: 600 }}>{t.t}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid cols-2" style={{ marginTop: 18 }}>
+        {/* TAREAS Y LLAMADAS PENDIENTES */}
+        <div className="card">
+          <h2 style={{ fontSize: 20, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <ClipboardList size={22} color="var(--accent)" /> Tareas y llamadas pendientes</h2>
+          {tasks.length === 0 && <div className="cell-sub" style={{ marginBottom: 12 }}>No tenés tareas cargadas.</div>}
+          {[...tasks].sort((a, b) => a.done - b.done).map((t) => (
+            <div className="todo-item" key={t.id}>
+              <button className="checkbox" onClick={() => toggleTask(t.id)} title="Marcar como hecha">
+                {t.done ? <CheckCircle2 size={20} color="var(--green)" /> : <span className="checkbox-empty" />}
+              </button>
+              <span className={"chip " + (t.tipo === "Llamada" ? "s-blue" : "s-gray")}>
+                {t.tipo === "Llamada" ? <Phone size={12} /> : <ClipboardList size={12} />} {t.tipo}</span>
+              <span style={{ fontWeight: 600, flex: 1, textDecoration: t.done ? "line-through" : "none", color: t.done ? "var(--muted)" : "var(--ink)" }}>{t.titulo}</span>
+              <button className="btn btn-icon ico-edit btn-sm" onClick={() => delTask(t.id)}><Trash2 size={16} /></button>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <select className="select" value={tkTipo} onChange={(e) => setTkTipo(e.target.value)}>
+              <option>Tarea</option><option>Llamada</option></select>
+            <input className="select" style={{ flex: "1 1 140px" }} placeholder="Nueva tarea o llamada…" value={tkTitle}
+              onChange={(e) => setTkTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask()} />
+            <button className="btn btn-primary btn-sm" onClick={addTask}><Plus size={18} /></button>
+          </div>
+        </div>
+
+        {/* REUNIONES */}
+        <div className="card">
+          <h2 style={{ fontSize: 20, marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <Calendar size={22} color="var(--accent)" /> Reuniones</h2>
+          {reunionesHoy.length === 0 && <div className="cell-sub" style={{ marginBottom: 12 }}>No tenés reuniones próximas.</div>}
+          {meetings.filter(m => m.fecha >= today()).sort((a, b) => a.fecha.localeCompare(b.fecha)).map((m) => (
+            <div className="todo-item" key={m.id}>
+              <span className="chip s-blue">{fmtDate(m.fecha)}</span>
+              <span style={{ fontWeight: 600, flex: 1 }}>{m.titulo}</span>
+              <button className="btn btn-icon ico-edit btn-sm" onClick={() => update({ meetings: meetings.filter(x => x.id !== m.id) })}><Trash2 size={16} /></button>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <input className="select" style={{ flex: "1 1 140px" }} placeholder="Nueva reunión…" value={mtTitle}
+              onChange={(e) => setMtTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addMeeting()} />
+            <input className="select" type="date" value={mtDate} onChange={(e) => setMtDate(e.target.value)} />
+            <button className="btn btn-primary btn-sm" onClick={addMeeting}><Plus size={18} /></button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <button className="btn btn-ghost" onClick={() => go("seguimiento")}><BellRing size={18} /> Ver seguimientos</button>
+        <button className="btn btn-ghost" onClick={() => go("inventario")}><LayoutPanelTop size={18} /> Ver carteles</button>
+        <button className="btn btn-ghost" onClick={() => go("prospectar")}><Search size={18} /> Buscar empresas</button>
+      </div>
+
+      <div className="card" style={{ marginTop: 18, display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--green-bg)", color: "var(--green)", display: "grid", placeItems: "center", flexShrink: 0 }}><ShieldCheck size={22} /></span>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>Copia de seguridad</div>
+          <div style={{ color: "var(--ink2)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+            Guardá un archivo con todos tus datos por las dudas. Si cambiás de teléfono o se borran los datos, lo restaurás y vuelve todo. Recomendado: hacela cada tanto.
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="btn btn-primary" onClick={hacerBackup}><Download size={18} /> Hacer copia de seguridad</button>
+            <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
+              <Upload size={18} /> Restaurar copia
+              <input type="file" accept="application/json,.json" style={{ display: "none" }}
+                onChange={(e) => { restaurar(e.target.files[0]); e.target.value = ""; }} />
+            </label>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ====================== CLIENTES ====================== */
+function Clientes({ data, update }) {
+  const { clients } = data;
+  const [q, setQ] = useState("");
+  const [filtro, setFiltro] = useState("Todos");
+  const [edit, setEdit] = useState(null); // client obj or {} for new
+  const [hist, setHist] = useState(null);
+
+  const setClients = (cl) => update({ clients: cl });
+
+  const filtered = useMemo(() => clients.filter((c) => {
+    const matchQ = (c.empresa + c.contacto + c.email).toLowerCase().includes(q.toLowerCase());
+    const matchF = filtro === "Todos" || c.estado === filtro;
+    return matchQ && matchF;
+  }), [clients, q, filtro]);
+
+  const logContact = (c, tipo) => {
+    setClients(clients.map((x) => x.id === c.id ? {
+      ...x, ultimoContacto: today(),
+      historial: [{ fecha: today(), tipo, nota: `Contacto vía ${tipo}` }, ...(x.historial || [])]
+    } : x));
+  };
+  const save = (c) => {
+    if (c.id) setClients(clients.map((x) => x.id === c.id ? c : x));
+    else setClients([{ ...c, id: uid(), historial: [] }, ...clients]);
+    setEdit(null);
+  };
+  const remove = (id) => { if (confirm("¿Eliminar este cliente?")) setClients(clients.filter((x) => x.id !== id)); };
+
+  return (
+    <>
+      <div className="toolbar">
+        <div className="searchbox"><Search size={20} color="#6b7790" />
+          <input placeholder="Buscar empresa, contacto o email…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <select className="select" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          <option>Todos</option>{ESTADOS.map((e) => <option key={e}>{e}</option>)}
+        </select>
+        <button className="btn btn-primary" onClick={() => setEdit({})}><Plus size={19} /> Agregar cliente</button>
+      </div>
+
+      <div className="client-list">
+        {filtered.map((c) => {
+          const d = daysSince(c.ultimoContacto);
+          return (
+            <div className="client-card" key={c.id}>
+              <div className="cc-main">
+                <div className="cc-name">{c.empresa}</div>
+                <div className="cc-sub">{c.contacto || "Sin contacto"}{c.cargo ? " · " + c.cargo : ""}{c.rubro ? " · " + c.rubro : ""}</div>
+                {(c.telefono || c.whatsapp || c.email) && (
+                  <div className="cc-contact">
+                    {c.telefono && <span><Phone size={13} /> {c.telefono}</span>}
+                    {c.whatsapp && c.whatsapp !== c.telefono && <span><MessageCircle size={13} /> {c.whatsapp}</span>}
+                    {c.email && <span><Mail size={13} /> {c.email}</span>}
+                  </div>
+                )}
+                <div className="cc-meta">
+                  <span className={"chip " + estadoClass(c.estado)}><span className="dot" style={{ background: "currentColor" }} />{c.estado}</span>
+                  {c.ejemplo && <span className="chip ejemplo-chip">Ejemplo</span>}
+                  <span className="cc-date">Último: {fmtDate(c.ultimoContacto)}
+                    <em style={{ marginLeft: 6, color: d > 15 ? "var(--red)" : d > 7 ? "var(--amber)" : "var(--muted)", fontStyle: "normal", fontWeight: 700 }}>
+                      {d === 9999 ? "(sin registro)" : `(hace ${d}d)`}</em></span>
+                </div>
+              </div>
+              <div className="cc-actions">
+                <ContactBtns c={c} onLog={(t) => logContact(c, t)} />
+                <button className="btn btn-icon ico-hist" title="Ver ficha e historial" onClick={() => setHist(c)}><History size={18} /></button>
+                <button className="btn btn-icon ico-edit" title="Editar" onClick={() => setEdit(c)}><Pencil size={18} /></button>
+                <button className="btn btn-icon ico-edit" title="Eliminar" onClick={() => remove(c.id)}><Trash2 size={18} /></button>
+              </div>
+            </div>
+          );
+        })}
+        {!filtered.length && <div className="empty"><Users size={40} /><div>No hay clientes que coincidan.</div></div>}
+      </div>
+
+      {edit && <ClientForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
+      {hist && <HistoryModal client={hist} onClose={() => setHist(null)}
+        onAdd={(reg) => {
+          const upd = { ...hist, ultimoContacto: reg.fecha, historial: [reg, ...(hist.historial || [])] };
+          setClients(clients.map((x) => x.id === hist.id ? upd : x)); setHist(upd);
+        }} />}
+    </>
+  );
+}
+
+function ClientForm({ initial, onClose, onSave }) {
+  const [c, setC] = useState({ empresa: "", contacto: "", cargo: "", telefono: "", whatsapp: "", email: "", rubro: "", estado: "Prospecto", ultimoContacto: today(), ...initial });
+  const f = (k) => (e) => setC({ ...c, [k]: e.target.value });
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h2>{initial.id ? "Editar cliente" : "Agregar cliente"}</h2>
+          <button className="iconclose" onClick={onClose}><X size={20} /></button></div>
+        <div className="modal-body">
+          <div className="field"><label>Empresa *</label><input value={c.empresa} onChange={f("empresa")} placeholder="Nombre de la empresa" /></div>
+          <div className="form-grid">
+            <div className="field"><label>Nombre de contacto</label><input value={c.contacto} onChange={f("contacto")} /></div>
+            <div className="field"><label>Cargo</label><input value={c.cargo} onChange={f("cargo")} /></div>
+            <div className="field"><label>Teléfono</label><input value={c.telefono} onChange={f("telefono")} placeholder="+54911..." /></div>
+            <div className="field"><label>WhatsApp</label><input value={c.whatsapp} onChange={f("whatsapp")} placeholder="+54911..." /></div>
+            <div className="field"><label>Email</label><input value={c.email} onChange={f("email")} /></div>
+            <div className="field"><label>Rubro</label><input value={c.rubro} onChange={f("rubro")} list="rubros" /><datalist id="rubros">{RUBROS.map(r => <option key={r}>{r}</option>)}</datalist></div>
+            <div className="field"><label>Estado</label><select value={c.estado} onChange={f("estado")}>{ESTADOS.map(e => <option key={e}>{e}</option>)}</select></div>
+            <div className="field"><label>Último contacto</label><input type="date" value={c.ultimoContacto} onChange={f("ultimoContacto")} /></div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={() => c.empresa.trim() && onSave(c)}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HistoryModal({ client, onClose, onAdd }) {
+  const [tipo, setTipo] = useState("Llamada"); const [nota, setNota] = useState("");
+  const add = () => { onAdd({ fecha: today(), tipo, nota: nota || `Contacto vía ${tipo}` }); setNota(""); };
+  const wa = onlyDigits(client.whatsapp || client.telefono);
+  const Row = ({ icon: I, label, value, href }) => value ? (
+    <div className="ficha-row">
+      <I size={16} color="#6b7790" />
+      <span className="ficha-lbl">{label}</span>
+      {href ? <a href={href} target="_blank" rel="noreferrer" className="ficha-val link">{value}</a> : <span className="ficha-val">{value}</span>}
+    </div>
+  ) : null;
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h2>{client.empresa}</h2>
+          <button className="iconclose" onClick={onClose}><X size={20} /></button></div>
+        <div className="modal-body">
+          {/* Datos del cliente / prospecto */}
+          <div className="card" style={{ marginBottom: 18, boxShadow: "none", background: "#faf8f3" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+              <span className={"chip " + estadoClass(client.estado)}>{client.estado}</span>
+              {client.rubro && <span className="chip s-gray">{client.rubro}</span>}
+            </div>
+            <Row icon={Users} label="Contacto" value={[client.contacto, client.cargo].filter(Boolean).join(" · ")} />
+            <Row icon={Phone} label="Teléfono" value={client.telefono} href={client.telefono ? `tel:${client.telefono}` : null} />
+            <Row icon={MessageCircle} label="WhatsApp" value={client.whatsapp} href={wa ? `https://wa.me/${wa}` : null} />
+            <Row icon={Mail} label="Email" value={client.email} href={client.email ? `mailto:${client.email}` : null} />
+            <Row icon={Calendar} label="Último contacto" value={fmtDate(client.ultimoContacto)} />
+            <div className="rowactions" style={{ marginTop: 12 }}>
+              <ContactBtns c={client} />
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: 18, boxShadow: "none", background: "#fff", border: "1px solid var(--line)" }}>
+            <div style={{ fontWeight: 700, marginBottom: 10 }}>Registrar nuevo contacto</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <select className="select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+                {["Llamada", "WhatsApp", "Email", "Reunión", "Nota"].map(t => <option key={t}>{t}</option>)}</select>
+              <input className="select" style={{ flex: 1, minWidth: 160 }} placeholder="Observación…" value={nota} onChange={(e) => setNota(e.target.value)} />
+              <button className="btn btn-primary" onClick={add}><Plus size={18} /> Registrar</button>
+            </div>
+          </div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Historial</div>
+          {(client.historial || []).length === 0 && <div className="empty"><History size={36} /><div>Sin registros todavía.</div></div>}
+          {(client.historial || []).map((h, i) => (
+            <div className="todo-item" key={i}>
+              <span className="chip s-gray">{h.tipo}</span>
+              <span style={{ flex: 1 }}>{h.nota}</span>
+              <span className="cell-sub">{fmtDate(h.fecha)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ====================== SEGUIMIENTO ====================== */
+function Seguimiento({ data, update }) {
+  const { clients } = data;
+  const setClients = (cl) => update({ clients: cl });
+  const log = (c, tipo) => setClients(clients.map((x) => x.id === c.id ? {
+    ...x, ultimoContacto: today(), historial: [{ fecha: today(), tipo, nota: `Contacto vía ${tipo}` }, ...(x.historial || [])]
+  } : x));
+
+  const activos = clients.filter((c) => c.estado !== "Cliente activo");
+  const buckets = [
+    { label: "Más de 30 días sin contacto", color: "var(--red)", cls: "r", min: 30 },
+    { label: "Más de 15 días sin contacto", color: "var(--amber)", cls: "a", min: 15 },
+    { label: "Más de 7 días sin contacto", color: "var(--blue)", cls: "", min: 7 },
+  ];
+  const used = new Set();
+  return (
+    <>
+      <div className="card" style={{ marginBottom: 18, display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--amber-bg)", color: "var(--amber)", display: "grid", placeItems: "center", flexShrink: 0 }}><BellRing size={22} /></span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>¿Para qué sirve esta pantalla?</div>
+          <div style={{ color: "var(--ink2)", fontSize: 15, lineHeight: 1.5 }}>
+            Te avisa qué clientes hace tiempo que no contactás, para que no se te escape ninguno. Aparecen ordenados por urgencia: primero los que hace más días que no hablás (más de 30, 15 y 7 días). Tocá <b>WhatsApp</b>, <b>llamar</b> o <b>email</b> para contactarlos, o <b>“Registrar”</b> para marcar que ya los contactaste hoy (eso reinicia el contador).
+          </div>
+        </div>
+      </div>
+      {buckets.map((b) => {
+        const list = activos.filter((c) => { const d = daysSince(c.ultimoContacto); return d >= b.min && d < 9999 && !used.has(c.id); });
+        list.forEach((c) => used.add(c.id));
+        if (!list.length) return null;
+        return (
+          <div key={b.label}>
+            <div className="section-title" style={{ color: b.color }}>
+              <span className="dot" style={{ background: b.color, width: 12, height: 12 }} /> {b.label} ({list.length})
+            </div>
+            {list.sort((a, c) => daysSince(c.ultimoContacto) - daysSince(a.ultimoContacto)).map((c) => (
+              <div className={"alert " + (b.cls || "")} key={c.id}
+                style={!b.cls ? { background: "var(--blue-bg)", color: "#1d4fa0" } : {}}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>{c.empresa} · {c.contacto}</div>
+                  <div style={{ fontWeight: 600 }}>Hace {daysSince(c.ultimoContacto)} días que no contactás a {c.empresa}.</div>
+                </div>
+                <ContactBtns c={c} onLog={(t) => log(c, t)} />
+                <button className="btn btn-ghost btn-sm" onClick={() => log(c, "Nota")} title="Marcar contactado hoy"><CheckCircle2 size={18} /> Registrar</button>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      {!activos.some((c) => daysSince(c.ultimoContacto) >= 7 && daysSince(c.ultimoContacto) < 9999) &&
+        <div className="empty"><CheckCircle2 size={44} color="var(--green)" /><div style={{ fontSize: 18, fontWeight: 700, color: "var(--green)" }}>¡Todo al día!</div><div>No tenés seguimientos pendientes.</div></div>}
+    </>
+  );
+}
+
+/* ====================== INVENTARIO ====================== */
+function Inventario({ data, update }) {
+  const { billboards } = data;
+  const setBB = (b) => update({ billboards: b });
+  const [edit, setEdit] = useState(null);
+  const [fEstado, setFEstado] = useState("Todos");
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+
+  const disp = billboards.filter((b) => b.estado === "Disponible").length;
+  const ocup = billboards.filter((b) => b.estado === "Ocupado").length;
+  const res = billboards.filter((b) => b.estado === "Reservado").length;
+  const premium = [...billboards].filter((b) => b.premium).sort((a, b) => b.precio - a.precio);
+
+  const list = billboards.filter((b) => fEstado === "Todos" || b.estado === fEstado);
+  const save = (b) => { if (b.id) setBB(billboards.map((x) => x.id === b.id ? b : x)); else setBB([{ ...b, id: uid() }, ...billboards]); setEdit(null); };
+  const remove = (id) => { if (confirm("¿Eliminar este cartel?")) setBB(billboards.filter((x) => x.id !== id)); };
+
+  // Geocodificación de una dirección (para ubicar en el mapa)
+  const geocodeOne = async (q) => {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(q + ", Argentina")}`, { headers: { "Accept-Language": "es" } });
+      const j = await r.json();
+      if (j && j[0]) return { lat: +j[0].lat, lng: +j[0].lon };
+    } catch { }
+    return null;
+  };
+  // Lee JSON o CSV y devuelve un array de filas
+  const parseImport = (text) => {
+    text = text.trim();
+    if (text.startsWith("[") || text.startsWith("{")) {
+      const d = JSON.parse(text);
+      return Array.isArray(d) ? d : (d.billboards || d.carteles || []);
+    }
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    const headers = lines[0].split(/[,;\t]/).map((h) => h.trim().toLowerCase());
+    return lines.slice(1).map((line) => {
+      const cols = line.split(/[,;\t]/);
+      const o = {}; headers.forEach((h, i) => o[h] = (cols[i] || "").trim());
+      return o;
+    });
+  };
+  const importar = async (file) => {
+    if (!file) return;
+    let rows;
+    try { rows = parseImport(await file.text()); }
+    catch { alert("No pude leer el archivo. Tiene que ser un archivo JSON o CSV."); return; }
+    if (!rows || !rows.length) { alert("El archivo no tiene carteles."); return; }
+    setImporting(true);
+    const nuevos = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i] || {};
+      const nombre = (r.nombre || r.Nombre || r.cartel || "").toString().trim();
+      if (!nombre) continue;
+      const ubic = (r.ubicacion || r.ubicación || r.direccion || r.dirección || "").toString().trim();
+      let lat = Number(r.lat), lng = Number(r.lng);
+      setImportMsg(`Ubicando en el mapa ${i + 1} de ${rows.length}…`);
+      if (!(lat && lng) && ubic) {
+        const g = await geocodeOne(ubic);
+        if (g) { lat = g.lat; lng = g.lng; }
+        await new Promise((res) => setTimeout(res, 1100)); // respeta el límite del mapa (1/seg)
+      }
+      if (!(lat && lng)) { lat = -34.6037; lng = -58.3816; }
+      nuevos.push({
+        id: uid(), nombre, ubicacion: ubic,
+        tipo: TIPOS.includes(r.tipo) ? r.tipo : "Cartel",
+        medidas: (r.medidas || r.medida || "").toString(),
+        foto: (r.foto || "").toString(),
+        estado: BB_ESTADOS.includes(r.estado) ? r.estado : "Disponible",
+        precio: Number(String(r.precio || "").replace(/[^\d]/g, "")) || 0,
+        premium: /s[ií]|true|1|premium/i.test(String(r.premium || "")),
+        obs: (r.obs || r.observaciones || "").toString(), lat, lng,
+      });
+    }
+    setBB([...nuevos, ...billboards]);
+    setImporting(false); setImportMsg("");
+    alert(`¡Listo! Se importaron ${nuevos.length} cartel(es). Revisá en el Mapa que hayan quedado bien ubicados; podés arrastrar los pines para ajustarlos.`);
+  };
+
+  return (
+    <>
+      <div className="grid cols-4" style={{ marginBottom: 8 }}>
+        <div className="card stat"><div className="lbl">Total</div><div className="val">{billboards.length}</div></div>
+        <div className="card stat"><div className="lbl">Disponibles</div><div className="val" style={{ color: "var(--green)" }}>{disp}</div></div>
+        <div className="card stat"><div className="lbl">Ocupados</div><div className="val" style={{ color: "var(--red)" }}>{ocup}</div></div>
+        <div className="card stat"><div className="lbl">Reservados</div><div className="val" style={{ color: "var(--amber)" }}>{res}</div></div>
+      </div>
+
+      {premium.length > 0 && (
+        <>
+          <div className="section-title"><Star size={22} color="#d98a00" fill="#ffd24a" /> Ranking de espacios premium</div>
+          <div className="rank-list" style={{ marginBottom: 8 }}>
+            {premium.map((b, i) => (
+              <div className="rank-item" key={b.id}>
+                <div className="rank-num">#{i + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="cell-strong">{b.nombre}</div>
+                  <div className="cell-sub">{b.ubicacion} · {b.tipo}</div>
+                </div>
+                <span className={"chip " + bbChip(b.estado)}>{b.estado}</span>
+                <b style={{ whiteSpace: "nowrap" }}>{money(b.precio)}</b>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {importing && (
+        <div className="alert a" style={{ marginTop: 12 }}><Sparkles size={18} /> {importMsg || "Importando carteles…"} (no cierres la app)</div>
+      )}
+
+      <div className="toolbar" style={{ marginTop: 18 }}>
+        <select className="select" value={fEstado} onChange={(e) => setFEstado(e.target.value)}>
+          <option>Todos</option>{BB_ESTADOS.map((e) => <option key={e}>{e}</option>)}</select>
+        <div style={{ flex: 1 }} />
+        <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
+          <Upload size={18} /> Importar lista
+          <input type="file" accept=".json,.csv,application/json,text/csv" style={{ display: "none" }}
+            onChange={(e) => { importar(e.target.files[0]); e.target.value = ""; }} />
+        </label>
+        <button className="btn btn-primary" onClick={() => setEdit({})}><Plus size={19} /> Agregar cartel</button>
+      </div>
+
+      <div className="grid cols-3">
+        {list.map((b) => (
+          <div className="bb-card" key={b.id}>
+            <div className="bb-photo" style={b.foto ? { backgroundImage: `url(${b.foto})` } : {}}>
+              {!b.foto && <LayoutPanelTop size={40} />}
+              <div className="bb-tags">
+                <span className={"chip " + bbChip(b.estado)}>{b.estado}</span>
+                {b.premium && <span className="premium"><Star size={13} fill="#ffd24a" /> Premium</span>}
+              </div>
+              {b.ejemplo && <span className="bb-ejemplo">Ejemplo</span>}
+            </div>
+            <div className="bb-body">
+              <h3>{b.nombre}</h3>
+              <div className="bb-meta"><MapPin size={15} /> {b.ubicacion}</div>
+              <div className="bb-meta">{b.tipo} · {b.medidas}</div>
+              {b.obs && <div className="cell-sub">{b.obs}</div>}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", flexWrap: "wrap", gap: 8 }}>
+                <div className="bb-price">{money(b.precio)}</div>
+                <div className="rowactions">
+                  <button className="btn btn-icon ico-edit" onClick={() => setEdit(b)}><Pencil size={17} /></button>
+                  <button className="btn btn-icon ico-edit" onClick={() => remove(b.id)}><Trash2 size={17} /></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+        {!list.length && <div className="empty" style={{ gridColumn: "1/-1" }}><LayoutPanelTop size={40} /><div>No hay carteles con ese estado.</div></div>}
+      </div>
+
+      {edit && <BBForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
+    </>
+  );
+}
+
+function BBForm({ initial, onClose, onSave }) {
+  const [b, setB] = useState({ nombre: "", ubicacion: "", tipo: "Cartel", medidas: "", foto: "", estado: "Disponible", precio: "", premium: false, obs: "", lat: -34.6037, lng: -58.3816, ...initial });
+  const f = (k) => (e) => setB({ ...b, [k]: e.target.value });
+  const onPhoto = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 900;
+        let { width, height } = img;
+        if (width > height && width > max) { height = Math.round(height * max / width); width = max; }
+        else if (height >= width && height > max) { width = Math.round(width * max / height); height = max; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        setB((prev) => ({ ...prev, foto: canvas.toDataURL("image/jpeg", 0.7) }));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  const fotoSubida = b.foto && b.foto.startsWith("data:");
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h2>{initial.id ? "Editar cartel" : "Agregar cartel"}</h2>
+          <button className="iconclose" onClick={onClose}><X size={20} /></button></div>
+        <div className="modal-body">
+          <div className="field"><label>Nombre *</label><input value={b.nombre} onChange={f("nombre")} /></div>
+          <div className="field"><label>Ubicación</label><input value={b.ubicacion} onChange={f("ubicacion")} /></div>
+          <div className="form-grid">
+            <div className="field"><label>Tipo</label><select value={b.tipo} onChange={f("tipo")}>{TIPOS.map(t => <option key={t}>{t}</option>)}</select></div>
+            <div className="field"><label>Estado</label><select value={b.estado} onChange={f("estado")}>{BB_ESTADOS.map(e => <option key={e}>{e}</option>)}</select></div>
+            <div className="field"><label>Medidas</label><input value={b.medidas} onChange={f("medidas")} placeholder="8 x 4 m" /></div>
+            <div className="field"><label>Precio</label><input type="number" value={b.precio} onChange={f("precio")} /></div>
+          </div>
+          <div className="field">
+            <label>Foto del cartel</label>
+            {b.foto && <img src={b.foto} alt="" style={{ width: "100%", maxHeight: 170, objectFit: "cover", borderRadius: 12, marginBottom: 8, border: "1px solid var(--line)" }} />}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
+                <Upload size={18} /> {b.foto ? "Cambiar foto" : "Subir foto del teléfono"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => onPhoto(e.target.files[0])} />
+              </label>
+              {b.foto && <button className="btn btn-ghost" onClick={() => setB({ ...b, foto: "" })}><Trash2 size={16} /> Quitar foto</button>}
+            </div>
+            {!fotoSubida && <input style={{ marginTop: 8 }} value={b.foto} onChange={f("foto")} placeholder="…o pegá un link de imagen (opcional)" />}
+          </div>
+          <div className="field"><label>Observaciones</label><textarea value={b.obs} onChange={f("obs")} /></div>
+          <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700, cursor: "pointer" }}>
+            <input type="checkbox" style={{ width: 20, height: 20, accentColor: "var(--accent)" }} checked={b.premium} onChange={(e) => setB({ ...b, premium: e.target.checked })} />
+            Marcar como espacio Premium</label>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={() => b.nombre.trim() && onSave({ ...b, precio: Number(b.precio) || 0 })}>Guardar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ====================== MAPA (Leaflet · Buenos Aires) ====================== */
+const popupHtml = (b) => `
+  <div style="width:230px">
+    ${b.foto
+    ? `<div style="height:110px;background:url('${esc(b.foto)}') center/cover;border-radius:13px 13px 0 0"></div>`
+    : `<div style="height:64px;display:grid;place-items:center;background:#16243b;border-radius:13px 13px 0 0;color:#5b6f93;font-size:12px">Sin foto</div>`}
+    <div style="padding:12px 14px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:3px;color:#fff">${esc(b.nombre)}</div>
+      <div style="color:#9fb0cc;font-size:12px;margin-bottom:9px">${esc(b.ubicacion || "")}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="background:${bbColor(b.estado)};color:#fff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:800">${esc(b.estado)}</span>
+        <b style="font-size:15px;color:#fff">${money(b.precio)}</b>
+      </div>
+      ${b.obs ? `<div style="color:#9fb0cc;font-size:11px;margin-top:8px">${esc(b.obs)}</div>` : ""}
+      <a href="https://www.google.com/maps/search/${encodeURIComponent(b.ubicacion || b.nombre)}" target="_blank" rel="noreferrer" style="display:inline-block;margin-top:10px;color:#ff9a5a;font-weight:700;font-size:12px;text-decoration:none">Ver en Google Maps →</a>
+    </div>
+  </div>`;
+
+function Mapa({ data, update, go, addUsage }) {
+  const { billboards } = data;
+  const mapEl = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef({});
+  const addModeRef = useRef(false);
+  const [ready, setReady] = useState(false);
+  const [loadErr, setLoadErr] = useState(false);
+  const [addMode, setAddMode] = useState(false);
+  const [pending, setPending] = useState(null);
+  const [q, setQ] = useState("");
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [neon, setNeon] = useState(true);
+  // panel "empresas cerca de este cartel"
+  const [sel, setSel] = useState(null);
+  const [rubroCerca, setRubroCerca] = useState("");
+  const [loadingCerca, setLoadingCerca] = useState(false);
+  const [errCerca, setErrCerca] = useState("");
+  const [empresasCerca, setEmpresasCerca] = useState([]);
+  const [savedCerca, setSavedCerca] = useState({});
+  const selRef = useRef(null);
+  useEffect(() => { selRef.current = sel; }, [sel]);
+
+  useEffect(() => { addModeRef.current = addMode; if (mapEl.current) mapEl.current.style.cursor = addMode ? "crosshair" : ""; }, [addMode]);
+
+  /* cargar Leaflet desde CDN */
+  useEffect(() => {
+    let cancelled = false;
+    const init = () => {
+      if (cancelled || !window.L || mapRef.current || !mapEl.current) return;
+      const L = window.L;
+      const map = L.map(mapEl.current, {
+        center: [-34.62, -58.44], zoom: 11, minZoom: 9, zoomControl: true,
+        maxBounds: [[-35.45, -59.55], [-34.05, -57.65]], maxBoundsViscosity: 0.85,
+      });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap', maxZoom: 19, subdomains: "abc",
+      }).addTo(map);
+      map.on("click", (e) => {
+        if (!addModeRef.current) return;
+        setPending({ lat: e.latlng.lat, lng: e.latlng.lng });
+        setAddMode(false);
+      });
+      mapRef.current = map;
+      setReady(true);
+      // Fix del mapa "en negro": forzar recálculo de tamaño una vez visible
+      setTimeout(() => map.invalidateSize(), 200);
+      setTimeout(() => map.invalidateSize(), 600);
+    };
+    if (window.L) { init(); return; }
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css"; link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+      document.head.appendChild(link);
+    }
+    let s = document.getElementById("leaflet-js");
+    if (!s) {
+      s = document.createElement("script"); s.id = "leaflet-js";
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+      s.onload = init; s.onerror = () => setLoadErr(true);
+      document.body.appendChild(s);
+    } else { s.addEventListener("load", init); }
+    const t = setTimeout(() => { if (!window.L) setLoadErr(true); }, 10000);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, []);
+
+  /* dibujar marcadores */
+  useEffect(() => {
+    if (!ready || !mapRef.current || !window.L) return;
+    const L = window.L, map = mapRef.current;
+    Object.values(markersRef.current).forEach((m) => map.removeLayer(m));
+    markersRef.current = {};
+    billboards.forEach((b) => {
+      if (typeof b.lat !== "number" || typeof b.lng !== "number") return;
+      const icon = L.divIcon({
+        className: "", iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12],
+        html: `<div class="leaf-pin" style="--c:${bbColor(b.estado)}"><span class="leaf-pulse"></span><span class="leaf-dot"></span></div>`,
+      });
+      const m = L.marker([b.lat, b.lng], { icon, draggable: true }).addTo(map);
+      m.bindPopup(popupHtml(b), { className: "tech-pop", maxWidth: 240, closeButton: true });
+      m.on("click", () => { setSel(b); setEmpresasCerca([]); setRubroCerca(""); setErrCerca(""); setSavedCerca({}); });
+      m.on("dragend", (ev) => {
+        const { lat, lng } = ev.target.getLatLng();
+        update({ billboards: data.billboards.map((x) => x.id === b.id ? { ...x, lat, lng } : x) });
+      });
+      markersRef.current[b.id] = m;
+    });
+  }, [billboards, ready]);
+
+  const geocode = async () => {
+    if (!q.trim() || !mapRef.current) return;
+    setGeoBusy(true);
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(q + ", Buenos Aires, Argentina")}`);
+      const j = await r.json();
+      if (j && j[0]) mapRef.current.flyTo([+j[0].lat, +j[0].lon], 15);
+      else alert("No encontré esa dirección. Probá agregando la localidad.");
+    } catch { alert("No pude buscar la dirección en este momento."); }
+    setGeoBusy(false);
+  };
+
+  const addBillboard = (bb) => {
+    update({ billboards: [{ ...bb, id: uid() }, ...billboards] });
+    setPending(null);
+    if (mapRef.current) mapRef.current.flyTo([bb.lat, bb.lng], 15);
+  };
+
+  const buscarCerca = async () => {
+    if (!sel || !rubroCerca) { setErrCerca("Elegí un rubro."); return; }
+    setLoadingCerca(true); setErrCerca(""); setEmpresasCerca([]); setSavedCerca({});
+    try {
+      const arr = dedupeEmpresas(await fetchEmpresas({ rubro: rubroCerca, cerca: sel.ubicacion || sel.nombre, cantidad: 10 }));
+      addUsage && addUsage(COSTO_BUSQUEDA);
+      if (!arr.length) setErrCerca("No encontré empresas claras cerca. Probá otro rubro.");
+      setEmpresasCerca(arr);
+    } catch {
+      setErrCerca("No pude buscar ahora. (Si todavía no publicaste la app con tu clave, la IA aún no está activa.)");
+    }
+    setLoadingCerca(false);
+  };
+  const guardarCerca = (e) => {
+    const nota = [`Cerca del cartel: ${sel?.nombre}`, e.web && `Web: ${e.web}`, e.redes && `Redes: ${e.redes}`, e.nota].filter(Boolean).join(" · ");
+    update({
+      clients: [{
+        id: uid(), empresa: e.nombre, contacto: "", cargo: "", telefono: e.telefono || "",
+        whatsapp: e.telefono || "", email: e.email || "", rubro: rubroCerca, estado: "Prospecto", ultimoContacto: "",
+        historial: [{ fecha: today(), tipo: "Nota", nota }]
+      }, ...data.clients]
+    });
+    setSavedCerca((s) => ({ ...s, [e.nombre]: true }));
+  };
+
+  return (
+    <>
+      <div className="toolbar">
+        <div className="searchbox"><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar dirección o barrio (ej: Av. Cabildo 2000)" value={q}
+            onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && geocode()} /></div>
+        <button className="btn btn-ghost" onClick={geocode}>{geoBusy ? "Buscando…" : <><MapPin size={18} /> Ir</>}</button>
+        <button className={"btn " + (addMode ? "btn-primary" : "btn-ghost")} onClick={() => setAddMode((v) => !v)}>
+          <Plus size={18} /> {addMode ? "Tocá el mapa…" : "Agregar cartel en el mapa"}</button>
+        <button className="btn btn-ghost" onClick={() => setNeon((v) => !v)} title="Cambiar estilo del mapa">
+          <Sparkles size={18} /> {neon ? "Estilo neón" : "Estilo claro"}</button>
+        <div style={{ flex: 1 }} />
+        <span className="chip s-gray">{billboards.length} carteles</span>
+      </div>
+
+      <div className={"mapwrap" + (neon ? " neon" : "")} style={{ position: "relative" }}>
+        <div ref={mapEl} className="leaf-map" />
+        <div className="legend" style={{ zIndex: 1000 }}>
+          <span><span className="dot" style={{ background: "var(--green)" }} /> Disponible</span>
+          <span><span className="dot" style={{ background: "var(--amber)" }} /> Reservado</span>
+          <span><span className="dot" style={{ background: "var(--red)" }} /> Ocupado</span>
+          <span><span className="dot" style={{ background: "var(--blue)" }} /> Próx. a liberarse</span>
+        </div>
+        {addMode && <div className="addhint">Tocá el punto del mapa donde está el cartel</div>}
+        {loadErr && (
+          <div className="empty" style={{ position: "absolute", inset: 0, background: "#0b1422", color: "#9fb0cc", display: "grid", placeContent: "center", borderRadius: 18 }}>
+            <MapPin size={40} /><div>No se pudo cargar el mapa. Revisá tu conexión a internet.</div>
+          </div>
+        )}
+        {!ready && !loadErr && (
+          <div className="empty" style={{ position: "absolute", inset: 0, background: "#0b1422", color: "#9fb0cc", display: "grid", placeContent: "center", borderRadius: 18 }}>
+            <div className="spinner" /><div style={{ marginTop: 10 }}>Cargando mapa de Buenos Aires…</div>
+          </div>
+        )}
+      </div>
+      <div className="cell-sub" style={{ marginTop: 10 }}>
+        Tip: arrastrá cualquier pin para corregir su ubicación. Tocá un pin para ver sus datos y buscar empresas cerca.
+      </div>
+
+      {sel && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18 }}>{sel.nombre}</div>
+              <div className="cell-sub"><MapPin size={13} style={{ verticalAlign: "-2px" }} /> {sel.ubicacion} · {money(sel.precio)} · {sel.estado}</div>
+            </div>
+            <button className="iconclose" onClick={() => setSel(null)}><X size={18} /></button>
+          </div>
+          <div style={{ marginTop: 12, fontWeight: 700, fontSize: 15 }}>Buscar empresas cerca de este cartel para ofrecerles publicidad</div>
+          <div className="toolbar" style={{ margin: "10px 0 0" }}>
+            <select className="select" value={rubroCerca} onChange={(e) => setRubroCerca(e.target.value)}>
+              <option value="">Elegí un rubro…</option>{RUBROS.map((r) => <option key={r}>{r}</option>)}</select>
+            <button className="btn btn-primary" onClick={buscarCerca} disabled={loadingCerca}>
+              {loadingCerca ? <><span className="spinner sm" /> Buscando…</> : <><Search size={18} /> Buscar cerca</>}</button>
+          </div>
+          {errCerca && <div className="alert a" style={{ marginTop: 10 }}><AlertTriangle size={18} /> {errCerca}</div>}
+          {loadingCerca && <div className="empty"><div className="spinner" /><div style={{ marginTop: 10 }}>Buscando {rubroCerca} cerca de {sel.ubicacion}…</div></div>}
+
+          {empresasCerca.length > 0 && (
+            <div className="grid cols-2" style={{ marginTop: 14 }}>
+              {empresasCerca.map((e, i) => {
+                const tel = onlyDigits(e.telefono);
+                return (
+                  <div className="card" key={i} style={{ display: "flex", flexDirection: "column", gap: 6, boxShadow: "none", background: "#faf8f3" }}>
+                    <div style={{ fontWeight: 800, fontSize: 16 }}>{e.nombre}</div>
+                    {e.nota && <div className="cell-sub">{e.nota}</div>}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 14, margin: "2px 0" }}>
+                      {e.telefono && <div><Phone size={13} style={{ verticalAlign: "-2px" }} /> {e.telefono}</div>}
+                      {e.email && <div><Mail size={13} style={{ verticalAlign: "-2px" }} /> {e.email}</div>}
+                      {e.web && <div><ExternalLink size={13} style={{ verticalAlign: "-2px" }} /> <a href={e.web.startsWith("http") ? e.web : "https://" + e.web} target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>{e.web}</a></div>}
+                      {e.redes && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.redes}</div>}
+                    </div>
+                    <div className="rowactions" style={{ marginTop: "auto" }}>
+                      {tel && <a className="btn btn-icon ico-wa" href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"><MessageCircle size={18} /></a>}
+                      {e.telefono && <a className="btn btn-icon ico-call" href={`tel:${e.telefono}`}><Phone size={18} /></a>}
+                      {e.email && <a className="btn btn-icon ico-mail" href={`mailto:${e.email}`}><Mail size={18} /></a>}
+                      <div style={{ flex: 1 }} />
+                      {savedCerca[e.nombre]
+                        ? <span className="chip s-green"><CheckCircle2 size={15} /> Guardado</span>
+                        : <button className="btn btn-ghost btn-sm" onClick={() => guardarCerca(e)}><Plus size={16} /> Guardar</button>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {pending && <BBForm initial={{ lat: pending.lat, lng: pending.lng }} onClose={() => setPending(null)}
+        onSave={(bb) => addBillboard({ ...bb, precio: Number(bb.precio) || 0 })} />}
+    </>
+  );
+}
+
+/* ====================== PROPUESTAS ====================== */
+function Propuestas({ data }) {
+  const { clients, billboards } = data;
+  const [clienteId, setClienteId] = useState("");
+  const [picks, setPicks] = useState([]);
+  const [obs, setObs] = useState("");
+  const cliente = clients.find((c) => c.id === clienteId);
+  const seleccionados = billboards.filter((b) => picks.includes(b.id));
+  const total = seleccionados.reduce((s, b) => s + (Number(b.precio) || 0), 0);
+  const toggle = (id) => setPicks((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+
+  const [pq, setPq] = useState("");
+  const [pTipo, setPTipo] = useState("Todos");
+  const [pEstado, setPEstado] = useState("Todos");
+  const listaCarteles = billboards.filter((b) => {
+    const okQ = (b.nombre + " " + (b.ubicacion || "")).toLowerCase().includes(pq.toLowerCase());
+    const okT = pTipo === "Todos" || b.tipo === pTipo;
+    const okE = pEstado === "Todos" || b.estado === pEstado;
+    return okQ && okT && okE;
+  });
+
+  return (
+    <>
+      <div className="grid cols-2">
+        <div className="card">
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>1 · Elegí el cliente</h2>
+          <select className="select" style={{ width: "100%" }} value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+            <option value="">— Seleccionar cliente —</option>
+            {clients.map((c) => <option key={c.id} value={c.id}>{c.empresa} · {c.contacto}</option>)}
+          </select>
+          <div className="field" style={{ marginTop: 16 }}><label>Observaciones de la propuesta</label>
+            <textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Vigencia, descuentos, condiciones…" /></div>
+        </div>
+        <div className="card">
+          <h2 style={{ fontSize: 18, marginBottom: 6 }}>Resumen</h2>
+          <div className="cell-sub">Cliente: <b style={{ color: "var(--ink)" }}>{cliente ? cliente.empresa : "—"}</b></div>
+          <div className="cell-sub">Carteles seleccionados: <b style={{ color: "var(--ink)" }}>{seleccionados.length}</b></div>
+          <div style={{ fontSize: 34, fontWeight: 800, fontFamily: "Bricolage Grotesque", marginTop: 14 }}>{money(total)}</div>
+          <div className="cell-sub">Total mensual estimado</div>
+          <button className="btn btn-primary" style={{ width: "100%", marginTop: 16 }}
+            disabled={!cliente || !seleccionados.length}
+            onClick={() => window.print()}><Printer size={19} /> Exportar a PDF</button>
+          <div className="cell-sub" style={{ marginTop: 8, textAlign: "center" }}>Se abre el diálogo de impresión → elegí “Guardar como PDF”.</div>
+        </div>
+      </div>
+
+      <div className="section-title">2 · Seleccioná los carteles</div>
+      <div className="toolbar">
+        <div className="searchbox"><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar cartel por nombre o ubicación…" value={pq} onChange={(e) => setPq(e.target.value)} /></div>
+        <select className="select" value={pTipo} onChange={(e) => setPTipo(e.target.value)}>
+          <option>Todos</option>{TIPOS.map((t) => <option key={t}>{t}</option>)}</select>
+        <select className="select" value={pEstado} onChange={(e) => setPEstado(e.target.value)}>
+          <option>Todos</option>{BB_ESTADOS.map((e) => <option key={e}>{e}</option>)}</select>
+        {seleccionados.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => setPicks([])}><X size={16} /> Limpiar selección</button>}
+      </div>
+      <div className="grid cols-3">
+        {listaCarteles.map((b) => (
+          <label className={"prop-pick" + (picks.includes(b.id) ? " on" : "")} key={b.id}>
+            <input type="checkbox" checked={picks.includes(b.id)} onChange={() => toggle(b.id)} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700 }}>{b.nombre} {b.premium && <Star size={13} fill="#ffd24a" color="#d98a00" />}</div>
+              <div className="cell-sub">{b.ubicacion} · {b.tipo}</div>
+              <div style={{ fontWeight: 800, marginTop: 4 }}>{money(b.precio)}</div>
+            </div>
+          </label>
+        ))}
+        {!listaCarteles.length && <div className="empty" style={{ gridColumn: "1/-1" }}><LayoutPanelTop size={36} /><div>No hay carteles que coincidan con la búsqueda.</div></div>}
+      </div>
+
+      {/* PRINT AREA */}
+      <div className="print-area">
+        <div style={{ borderBottom: "3px solid #e8590c", paddingBottom: 16, marginBottom: 20 }}>
+          <h1 style={{ fontSize: 28 }}>Propuesta Comercial</h1>
+          <div style={{ color: "#6b7790" }}>Publicidad en Vía Pública · {fmtDate(today())}</div>
+        </div>
+        {cliente && <div style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 18 }}>Cliente</h2>
+          <div><b>{cliente.empresa}</b></div>
+          <div>{cliente.contacto}{cliente.cargo ? " · " + cliente.cargo : ""}</div>
+          <div>{cliente.telefono} · {cliente.email}</div>
+        </div>}
+        <h2 style={{ fontSize: 18, marginBottom: 8 }}>Espacios propuestos</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr style={{ background: "#f4f1ea" }}>
+            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Cartel</th>
+            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Ubicación</th>
+            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Tipo / Medidas</th>
+            <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Precio</th>
+          </tr></thead>
+          <tbody>
+            {seleccionados.map((b) => (
+              <tr key={b.id}>
+                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.nombre}{b.obs ? ` — ${b.obs}` : ""}</td>
+                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.ubicacion}</td>
+                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.tipo} · {b.medidas}</td>
+                <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.precio)}</td>
+              </tr>
+            ))}
+            <tr><td colSpan={3} style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>TOTAL</td>
+              <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(total)}</td></tr>
+          </tbody>
+        </table>
+        {obs && <div style={{ marginTop: 20 }}><h2 style={{ fontSize: 16 }}>Observaciones</h2><p>{obs}</p></div>}
+      </div>
+    </>
+  );
+}
+
+/* ====================== PROSPECTAR ====================== */
+function Prospectar({ data, update, go, addUsage, setBudget }) {
+  const { clients } = data;
+  const [rubro, setRubro] = useState("");
+  const [zona, setZona] = useState("CABA");
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const [resultados, setResultados] = useState([]);
+  const [saved, setSaved] = useState({});
+  const [showManual, setShowManual] = useState(false);
+  const [draft, setDraft] = useState({ empresa: "", web: "", telefono: "", email: "", red: "" });
+
+  const savedCount = Object.keys(saved).length;
+
+  const buscarIA = async () => {
+    if (!rubro) { setError("Elegí un rubro primero."); return; }
+    setLoading(true); setError(""); setResultados([]); setSaved({});
+    try {
+      const arr = dedupeEmpresas(await fetchEmpresas({ rubro, zona, cantidad: 12 }));
+      addUsage && addUsage(COSTO_BUSQUEDA);
+      if (!arr.length) setError("No encontré resultados claros. Probá con otra zona o rubro.");
+      setResultados(arr);
+    } catch (e) {
+      setError("No pude completar la búsqueda ahora. (Si todavía no publicaste la app con tu clave, la IA aún no está activa.)");
+    }
+    setLoading(false);
+  };
+
+  const buscarMas = async () => {
+    setLoadingMore(true); setError("");
+    try {
+      const nuevos = await fetchEmpresas({ rubro, zona, cantidad: 10, exclude: resultados.map((r) => r.nombre) });
+      addUsage && addUsage(COSTO_BUSQUEDA);
+      const todos = dedupeEmpresas([...resultados, ...nuevos]);
+      if (todos.length === resultados.length) setError("No encontré más empresas distintas por ahora.");
+      setResultados(todos);
+    } catch (e) {
+      setError("No pude traer más empresas ahora. Reintentá en unos segundos.");
+    }
+    setLoadingMore(false);
+  };
+
+  const guardar = (e) => {
+    const nota = [e.web && `Web: ${e.web}`, e.redes && `Redes: ${e.redes}`, e.nota].filter(Boolean).join(" · ");
+    update({
+      clients: [{
+        id: uid(), empresa: e.nombre, contacto: "", cargo: "", telefono: e.telefono || "",
+        whatsapp: e.telefono || "", email: e.email || "", rubro, estado: "Prospecto", ultimoContacto: "",
+        historial: nota ? [{ fecha: today(), tipo: "Nota", nota }] : []
+      }, ...clients]
+    });
+    setSaved((s) => ({ ...s, [e.nombre]: true }));
+  };
+
+  const guardarManual = () => {
+    if (!draft.empresa.trim()) return;
+    const nota = [draft.web && `Web: ${draft.web}`, draft.red && `Redes: ${draft.red}`].filter(Boolean).join(" · ");
+    update({
+      clients: [{
+        id: uid(), empresa: draft.empresa, contacto: "", cargo: "", telefono: draft.telefono,
+        whatsapp: draft.telefono, email: draft.email, rubro, estado: "Prospecto", ultimoContacto: "",
+        historial: nota ? [{ fecha: today(), tipo: "Nota", nota }] : []
+      }, ...clients]
+    });
+    setDraft({ empresa: "", web: "", telefono: "", email: "", red: "" });
+    alert("Prospecto guardado en Clientes ✓");
+  };
+
+  return (
+    <>
+      <div className="card" style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles size={20} color="var(--accent)" /> Buscar empresas por rubro</h2>
+        <div className="cell-sub" style={{ marginBottom: 14 }}>Elegí un rubro y una zona. La IA busca en la web y trae empresas reales con sus datos de contacto públicos.</div>
+        <div className="toolbar" style={{ marginBottom: 8 }}>
+          <select className="select" value={rubro} onChange={(e) => setRubro(e.target.value)}>
+            <option value="">Elegí un rubro…</option>{RUBROS.map((r) => <option key={r}>{r}</option>)}</select>
+          <div className="searchbox"><MapPin size={18} color="#6b7790" />
+            <input placeholder="Zona (ej: CABA, Zona Norte, La Plata)" value={zona} onChange={(e) => setZona(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscarIA()} /></div>
+          <button className="btn btn-primary" onClick={buscarIA} disabled={loading}>
+            {loading ? <><span className="spinner sm" /> Buscando…</> : <><Search size={18} /> Buscar con IA</>}</button>
+        </div>
+        {error && <div className="alert a" style={{ marginTop: 6 }}><AlertTriangle size={18} /> {error}</div>}
+        <div className="cell-sub" style={{ marginTop: 6 }}>Los datos provienen de fuentes públicas en la web. Verificá siempre antes de contactar.</div>
+        {(() => {
+          const restante = Math.max(0, (data.budget || 0) - (data.usage?.gasto || 0));
+          const nBusq = Math.floor(restante / COSTO_BUSQUEDA);
+          const low = restante <= (data.budget || 0) * 0.15;
+          return (
+            <div className="budget-panel">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Sparkles size={16} color="var(--accent)" />
+                <span style={{ fontWeight: 700 }}>Crédito estimado del mes:</span>
+                <span style={{ fontWeight: 800, color: low ? "var(--red)" : "var(--green)" }}>US$ {restante.toFixed(2)}</span>
+                <span className="cell-sub">de US$ {(data.budget || 0).toFixed(2)} · alcanza para ~{nBusq} búsqueda(s)</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="cell-sub">Tope mensual:</span>
+                <span style={{ fontWeight: 700 }}>US$</span>
+                <input type="number" min="1" step="1" value={data.budget || 0}
+                  onChange={(e) => setBudget && setBudget(Math.max(0, Number(e.target.value) || 0))}
+                  style={{ width: 70, padding: "8px 10px", border: "1.5px solid var(--line)", borderRadius: 10, fontSize: 15 }} />
+              </div>
+              {low && <div className="cell-sub" style={{ color: "var(--red)", fontWeight: 700, width: "100%" }}>⚠️ Te queda poco crédito estimado este mes. Usá las búsquedas con cuidado.</div>}
+              <div className="cell-sub" style={{ width: "100%" }}>Cada búsqueda cuesta ~US$ {COSTO_BUSQUEDA.toFixed(2)} (estimado). Es solo una guía; el saldo real lo ves en tu cuenta de Anthropic.</div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {loading && (
+        <div className="empty"><div className="spinner" /><div style={{ marginTop: 12 }}>Buscando empresas reales de {rubro} en {zona || "Buenos Aires"}…</div>
+          <div className="cell-sub">Esto puede tardar unos segundos.</div></div>
+      )}
+
+      {resultados.length > 0 && (
+        <>
+          <div className="section-title" style={{ justifyContent: "space-between" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><Building2 size={20} color="var(--accent)" /> {resultados.length} empresas encontradas</span>
+            {savedCount > 0 && <button className="btn btn-ghost btn-sm" onClick={() => go("clientes")}><Users size={16} /> Ver {savedCount} prospecto(s) guardado(s)</button>}
+          </div>
+          <div className="grid cols-2">
+            {resultados.map((e, i) => {
+              const tel = onlyDigits(e.telefono);
+              return (
+                <div className="card" key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 17 }}>{e.nombre}</div>
+                  {e.nota && <div className="cell-sub">{e.nota}</div>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14, margin: "4px 0" }}>
+                    {e.telefono && <div><Phone size={13} style={{ verticalAlign: "-2px" }} /> {e.telefono}</div>}
+                    {e.email && <div><Mail size={13} style={{ verticalAlign: "-2px" }} /> {e.email}</div>}
+                    {e.web && <div><ExternalLink size={13} style={{ verticalAlign: "-2px" }} /> <a href={e.web.startsWith("http") ? e.web : "https://" + e.web} target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>{e.web}</a></div>}
+                    {e.redes && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.redes}</div>}
+                    {!e.telefono && !e.email && !e.web && <div className="cell-sub">Sin datos de contacto públicos encontrados.</div>}
+                  </div>
+                  <div className="rowactions" style={{ marginTop: "auto" }}>
+                    {tel && <a className="btn btn-icon ico-wa" href={`https://wa.me/${tel}`} target="_blank" rel="noreferrer"><MessageCircle size={18} /></a>}
+                    {e.telefono && <a className="btn btn-icon ico-call" href={`tel:${e.telefono}`}><Phone size={18} /></a>}
+                    {e.email && <a className="btn btn-icon ico-mail" href={`mailto:${e.email}`}><Mail size={18} /></a>}
+                    <div style={{ flex: 1 }} />
+                    {saved[e.nombre]
+                      ? <span className="chip s-green"><CheckCircle2 size={15} /> Guardado</span>
+                      : <button className="btn btn-ghost btn-sm" onClick={() => guardar(e)}><Plus size={16} /> Guardar prospecto</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <button className="btn btn-primary" onClick={buscarMas} disabled={loadingMore}>
+              {loadingMore ? <><span className="spinner sm" /> Buscando más…</> : <><Plus size={18} /> Buscar más empresas</>}</button>
+          </div>
+        </>
+      )}
+
+      <div style={{ marginTop: 22, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button className="btn btn-ghost" onClick={() => setShowManual((v) => !v)}><Pencil size={18} /> Cargar empresa a mano</button>
+        <button className="btn btn-ghost" onClick={() => go("clientes")}><Users size={18} /> Ver clientes</button>
+        {rubro && <a className="btn btn-ghost" href={`https://www.google.com/maps/search/${encodeURIComponent(rubro + " " + zona)}`} target="_blank" rel="noreferrer"><MapPin size={18} /> Ver en Google Maps</a>}
+      </div>
+
+      {showManual && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h2 style={{ fontSize: 17, marginBottom: 4 }}>Cargar empresa como prospecto</h2>
+          <div className="cell-sub" style={{ marginBottom: 14 }}>Rubro asignado: <b style={{ color: "var(--ink)" }}>{rubro || "—"}</b></div>
+          <div className="field"><label>Nombre de empresa *</label><input value={draft.empresa} onChange={(e) => setDraft({ ...draft, empresa: e.target.value })} /></div>
+          <div className="form-grid">
+            <div className="field"><label>Sitio web</label><input value={draft.web} onChange={(e) => setDraft({ ...draft, web: e.target.value })} /></div>
+            <div className="field"><label>Teléfono / WhatsApp</label><input value={draft.telefono} onChange={(e) => setDraft({ ...draft, telefono: e.target.value })} /></div>
+            <div className="field"><label>Email público</label><input value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} /></div>
+            <div className="field"><label>Redes sociales</label><input value={draft.red} onChange={(e) => setDraft({ ...draft, red: e.target.value })} placeholder="@usuario / link" /></div>
+          </div>
+          <button className="btn btn-primary" onClick={guardarManual}><Plus size={18} /> Guardar como prospecto</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ====================== ENVIAR MAILS (campaña) ====================== */
+const PLANTILLA_MAIL = `Hola, ¿cómo están?
+
+Mi nombre es [TU NOMBRE] y trabajo en publicidad en vía pública (carteles, pantallas LED y medianeras en CABA y Gran Buenos Aires).
+
+Me gustaría acercarles algunas ubicaciones disponibles que pueden ayudar a dar más visibilidad a su marca. Si les interesa, con gusto les envío una propuesta con fotos, ubicaciones y precios.
+
+¿Tendrían unos minutos para conversarlo?
+
+Muchas gracias y quedo a disposición.
+Saludos cordiales,
+[TU NOMBRE] — [TU TELÉFONO]`;
+
+function Mails({ data }) {
+  const { clients } = data;
+  const conMail = useMemo(() => clients.filter((c) => c.email && c.email.includes("@")), [clients]);
+  const [filtro, setFiltro] = useState("Todos");
+  const [sel, setSel] = useState(() => new Set(clients.filter((c) => c.email && c.email.includes("@") && c.estado === "Prospecto").map((c) => c.id)));
+  const [subject, setSubject] = useState("Propuesta de publicidad en vía pública");
+  const [body, setBody] = useState(PLANTILLA_MAIL);
+  const [copiado, setCopiado] = useState("");
+
+  const lista = conMail.filter((c) => filtro === "Todos" || c.estado === filtro);
+  const elegidos = conMail.filter((c) => sel.has(c.id));
+  const emails = elegidos.map((c) => c.email);
+
+  const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const todos = () => setSel(new Set(lista.map((c) => c.id)));
+  const ninguno = () => setSel(new Set());
+
+  const mailtoHref = `mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const copiar = async (txt, msg) => {
+    try { await navigator.clipboard.writeText(txt); setCopiado(msg); setTimeout(() => setCopiado(""), 2500); }
+    catch { alert(txt); }
+  };
+
+  return (
+    <>
+      <div className="card" style={{ marginBottom: 18, display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--blue-bg)", color: "var(--blue)", display: "grid", placeItems: "center", flexShrink: 0 }}><Mail size={22} /></span>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>Enviá un mail a varios prospectos de una vez</div>
+          <div style={{ color: "var(--ink2)", fontSize: 15, lineHeight: 1.5 }}>
+            Elegí a quiénes escribir, ajustá el texto y tocá <b>“Abrir mail con todos”</b>. Se abre tu app de correo con todos en <b>copia oculta (CCO)</b> y el mensaje listo: vos solo revisás y enviás. Así, en vez de 2 o 3 por día, podés escribir a muchos en minutos.
+          </div>
+        </div>
+      </div>
+
+      <div className="grid cols-2">
+        {/* Destinatarios */}
+        <div className="card">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+            <h2 style={{ fontSize: 17 }}>Destinatarios ({elegidos.length} elegidos)</h2>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={todos}>Todos</button>
+              <button className="btn btn-ghost btn-sm" onClick={ninguno}>Ninguno</button>
+            </div>
+          </div>
+          <select className="select" style={{ width: "100%", marginBottom: 12 }} value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+            <option>Todos</option>{ESTADOS.map((e) => <option key={e}>{e}</option>)}
+          </select>
+          <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            {lista.map((c) => (
+              <label key={c.id} className={"prop-pick" + (sel.has(c.id) ? " on" : "")}>
+                <input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>{c.empresa}</div>
+                  <div className="cell-sub" style={{ wordBreak: "break-word" }}>{c.email}</div>
+                </div>
+                <span className={"chip " + estadoClass(c.estado)} style={{ fontSize: 11 }}>{c.estado}</span>
+              </label>
+            ))}
+            {!lista.length && <div className="empty"><Mail size={34} /><div>No hay contactos con email en este filtro.</div><div className="cell-sub">Guardá prospectos con email desde “Buscar empresas”.</div></div>}
+          </div>
+        </div>
+
+        {/* Mensaje */}
+        <div className="card">
+          <h2 style={{ fontSize: 17, marginBottom: 12 }}>Mensaje</h2>
+          <div className="field"><label>Asunto</label><input value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
+          <div className="field"><label>Texto del mail</label><textarea style={{ minHeight: 200 }} value={body} onChange={(e) => setBody(e.target.value)} /></div>
+          <div className="cell-sub" style={{ marginBottom: 12 }}>Acordate de reemplazar <b>[TU NOMBRE]</b> y <b>[TU TELÉFONO]</b>.</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <a className={"btn btn-primary" + (emails.length ? "" : " ")} href={emails.length ? mailtoHref : undefined}
+              onClick={(e) => { if (!emails.length) { e.preventDefault(); alert("Elegí al menos un destinatario."); } }}>
+              <Mail size={18} /> Abrir mail con todos ({emails.length})</a>
+            <button className="btn btn-ghost" onClick={() => copiar(emails.join(", "), "¡Correos copiados!")} disabled={!emails.length}><FileText size={18} /> Copiar correos</button>
+            <button className="btn btn-ghost" onClick={() => copiar(body, "¡Texto copiado!")}><FileText size={18} /> Copiar texto</button>
+          </div>
+          {copiado && <div className="chip s-green" style={{ marginTop: 12 }}><CheckCircle2 size={15} /> {copiado}</div>}
+          <div className="cell-sub" style={{ marginTop: 12 }}>
+            Tip: si tenés muchísimos correos, tu app de mail puede pedirte enviarlos en tandas. También podés “Copiar correos” y pegarlos en el CCO de Gmail.
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ====================== ASISTENTE ====================== */
+function Asistente({ data, addUsage }) {
+  const { clients, billboards, meetings, tasks } = data;
+  const [msgs, setMsgs] = useState([{ from: "bot", text: "¡Hola! Soy tu asistente. Preguntame lo que quieras sobre tus clientes, seguimientos y carteles. Tocá una sugerencia o escribime." }]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const endRef = useRef(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, thinking]);
+
+  const grupos = [
+    { t: "Seguimiento", chips: ["¿A quién tengo que llamar?", "Clientes que hace más de 15 días no contacto", "Próximos seguimientos"] },
+    { t: "Clientes", chips: ["¿Qué empresas tengo en negociación?", "Clientes interesados", "¿Cuántos clientes tengo?"] },
+    { t: "Carteles", chips: ["Carteles premium disponibles", "Carteles disponibles", "Ranking premium"] },
+    { t: "Resumen", chips: ["Hacéme un resumen del día", "¿Cuánto puedo facturar con lo disponible?"] },
+  ];
+
+  // intérprete local instantáneo
+  const responderLocal = (qRaw) => {
+    const q = qRaw.toLowerCase();
+    const has = (...w) => w.some((x) => q.includes(x));
+    const mapC = (arr, sub) => arr.map((c) => ({ client: c, a: c.empresa, sub: sub(c) }));
+
+    const byName = clients.find((c) => c.empresa && c.empresa.length > 3 && q.includes(c.empresa.toLowerCase()));
+    if (byName) return { handled: true, text: `Ficha de ${byName.empresa}:`, items: [{ client: byName, a: byName.empresa, sub: `${byName.contacto || "Sin contacto"} · ${byName.estado} · ${byName.ultimoContacto ? "hace " + daysSince(byName.ultimoContacto) + "d" : "sin registro"}` }] };
+
+    if (has("resumen", "cómo viene", "como viene", "del día", "del dia", "cómo estoy", "como estoy")) {
+      const venc = clients.filter((c) => daysSince(c.ultimoContacto) > 15 && c.estado !== "Cliente activo").length;
+      const neg = clients.filter((c) => c.estado === "En negociación").length;
+      const disp = billboards.filter((b) => b.estado === "Disponible").length;
+      const reun = meetings.filter((m) => m.fecha >= today()).length;
+      const tk = tasks.filter((t) => !t.done).length;
+      return { handled: true, text: `Resumen de hoy:\n• ${venc} seguimiento(s) vencido(s) (+15 días)\n• ${neg} empresa(s) en negociación\n• ${disp} cartel(es) disponible(s)\n• ${reun} reunión(es) próxima(s)\n• ${tk} tarea(s) pendiente(s)` };
+    }
+    if (has("facturar", "facturación", "facturacion", "ingreso", "potencial", "cuánto puedo", "cuanto puedo")) {
+      const actual = billboards.filter((b) => b.estado === "Ocupado" || b.estado === "Reservado").reduce((s, b) => s + (+b.precio || 0), 0);
+      const libre = billboards.filter((b) => b.estado === "Disponible").reduce((s, b) => s + (+b.precio || 0), 0);
+      return { handled: true, text: `Facturación estimada por mes:\n• Ya colocado (ocupado + reservado): ${money(actual)}\n• Potencial libre por vender (disponibles): ${money(libre)}` };
+    }
+    if (has("llamar", "tengo que llamar", "a quién")) {
+      const r = clients.filter((c) => c.estado !== "Cliente activo" && daysSince(c.ultimoContacto) >= 7 && daysSince(c.ultimoContacto) < 9999)
+        .sort((a, b) => daysSince(b.ultimoContacto) - daysSince(a.ultimoContacto)).slice(0, 8);
+      return { handled: true, text: r.length ? "Te conviene contactar a:" : "No tenés llamadas pendientes urgentes. ¡Buen momento para prospectar!", items: mapC(r, (c) => `hace ${daysSince(c.ultimoContacto)} días · ${c.estado}`) };
+    }
+    if (has("premium") && has("dispon", "libre")) {
+      const r = billboards.filter((b) => b.premium && b.estado === "Disponible");
+      return { handled: true, text: r.length ? `Carteles premium disponibles (${r.length}):` : "No hay carteles premium disponibles ahora.", items: r.map((b) => ({ a: b.nombre, sub: b.ubicacion, b: money(b.precio) })) };
+    }
+    if (has("ranking") || (has("premium") && !has("dispon"))) {
+      const r = [...billboards].filter((b) => b.premium).sort((a, b) => b.precio - a.precio);
+      return { handled: true, text: `Ranking de carteles premium:`, items: r.map((b, i) => ({ a: `#${i + 1} ${b.nombre}`, sub: b.estado, b: money(b.precio) })) };
+    }
+    if (has("negocia")) {
+      const r = clients.filter((c) => c.estado === "En negociación");
+      return { handled: true, text: r.length ? `En negociación (${r.length}):` : "No tenés empresas en negociación ahora.", items: mapC(r, (c) => `${c.contacto || ""} · hace ${daysSince(c.ultimoContacto)}d`) };
+    }
+    if (has("interesad")) {
+      const r = clients.filter((c) => c.estado === "Interesado");
+      return { handled: true, text: r.length ? `Clientes interesados (${r.length}):` : "No hay clientes marcados como interesados.", items: mapC(r, (c) => c.rubro || c.estado) };
+    }
+    if (has("seguimiento", "próximo", "proximo", "vencid", "más de 15", "mas de 15", "no contact", "más tiempo", "mas tiempo")) {
+      const min = has("30") ? 30 : has("15") ? 15 : 7;
+      const r = clients.filter((c) => c.estado !== "Cliente activo" && daysSince(c.ultimoContacto) >= min && daysSince(c.ultimoContacto) < 9999)
+        .sort((a, b) => daysSince(b.ultimoContacto) - daysSince(a.ultimoContacto));
+      return { handled: true, text: r.length ? `Seguimientos pendientes (+${min} días):` : "¡No tenés seguimientos pendientes! Todo al día.", items: mapC(r, (c) => `hace ${daysSince(c.ultimoContacto)} días`) };
+    }
+    if (has("dispon", "libre") && has("cartel", "espacio")) {
+      const r = billboards.filter((b) => b.estado === "Disponible");
+      return { handled: true, text: `Carteles disponibles (${r.length}):`, items: r.map((b) => ({ a: `${b.nombre} · ${b.tipo}`, sub: b.ubicacion, b: money(b.precio) })) };
+    }
+    if (has("ocupad")) {
+      const r = billboards.filter((b) => b.estado === "Ocupado");
+      return { handled: true, text: `Carteles ocupados (${r.length}):`, items: r.map((b) => ({ a: b.nombre, sub: b.ubicacion })) };
+    }
+    if (has("cuántos clientes", "cuantos clientes", "total de clientes") || (has("cuánto", "cuantos", "cuántos") && has("cliente"))) {
+      const by = {}; clients.forEach((c) => { by[c.estado] = (by[c.estado] || 0) + 1; });
+      return { handled: true, text: `Tenés ${clients.length} clientes en total:`, items: Object.entries(by).map(([k, v]) => ({ a: k, b: String(v) })) };
+    }
+    if (has("prospect")) {
+      const r = clients.filter((c) => c.estado === "Prospecto");
+      return { handled: true, text: `Prospectos (${r.length}):`, items: mapC(r, (c) => c.rubro || "") };
+    }
+    if (has("reunion", "reunión")) {
+      const r = meetings.filter((m) => m.fecha >= today()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      return { handled: true, text: r.length ? "Tus próximas reuniones:" : "No tenés reuniones próximas cargadas.", items: r.map((m) => ({ a: m.titulo, b: fmtDate(m.fecha) })) };
+    }
+    if (has("tarea", "pendiente")) {
+      const r = tasks.filter((t) => !t.done);
+      return { handled: true, text: r.length ? "Tareas pendientes:" : "No tenés tareas pendientes.", items: r.map((t) => ({ a: t.titulo, b: t.tipo })) };
+    }
+    return { handled: false };
+  };
+
+  // IA para preguntas libres
+  const responderIA = async (question) => {
+    const ctx = {
+      clientes: clients.slice(0, 60).map((c) => ({ empresa: c.empresa, contacto: c.contacto, cargo: c.cargo, estado: c.estado, rubro: c.rubro, telefono: c.telefono, email: c.email, ultimoContacto: c.ultimoContacto, diasSinContacto: c.ultimoContacto ? daysSince(c.ultimoContacto) : null })),
+      carteles: billboards.slice(0, 60).map((b) => ({ nombre: b.nombre, tipo: b.tipo, estado: b.estado, precio: b.precio, premium: b.premium, ubicacion: b.ubicacion })),
+      reuniones: meetings, tareas: tasks, hoy: today(),
+    };
+    const prompt = `Sos el asistente de una app personal de ventas de publicidad en vía pública en Argentina. Respondé en español rioplatense, claro, cálido y breve (máximo 6 líneas). Usá EXCLUSIVAMENTE estos datos del sistema y NO inventes nada que no esté acá. Si la respuesta no está en los datos, decílo con amabilidad y sugerí qué podría cargar.
+DATOS: ${JSON.stringify(ctx)}
+PREGUNTA: "${question}"`;
+    try {
+      const res = await fetch("/.netlify/functions/anthropic", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+      });
+      const j = await res.json();
+      const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+      addUsage && addUsage(COSTO_ASISTENTE);
+      return text || "No pude generar una respuesta. Probá reformular la pregunta.";
+    } catch {
+      return "No pude conectarme para responder esa pregunta ahora. Probá con una de las sugerencias de arriba.";
+    }
+  };
+
+  const send = async (txt) => {
+    const t = (txt ?? input).trim(); if (!t || thinking) return;
+    setInput("");
+    setMsgs((m) => [...m, { from: "user", text: t }]);
+    const local = responderLocal(t);
+    if (local.handled) {
+      setMsgs((m) => [...m, { from: "bot", text: local.text, items: local.items }]);
+      return;
+    }
+    setThinking(true);
+    const answer = await responderIA(t);
+    setThinking(false);
+    setMsgs((m) => [...m, { from: "bot", text: answer }]);
+  };
+
+  return (
+    <div className="chat">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 6 }}>
+        {grupos.map((g) => (
+          <div key={g.t}>
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)", marginBottom: 6 }}>{g.t}</div>
+            <div className="suggestions">{g.chips.map((s) => <button key={s} className="sug" onClick={() => send(s)}>{s}</button>)}</div>
+          </div>
+        ))}
+      </div>
+
+      {msgs.map((m, i) => (
+        <div className={"bubble " + m.from} key={i}>
+          <div style={{ whiteSpace: "pre-line" }}>{m.text}</div>
+          {m.items && m.items.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+              {m.items.map((it, j) => (
+                <div className="ans-item" key={j}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{it.a}</div>
+                    {it.sub && <div style={{ fontSize: 12, color: "var(--muted)" }}>{it.sub}</div>}
+                  </div>
+                  {it.b && <b style={{ whiteSpace: "nowrap" }}>{it.b}</b>}
+                  {it.client && <ContactBtns c={it.client} />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+      {thinking && <div className="bubble bot"><span className="spinner sm" style={{ borderTopColor: "var(--accent)" }} /> Pensando…</div>}
+      <div ref={endRef} />
+
+      <div className="askbar">
+        <input placeholder="Escribí tu pregunta…" value={input}
+          onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
+        <button className="btn btn-primary" onClick={() => send()} disabled={thinking}><Sparkles size={18} /> Preguntar</button>
+      </div>
+    </div>
+  );
+}
+
+
+const root = createRoot(document.getElementById("root"));
+root.render(React.createElement(App));
+
+</script>
+<script>const obs=new MutationObserver(()=>{if(document.querySelector('#root').children.length){const b=document.getElementById('boot');if(b)b.remove();obs.disconnect();}});obs.observe(document.getElementById('root'),{childList:true});</script>
+</body></html>
