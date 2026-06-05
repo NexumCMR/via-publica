@@ -366,12 +366,12 @@ REGLAS OBLIGATORIAS:
 Respondé EXCLUSIVAMENTE con un array JSON válido (sin markdown ni texto extra), con esta forma exacta:
 [{"nombre":"","web":"","telefono":"","email":"","redes":"","nota":""}]
 En "nota" poné una frase corta de por qué le puede servir publicidad en vía pública.`;
-  const res = await fetch("/.netlify/functions/anthropic", {
+  const res = await fetch("/api/anthropic", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: AI_MODEL, max_tokens: 2200,
+      model: AI_MODEL, max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
-      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
+      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 12 }],
     }),
   });
   const j = await res.json();
@@ -1982,7 +1982,7 @@ function Asistente({ data, addUsage }) {
 DATOS: ${JSON.stringify(ctx)}
 PREGUNTA: "${question}"`;
     try {
-      const res = await fetch("/.netlify/functions/anthropic", {
+      const res = await fetch("/api/anthropic", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
       });
