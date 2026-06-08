@@ -12,6 +12,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "https://esm.sh/react@18.2.0";
 import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
 import { LayoutDashboard, Users, BellRing, LayoutPanelTop, MapPin, FileText, Search, Sparkles, Plus, Pencil, Phone, Mail, MessageCircle, History, X, Trash2, Star, ExternalLink, Printer, ChevronRight, CheckCircle2, AlertTriangle, AlertCircle, Calendar, Menu, ClipboardList, Building2, Download, Upload, ShieldCheck } from "https://esm.sh/lucide-react@0.383.0?deps=react@18.2.0";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 if (!window.storage) { window.storage = { get: async (k) => { const v = localStorage.getItem(k); return v ? { value: v } : null; }, set: async (k, v) => { try { localStorage.setItem(k, v); } catch (e) { alert("El teléfono se quedó sin espacio (suele pasar por muchas fotos). Quitá algunas. Tus datos anteriores siguen guardados."); throw e; } return { value: v }; } }; }
 
 /* ====================== ESTILOS ====================== */
@@ -54,6 +55,18 @@ h1,h2,h3,.brand{ font-family:'Bricolage Grotesque',sans-serif; letter-spacing:-.
 .budget-bar span{ display:block; height:100%; border-radius:999px; transition:width .3s ease; }
 .budget-num{ font-size:13px; font-weight:800; color:#fff; margin-top:7px; }
 .budget-panel{ display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; justify-content:space-between; margin-top:14px; padding:14px 16px; border:1.5px dashed var(--line); border-radius:14px; background:#faf8f3; }
+.prop-toggle{ display:flex; gap:10px; align-items:center; font-weight:600; cursor:pointer; padding:9px 12px; border:1.5px solid var(--line); border-radius:11px; background:#faf8f3; font-size:14px; }
+.prop-toggle input{ width:19px; height:19px; accent-color:var(--accent); flex-shrink:0; }
+.rev-stats{ display:flex; gap:10px; margin-bottom:14px; }
+.rev-stat{ flex:1; text-align:center; padding:12px 6px; border:1.5px solid var(--line); border-radius:14px; background:#faf8f3; }
+.rev-stat b{ display:block; font-size:26px; font-family:"Bricolage Grotesque"; line-height:1; }
+.rev-stat span{ font-size:12px; color:var(--muted); }
+.rev-box{ border:1.5px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:12px; background:#fff; }
+.rev-box-title{ font-weight:800; display:flex; align-items:center; gap:8px; cursor:pointer; }
+.rev-alert{ border-color:#f0b37e; background:#fff7ef; }
+.rev-item{ padding:8px 0; border-top:1px solid var(--line); font-size:14px; }
+.rev-item:first-of-type{ border-top:none; }
+.bb-impactos{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--accent); background:#fff3ec; padding:4px 9px; border-radius:8px; margin-top:8px; align-self:flex-start; }
 
 /* ---- Splash ---- */
 .splash{ position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:radial-gradient(circle at 50% 34%,#1b2c49,#0b1422 72%); overflow:hidden; transition:opacity .6s ease,transform .6s ease; }
@@ -423,8 +436,11 @@ const estadoClass = (e) => ({
   "En negociación": "s-amber", "Cliente activo": "s-green", "Sin respuesta": "s-red"
 }[e] || "s-gray");
 
-const TIPOS = ["Cartel", "Tótem", "Pantalla LED", "Mupi", "Medianera", "Otro"];
+const TIPOS = ["Cartel", "Columna", "Vallado", "Telón", "Tótem", "Pantalla LED", "Mupi", "Medianera", "Otro"];
 const BB_ESTADOS = ["Disponible", "Reservado", "Ocupado", "Próximo a liberarse"];
+const IMPACTOS = {"1101":1225169,"1108":1699529,"1109":1702232,"1110":653815,"1114":4241397,"1115":2729768,"1116":2093037,"1117":2689433,"1118":2764804,"1119":2731942,"1120":3114424,"1121":3114424,"1124":1461249,"1125":1449105,"1126":405340,"1127":403473,"1136":281992,"1140":1175007,"1143":1009030,"1161":875434,"1166":647706,"1185":1652343,"1186":4241397,"1187":906290,"1188":908725,"1189":118899,"1190":7781887,"1197":2421939,"1198":2455913,"1202":1173256,"1209":896554,"1225":294521,"1228":2270234,"1229":2258298,"1230":2283965,"1231":2292171,"1232":900296,"1233":909586,"1238":1175007,"1239":2071044,"1240":2044266,"1241":1941055,"1242":1952334,"1253":1796250,"1254":2831218,"1255":2831218,"1256":1066341,"1257":1029002,"1266":2372433,"1267":2103644,"1268":931154,"1269":931154,"1271":1441376,"1274":1506378,"1275":2218405,"1276":2212215,"1278":388951,"1279":376329,"1280":267092,"1281":349184,"1282":293048,"1284":295837,"1287":295837,"1288":546754,"1289":723229,"1290":723229,"1291":1873456,"1292":1873456,"1293":1796250,"1294":1796250,"1295":302689,"1297":559553,"1298":559553,"1299":3136318,"1300":3136318,"1301":3853720,"1302":3853720,"1306":2387986,"1307":2387986,"1308":740632,"1312":1578655,"1313":920421,"1315":280678,"1316":280678,"1324":883267,"1325":895266,"1326":3136318,"1328":2020328,"1329":2020328,"1330":1235655,"1331":2876425,"1332":2020328,"1337":2104000,"1338":2201000,"2200":653815,"2208":1743233,"2215":3030124,"2216":3030124,"2219":662024,"2223":1780674,"2225":1024090,"2232":1358915,"2233":991979,"2234":999801,"2235":1191136,"2236":837617,"2243":1021089,"2248":1604055,"2249":1177628,"2250":1176197,"2255":2486314,"2271":733305,"2276":1022677,"2277":812674,"2281":1438027,"2285":1009159,"2287":1800159,"2292":918721,"2294":1052784,"2297":1206746,"2307":1355613,"2308":922744,"2312":855231,"2313":924602,"2315":2018526,"2316":1551848,"2317":2597978,"2318":1530938,"2320":1253331,"2321":876545,"2322":1240684,"2323":880915,"2324":1020368,"2325":889847,"2326":889849,"2327":1155449,"2328":520640,"2330":1180569,"2331":876545,"2332":1132566,"2333":1065300,"2334":856332,"2335":978664,"2336":1873223,"2337":2478332,"2338":1856356,"2339":648766,"2340":788342,"2344":745620,"2345":546754,"2347":802530,"3311":689661,"5001":1706204,"5002":1706204,"5007":2048446};
+// Devuelve la URL de la foto: la cargada a mano, o la del PDF por código (fotos/COD.jpg)
+function fotoDe(b){ return b && (b.foto || (b.codigo ? `fotos/${b.codigo}.jpg` : "")); }
 const bbColor = (e) => ({ "Disponible": "var(--green)", "Reservado": "var(--amber)", "Ocupado": "var(--red)", "Próximo a liberarse": "var(--blue)" }[e] || "var(--muted)");
 const bbChip = (e) => ({ "Disponible": "s-green", "Reservado": "s-amber", "Ocupado": "s-red", "Próximo a liberarse": "s-blue" }[e] || "s-gray");
 
@@ -1065,6 +1081,11 @@ function Inventario({ data, update }) {
   const [fEstado, setFEstado] = useState("Todos");
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
+  const [excelRev, setExcelRev] = useState(null);   // pantalla de revisión
+  const [excelBusy, setExcelBusy] = useState(false);
+  const [excelMsg, setExcelMsg] = useState("");
+  const [borrarDesap, setBorrarDesap] = useState(false);
+  const [verFoto, setVerFoto] = useState(null);
 
   const disp = billboards.filter((b) => b.estado === "Disponible").length;
   const ocup = billboards.filter((b) => b.estado === "Ocupado").length;
@@ -1074,6 +1095,12 @@ function Inventario({ data, update }) {
   const list = billboards.filter((b) => fEstado === "Todos" || b.estado === fEstado);
   const save = (b) => { if (b.id) setBB(billboards.map((x) => x.id === b.id ? b : x)); else setBB([{ ...b, id: uid() }, ...billboards]); setEdit(null); };
   const remove = (id) => { if (confirm("¿Eliminar este cartel?")) setBB(billboards.filter((x) => x.id !== id)); };
+
+  const pedirExcel = () => {
+    const subject = "Solicitud de planilla actualizada (disponibles y precios)";
+    const body = "Hola, ¿cómo estás?\n\n¿Me podrías enviar la planilla actualizada con los espacios disponibles, precios y novedades? Así actualizo mi información.\n\n¡Muchas gracias!\nSaludos.";
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
 
   // Geocodificación de una dirección (para ubicar en el mapa)
   const geocodeOne = async (q) => {
@@ -1127,6 +1154,8 @@ function Inventario({ data, update }) {
         foto: (r.foto || "").toString(),
         estado: BB_ESTADOS.includes(r.estado) ? r.estado : "Disponible",
         precio: Number(String(r.precio || "").replace(/[^\d]/g, "")) || 0,
+        produccion: Number(String(r.produccion || r.producción || "").replace(/[^\d]/g, "")) || 0,
+        colocacion: Number(String(r.colocacion || r.colocación || "").replace(/[^\d]/g, "")) || 0,
         premium: /s[ií]|true|1|premium/i.test(String(r.premium || "")),
         obs: (r.obs || r.observaciones || "").toString(), lat, lng,
       });
@@ -1134,6 +1163,140 @@ function Inventario({ data, update }) {
     setBB([...nuevos, ...billboards]);
     setImporting(false); setImportMsg("");
     alert(`¡Listo! Se importaron ${nuevos.length} cartel(es). Revisá en el Mapa que hayan quedado bien ubicados; podés arrastrar los pines para ajustarlos.`);
+  };
+
+  /* ===== ACTUALIZAR DESDE EXCEL (planilla de la empresa) ===== */
+  // Convierte un valor de celda a número de pesos (maneja $, puntos de mil y notación científica)
+  const aNumero = (v) => {
+    if (v === null || v === undefined || v === "") return 0;
+    if (typeof v === "number") return Math.round(v);
+    let s = String(v).trim();
+    if (/^[\d.,]+e[+-]?\d+$/i.test(s.replace(/\s/g, ""))) return Math.round(parseFloat(s.replace(",", ".")));
+    s = s.replace(/[^\d.,]/g, "");
+    return Number(s.replace(/[.,]/g, "")) || 0;
+  };
+  const normTipo = (t) => {
+    const x = String(t || "").trim().toLowerCase();
+    const found = TIPOS.find((T) => T.toLowerCase() === x);
+    if (found) return found;
+    if (x.startsWith("colum")) return "Columna";
+    if (x.startsWith("vall")) return "Vallado";
+    if (x.startsWith("tel")) return "Telón";
+    if (x.includes("led") || x.includes("pantalla")) return "Pantalla LED";
+    return "Cartel";
+  };
+  // Mapeo de columnas de la planilla (0 = primera columna)
+  const COL = { cod: 0, direccion: 5, tipo: 6, zona: 7, precio: 11, medidas: 12, prodcoloc: 14, coloc: 15, exhibicion: 19 };
+  const excelACarteles = (rows) => {
+    const out = [];
+    for (const r of rows) {
+      const cod = String(r[COL.cod] ?? "").replace(/\.0+$/, "").trim();
+      if (!/^\d{2,}$/.test(cod)) continue; // saltea encabezados y separadores
+      const direccion = String(r[COL.direccion] ?? "").trim();
+      if (!direccion) continue;
+      const zona = String(r[COL.zona] ?? "").trim();
+      const precio = aNumero(r[COL.precio]);
+      const prodcoloc = aNumero(r[COL.prodcoloc]);
+      const coloc = aNumero(r[COL.coloc]);
+      const exhib = String(r[COL.exhibicion] ?? "").trim();
+      const disponible = !exhib || /disponible/i.test(exhib);
+      out.push({
+        codigo: cod,
+        nombre: `${cod} — ${direccion}`,
+        ubicacion: direccion + (zona ? `, ${zona}` : ""),
+        tipo: normTipo(r[COL.tipo]),
+        medidas: String(r[COL.medidas] ?? "").trim(),
+        precio,
+        produccion: Math.max(0, prodcoloc - coloc),
+        colocacion: coloc,
+        estado: disponible ? "Disponible" : "Ocupado",
+        impactos: IMPACTOS[cod] || 0,
+        obs: `Cód. ${cod}${zona ? " · " + zona : ""}${!disponible && exhib ? " · Hoy: " + exhib : ""}`,
+      });
+    }
+    return out;
+  };
+  const analizar = (records) => {
+    const byCod = {};
+    billboards.forEach((b) => { if (b.codigo) byCod[String(b.codigo)] = b; });
+    const codsExcel = new Set(records.map((r) => r.codigo));
+    const actualizar = [], nuevos = [], alertas = [];
+    for (const r of records) {
+      const ex = byCod[r.codigo];
+      if (!ex) { nuevos.push(r); continue; }
+      const cambios = [];
+      const oldP = Number(ex.precio) || 0;
+      if (oldP !== r.precio) cambios.push(`Precio: ${money(oldP)} → ${money(r.precio)}`);
+      if ((ex.estado || "") !== r.estado) cambios.push(`Estado: ${ex.estado || "—"} → ${r.estado}`);
+      if ((ex.tipo || "") !== r.tipo) cambios.push(`Tipo: ${ex.tipo || "—"} → ${r.tipo}`);
+      if ((ex.medidas || "") !== r.medidas && r.medidas) cambios.push(`Medidas: ${ex.medidas || "—"} → ${r.medidas}`);
+      const corto = r.nombre.replace(/^\d+ — /, "");
+      // Reglas de "movimientos raros"
+      if (oldP > 0 && r.precio > 0) {
+        const ratio = r.precio / oldP;
+        if (ratio >= 3) alertas.push(`🚨 ${r.codigo} (${corto}): el precio se multiplicó (${money(oldP)} → ${money(r.precio)}). ¿Un cero de más?`);
+        else if (ratio <= 0.34) alertas.push(`🚨 ${r.codigo} (${corto}): el precio bajó muchísimo (${money(oldP)} → ${money(r.precio)}). ¿Un cero de menos?`);
+      }
+      if (oldP > 0 && r.precio === 0) alertas.push(`🚨 ${r.codigo} (${corto}): quedó sin precio ($0). Revisá la planilla.`);
+      if ((ex.tipo || "") !== r.tipo) alertas.push(`⚠️ ${r.codigo} (${corto}): cambió de tipo (${ex.tipo} → ${r.tipo}).`);
+      if (cambios.length) actualizar.push({ rec: r, ex, cambios });
+    }
+    const desaparecidos = billboards.filter((b) => b.codigo && !codsExcel.has(String(b.codigo)));
+    return { actualizar, nuevos, desaparecidos, alertas, total: records.length };
+  };
+  const leerExcel = async (file) => {
+    if (!file) return;
+    setExcelBusy(true); setExcelMsg("Leyendo el Excel…");
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+      const records = excelACarteles(rows);
+      if (!records.length) { alert("No encontré carteles en el Excel. Asegurate de que sea la planilla de disponibles."); setExcelBusy(false); setExcelMsg(""); return; }
+      setBorrarDesap(false);
+      setExcelRev(analizar(records));
+    } catch (e) {
+      alert("No pude leer el Excel. ¿Es un archivo .xlsx? Detalle: " + e);
+    }
+    setExcelBusy(false); setExcelMsg("");
+  };
+  const aplicarExcel = async () => {
+    if (!excelRev) return;
+    setExcelBusy(true);
+    const hoy = today();
+    const byCod = {};
+    billboards.forEach((b) => { if (b.codigo) byCod[String(b.codigo)] = b; });
+    // 1) Actualizar existentes (conserva id, lat, lng, foto, premium; guarda historial)
+    let arr = billboards.map((b) => {
+      if (!b.codigo) return b;
+      const upd = excelRev.actualizar.find((a) => a.rec.codigo === String(b.codigo));
+      if (!upd) return b;
+      const r = upd.rec;
+      const hist = [...(b.hist || []), { fecha: hoy, precio: Number(b.precio) || 0, estado: b.estado }].slice(-12);
+      return { ...b, nombre: r.nombre, ubicacion: r.ubicacion, tipo: r.tipo, medidas: r.medidas, precio: r.precio, produccion: r.produccion, colocacion: r.colocacion, estado: r.estado, obs: r.obs, hist };
+    });
+    // 2) Borrar desaparecidos (si la usuaria lo eligió)
+    if (borrarDesap && excelRev.desaparecidos.length) {
+      const codsBorrar = new Set(excelRev.desaparecidos.map((d) => String(d.codigo)));
+      arr = arr.filter((b) => !(b.codigo && codsBorrar.has(String(b.codigo))));
+    }
+    // 3) Agregar nuevos (los ubica en el mapa, de a uno por segundo)
+    const nuevos = [];
+    for (let i = 0; i < excelRev.nuevos.length; i++) {
+      const r = excelRev.nuevos[i];
+      setExcelMsg(`Ubicando carteles nuevos en el mapa: ${i + 1} de ${excelRev.nuevos.length}…`);
+      let lat = -34.6037, lng = -58.3816;
+      const g = await geocodeOne(r.ubicacion);
+      if (g) { lat = g.lat; lng = g.lng; }
+      await new Promise((res) => setTimeout(res, 1100));
+      nuevos.push({ id: uid(), ...r, foto: "", premium: false, lat, lng, hist: [{ fecha: hoy, precio: r.precio, estado: r.estado }] });
+    }
+    setBB([...nuevos, ...arr]);
+    setExcelBusy(false); setExcelMsg("");
+    const borrados = borrarDesap ? excelRev.desaparecidos.length : 0;
+    setExcelRev(null);
+    alert(`¡Actualización aplicada!\n\n✅ ${excelRev.actualizar.length} actualizados\n🆕 ${nuevos.length} nuevos${borrados ? `\n🗑️ ${borrados} borrados` : ""}\n\nRevisá en el Mapa que los nuevos hayan quedado bien ubicados.`);
   };
 
   return (
@@ -1172,19 +1335,25 @@ function Inventario({ data, update }) {
         <select className="select" value={fEstado} onChange={(e) => setFEstado(e.target.value)}>
           <option>Todos</option>{BB_ESTADOS.map((e) => <option key={e}>{e}</option>)}</select>
         <div style={{ flex: 1 }} />
+        <button className="btn btn-ghost" onClick={pedirExcel}><Mail size={18} /> Pedir Excel actualizado</button>
+        <label className="btn btn-primary" style={{ cursor: "pointer" }}>
+          <Upload size={18} /> Actualizar desde Excel
+          <input type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }}
+            onChange={(e) => { leerExcel(e.target.files[0]); e.target.value = ""; }} />
+        </label>
         <label className="btn btn-ghost" style={{ cursor: "pointer" }}>
           <Upload size={18} /> Importar lista
           <input type="file" accept=".json,.csv,application/json,text/csv" style={{ display: "none" }}
             onChange={(e) => { importar(e.target.files[0]); e.target.value = ""; }} />
         </label>
-        <button className="btn btn-primary" onClick={() => setEdit({})}><Plus size={19} /> Agregar cartel</button>
+        <button className="btn btn-ghost" onClick={() => setEdit({})}><Plus size={19} /> Agregar cartel</button>
       </div>
 
       <div className="grid cols-3">
         {list.map((b) => (
           <div className="bb-card" key={b.id}>
-            <div className="bb-photo" style={b.foto ? { backgroundImage: `url(${b.foto})` } : {}}>
-              {!b.foto && <LayoutPanelTop size={40} />}
+            <div className="bb-photo" onClick={() => fotoDe(b) && setVerFoto(fotoDe(b))} style={{ ...(fotoDe(b) ? { backgroundImage: `url(${fotoDe(b)})`, cursor: "zoom-in" } : {}) }}>
+              {!fotoDe(b) && <LayoutPanelTop size={40} />}
               <div className="bb-tags">
                 <span className={"chip " + bbChip(b.estado)}>{b.estado}</span>
                 {b.premium && <span className="premium"><Star size={13} fill="#ffd24a" /> Premium</span>}
@@ -1195,6 +1364,7 @@ function Inventario({ data, update }) {
               <h3>{b.nombre}</h3>
               <div className="bb-meta"><MapPin size={15} /> {b.ubicacion}</div>
               <div className="bb-meta">{b.tipo} · {b.medidas}</div>
+              {b.impactos > 0 && <div className="bb-impactos"><Sparkles size={14} /> {Number(b.impactos).toLocaleString("es-AR")} impactos/sem</div>}
               {b.obs && <div className="cell-sub">{b.obs}</div>}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", flexWrap: "wrap", gap: 8 }}>
                 <div className="bb-price">{money(b.precio)}</div>
@@ -1210,12 +1380,97 @@ function Inventario({ data, update }) {
       </div>
 
       {edit && <BBForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
+
+      {/* Foto ampliada */}
+      {verFoto && (
+        <div className="modal-bg" onClick={() => setVerFoto(null)} style={{ cursor: "zoom-out" }}>
+          <img src={verFoto} alt="Cartel" style={{ maxWidth: "94vw", maxHeight: "90vh", borderRadius: 14, boxShadow: "0 30px 80px rgba(0,0,0,.5)" }} />
+        </div>
+      )}
+
+      {/* Cargando / aplicando Excel */}
+      {excelBusy && (
+        <div className="modal-bg">
+          <div className="modal" style={{ maxWidth: 420, textAlign: "center" }}>
+            <div className="spinner" style={{ margin: "8px auto 16px" }} />
+            <h2 style={{ fontSize: 18 }}>{excelMsg || "Procesando…"}</h2>
+            <div className="cell-sub" style={{ marginTop: 8 }}>No cierres la app hasta que termine.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Pantalla de revisión del Excel */}
+      {excelRev && !excelBusy && (
+        <div className="modal-bg" onClick={() => setExcelRev(null)}>
+          <div className="modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h2>Revisá antes de aplicar</h2>
+              <button className="btn btn-icon" onClick={() => setExcelRev(null)}><X size={20} /></button>
+            </div>
+            <div className="cell-sub" style={{ marginBottom: 14 }}>Leí {excelRev.total} carteles del Excel. Nada se cambia hasta que toques <b>“Aplicar”</b>.</div>
+
+            <div className="rev-stats">
+              <div className="rev-stat"><b>{excelRev.actualizar.length}</b><span>a actualizar</span></div>
+              <div className="rev-stat"><b>{excelRev.nuevos.length}</b><span>nuevos</span></div>
+              <div className="rev-stat"><b>{excelRev.desaparecidos.length}</b><span>desaparecidos</span></div>
+            </div>
+
+            {excelRev.alertas.length > 0 && (
+              <div className="rev-box rev-alert">
+                <div className="rev-box-title"><AlertTriangle size={17} /> Movimientos raros para revisar</div>
+                {excelRev.alertas.map((a, i) => <div key={i} className="rev-item">{a}</div>)}
+                <div className="cell-sub" style={{ marginTop: 6 }}>Si alguno es un error del Excel, cerrá esto, corregí la planilla y volvé a subirla.</div>
+              </div>
+            )}
+
+            {excelRev.actualizar.length > 0 && (
+              <details className="rev-box">
+                <summary className="rev-box-title"><CheckCircle2 size={17} /> {excelRev.actualizar.length} a actualizar</summary>
+                {excelRev.actualizar.map((a, i) => (
+                  <div key={i} className="rev-item">
+                    <b>{a.rec.codigo}</b> — {a.rec.nombre.replace(/^\d+ — /, "")}
+                    <div className="cell-sub">{a.cambios.join(" · ")}</div>
+                  </div>
+                ))}
+              </details>
+            )}
+
+            {excelRev.nuevos.length > 0 && (
+              <details className="rev-box">
+                <summary className="rev-box-title"><Plus size={17} /> {excelRev.nuevos.length} nuevos</summary>
+                {excelRev.nuevos.map((r, i) => (
+                  <div key={i} className="rev-item"><b>{r.codigo}</b> — {r.nombre.replace(/^\d+ — /, "")} · {money(r.precio)}</div>
+                ))}
+                <div className="cell-sub" style={{ marginTop: 6 }}>Se ubicarán en el mapa automáticamente (puede tardar unos segundos).</div>
+              </details>
+            )}
+
+            {excelRev.desaparecidos.length > 0 && (
+              <div className="rev-box">
+                <div className="rev-box-title"><AlertCircle size={17} /> {excelRev.desaparecidos.length} ya no están en la lista</div>
+                {excelRev.desaparecidos.map((d, i) => (
+                  <div key={i} className="rev-item"><b>{d.codigo}</b> — {d.nombre.replace(/^\d+ — /, "")}</div>
+                ))}
+                <label className="prop-toggle" style={{ marginTop: 10 }}>
+                  <input type="checkbox" checked={borrarDesap} onChange={(e) => setBorrarDesap(e.target.checked)} />
+                  <span>Borrarlos de la app (si no, quedan como están)</span>
+                </label>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setExcelRev(null)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 2 }} onClick={aplicarExcel}><CheckCircle2 size={18} /> Aplicar cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
 function BBForm({ initial, onClose, onSave }) {
-  const [b, setB] = useState({ nombre: "", ubicacion: "", tipo: "Cartel", medidas: "", foto: "", estado: "Disponible", precio: "", premium: false, obs: "", lat: -34.6037, lng: -58.3816, ...initial });
+  const [b, setB] = useState({ nombre: "", ubicacion: "", tipo: "Cartel", medidas: "", foto: "", estado: "Disponible", precio: "", produccion: "", colocacion: "", codigo: "", premium: false, obs: "", lat: -34.6037, lng: -58.3816, ...initial });
   const f = (k) => (e) => setB({ ...b, [k]: e.target.value });
   const onPhoto = (file) => {
     if (!file) return;
@@ -1249,7 +1504,10 @@ function BBForm({ initial, onClose, onSave }) {
             <div className="field"><label>Tipo</label><select value={b.tipo} onChange={f("tipo")}>{TIPOS.map(t => <option key={t}>{t}</option>)}</select></div>
             <div className="field"><label>Estado</label><select value={b.estado} onChange={f("estado")}>{BB_ESTADOS.map(e => <option key={e}>{e}</option>)}</select></div>
             <div className="field"><label>Medidas</label><input value={b.medidas} onChange={f("medidas")} placeholder="8 x 4 m" /></div>
-            <div className="field"><label>Precio</label><input type="number" value={b.precio} onChange={f("precio")} /></div>
+            <div className="field"><label>Precio mensual</label><input type="number" value={b.precio} onChange={f("precio")} /></div>
+            <div className="field"><label>Costo producción</label><input type="number" value={b.produccion} onChange={f("produccion")} placeholder="opcional" /></div>
+            <div className="field"><label>Costo colocación</label><input type="number" value={b.colocacion} onChange={f("colocacion")} placeholder="opcional" /></div>
+            <div className="field"><label>Código (del Excel)</label><input value={b.codigo} onChange={f("codigo")} placeholder="ej. 1117" /></div>
           </div>
           <div className="field">
             <label>Foto del cartel</label>
@@ -1270,7 +1528,7 @@ function BBForm({ initial, onClose, onSave }) {
         </div>
         <div className="modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => b.nombre.trim() && onSave({ ...b, precio: Number(b.precio) || 0 })}>Guardar</button>
+          <button className="btn btn-primary" onClick={() => b.nombre.trim() && onSave({ ...b, precio: Number(b.precio) || 0, produccion: Number(b.produccion) || 0, colocacion: Number(b.colocacion) || 0, codigo: String(b.codigo || "").trim() })}>Guardar</button>
         </div>
       </div>
     </div>
@@ -1529,10 +1787,50 @@ function Propuestas({ data }) {
   const [clienteId, setClienteId] = useState("");
   const [picks, setPicks] = useState([]);
   const [obs, setObs] = useState("");
+  const [incluirPrecio, setIncluirPrecio] = useState(true);
+  const [incluirProduccion, setIncluirProduccion] = useState(false);
+  const [incluirColocacion, setIncluirColocacion] = useState(false);
   const cliente = clients.find((c) => c.id === clienteId);
   const seleccionados = billboards.filter((b) => picks.includes(b.id));
   const total = seleccionados.reduce((s, b) => s + (Number(b.precio) || 0), 0);
+  const totalProd = seleccionados.reduce((s, b) => s + (Number(b.produccion) || 0), 0);
+  const totalColoc = seleccionados.reduce((s, b) => s + (Number(b.colocacion) || 0), 0);
+  const grandTotal = (incluirPrecio ? total : 0) + (incluirProduccion ? totalProd : 0) + (incluirColocacion ? totalColoc : 0);
+  const algunValor = incluirPrecio || incluirProduccion || incluirColocacion;
+  const nCols = (incluirPrecio ? 1 : 0) + (incluirProduccion ? 1 : 0) + (incluirColocacion ? 1 : 0);
   const toggle = (id) => setPicks((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const [envioA, setEnvioA] = useState("");
+
+  // Texto resumen de la propuesta (para WhatsApp / mail)
+  const resumenTexto = () => {
+    let t = "*Propuesta — Publicidad en Vía Pública*\n";
+    if (cliente) t += `Cliente: ${cliente.empresa}\n`;
+    t += `\nEspacios (${seleccionados.length}):\n`;
+    seleccionados.forEach((b) => {
+      t += `• ${b.nombre}`;
+      if (b.impactos > 0) t += ` — ${Number(b.impactos).toLocaleString("es-AR")} impactos/sem`;
+      if (incluirPrecio) t += ` — ${money(b.precio)}/mes`;
+      t += "\n";
+    });
+    if (algunValor) {
+      t += "\n";
+      if (incluirPrecio) t += `Mensual: ${money(total)}\n`;
+      if (incluirProduccion) t += `Producción: ${money(totalProd)}\n`;
+      if (incluirColocacion) t += `Colocación: ${money(totalColoc)}\n`;
+      if (nCols > 1) t += `*TOTAL: ${money(grandTotal)}*\n`;
+    }
+    if (obs) t += `\n${obs}\n`;
+    return t;
+  };
+  const enviarWhatsApp = () => {
+    const tel = envioA.replace(/[^\d]/g, "");
+    const txt = encodeURIComponent(resumenTexto());
+    window.open(tel ? `https://wa.me/${tel}?text=${txt}` : `https://api.whatsapp.com/send?text=${txt}`, "_blank");
+  };
+  const enviarMail = () => {
+    const to = envioA.includes("@") ? envioA : (cliente && cliente.email ? cliente.email : "");
+    window.location.href = `mailto:${to}?subject=${encodeURIComponent("Propuesta — Publicidad en Vía Pública")}&body=${encodeURIComponent(resumenTexto())}`;
+  };
 
   const [pq, setPq] = useState("");
   const [pTipo, setPTipo] = useState("Todos");
@@ -1548,7 +1846,7 @@ function Propuestas({ data }) {
     <>
       <div className="grid cols-2">
         <div className="card">
-          <h2 style={{ fontSize: 18, marginBottom: 12 }}>1 · Elegí el cliente</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>1 · Elegí el cliente (opcional)</h2>
           <select className="select" style={{ width: "100%" }} value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
             <option value="">— Seleccionar cliente —</option>
             {clients.map((c) => <option key={c.id} value={c.id}>{c.empresa} · {c.contacto}</option>)}
@@ -1560,12 +1858,37 @@ function Propuestas({ data }) {
           <h2 style={{ fontSize: 18, marginBottom: 6 }}>Resumen</h2>
           <div className="cell-sub">Cliente: <b style={{ color: "var(--ink)" }}>{cliente ? cliente.empresa : "—"}</b></div>
           <div className="cell-sub">Carteles seleccionados: <b style={{ color: "var(--ink)" }}>{seleccionados.length}</b></div>
-          <div style={{ fontSize: 34, fontWeight: 800, fontFamily: "Bricolage Grotesque", marginTop: 14 }}>{money(total)}</div>
-          <div className="cell-sub">Total mensual estimado</div>
+          <div style={{ fontSize: 34, fontWeight: 800, fontFamily: "Bricolage Grotesque", marginTop: 14 }}>{money(grandTotal)}</div>
+          <div className="cell-sub">Total a mostrar en la propuesta</div>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            <label className="prop-toggle">
+              <input type="checkbox" checked={incluirPrecio} onChange={(e) => setIncluirPrecio(e.target.checked)} />
+              <span>Incluir <b>precio mensual</b> ({money(total)})</span>
+            </label>
+            <label className="prop-toggle">
+              <input type="checkbox" checked={incluirProduccion} onChange={(e) => setIncluirProduccion(e.target.checked)} />
+              <span>Incluir <b>producción</b> ({money(totalProd)})</span>
+            </label>
+            <label className="prop-toggle">
+              <input type="checkbox" checked={incluirColocacion} onChange={(e) => setIncluirColocacion(e.target.checked)} />
+              <span>Incluir <b>colocación</b> ({money(totalColoc)})</span>
+            </label>
+          </div>
+          <div className="cell-sub" style={{ marginTop: 8 }}>Lo que destildes no aparece en el PDF. Si destildás todo, sale sin valores.</div>
           <button className="btn btn-primary" style={{ width: "100%", marginTop: 16 }}
-            disabled={!cliente || !seleccionados.length}
+            disabled={!seleccionados.length}
             onClick={() => window.print()}><Printer size={19} /> Exportar a PDF</button>
           <div className="cell-sub" style={{ marginTop: 8, textAlign: "center" }}>Se abre el diálogo de impresión → elegí “Guardar como PDF”.</div>
+
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 14 }}>
+            <div className="field"><label>Enviar resumen a (mail o WhatsApp) — opcional</label>
+              <input value={envioA} onChange={(e) => setEnvioA(e.target.value)} placeholder="Vacío = lo elegís al enviar (a vos misma, a un cliente…)" /></div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={!seleccionados.length} onClick={enviarWhatsApp}><MessageCircle size={18} /> WhatsApp</button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={!seleccionados.length} onClick={enviarMail}><Mail size={18} /> Mail</button>
+            </div>
+            <div className="cell-sub" style={{ marginTop: 8 }}>Envía el <b>texto</b> de la propuesta. Para mandar el PDF, primero "Exportar a PDF", guardalo y adjuntalo.</div>
+          </div>
         </div>
       </div>
 
@@ -1611,7 +1934,9 @@ function Propuestas({ data }) {
             <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Cartel</th>
             <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Ubicación</th>
             <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Tipo / Medidas</th>
-            <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Precio</th>
+            {incluirPrecio && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Precio mensual</th>}
+            {incluirProduccion && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Producción</th>}
+            {incluirColocacion && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Colocación</th>}
           </tr></thead>
           <tbody>
             {seleccionados.map((b) => (
@@ -1619,13 +1944,21 @@ function Propuestas({ data }) {
                 <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.nombre}{b.obs ? ` — ${b.obs}` : ""}</td>
                 <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.ubicacion}</td>
                 <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.tipo} · {b.medidas}</td>
-                <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.precio)}</td>
+                {incluirPrecio && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.precio)}</td>}
+                {incluirProduccion && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.produccion)}</td>}
+                {incluirColocacion && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.colocacion)}</td>}
               </tr>
             ))}
-            <tr><td colSpan={3} style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>TOTAL</td>
-              <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(total)}</td></tr>
+            {algunValor && <tr>
+              <td colSpan={3} style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>TOTAL</td>
+              {incluirPrecio && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(total)}</td>}
+              {incluirProduccion && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(totalProd)}</td>}
+              {incluirColocacion && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(totalColoc)}</td>}
+            </tr>}
           </tbody>
         </table>
+        {algunValor && nCols > 1 && <p style={{ marginTop: 12, textAlign: "right", fontSize: 18, fontWeight: 800 }}>TOTAL GENERAL: {money(grandTotal)}</p>}
+        {!algunValor && <p style={{ marginTop: 12, color: "#6b7790", fontStyle: "italic" }}>Valores y condiciones comerciales se informan por separado.</p>}
         {obs && <div style={{ marginTop: 20 }}><h2 style={{ fontSize: 16 }}>Observaciones</h2><p>{obs}</p></div>}
       </div>
     </>
