@@ -4,6 +4,8 @@
 <title>Vía Pública — Asistente Comercial</title>
 <meta name="theme-color" content="#15233b" /><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="manifest" href="data:application/json,%7B%22name%22%3A%22V%C3%ADa%20P%C3%BAblica%20%E2%80%94%20Asistente%20Comercial%22%2C%22short_name%22%3A%22V%C3%ADa%20P%C3%BAblica%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b1422%22%2C%22theme_color%22%3A%22%2315233b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%253E%253Crect%20width%3D'512'%20height%3D'512'%20rx%3D'112'%20fill%3D'%2523e8590c'%2F%253E%253Crect%20x%3D'126'%20y%3D'150'%20width%3D'260'%20height%3D'150'%20rx%3D'20'%20fill%3D'white'%2F%253E%253Crect%20x%3D'244'%20y%3D'300'%20width%3D'24'%20height%3D'96'%20fill%3D'white'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
 <meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-title" content="Vía Pública" />
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>html,body{margin:0;padding:0;background:#f4f1ea;}#boot{position:fixed;inset:0;display:grid;place-items:center;background:#0b1422;color:#9fb0cc;font-family:system-ui,sans-serif;z-index:1;}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 </head><body>
@@ -297,8 +299,9 @@ tr:hover td{ background:#fcfbf8; }
 @media print{
   body * { visibility:hidden; }
   .print-area, .print-area *{ visibility:visible; }
-  .print-area{ display:block !important; position:absolute; left:0; top:0; width:100%; padding:30px; }
+  .print-area{ display:block !important; position:absolute; left:0; top:0; width:100%; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .app{ background:#fff; }
+  @page{ margin:0; }
 }
 
 @media (max-width:980px){
@@ -441,6 +444,32 @@ const BB_ESTADOS = ["Disponible", "Reservado", "Ocupado", "Próximo a liberarse"
 const IMPACTOS = {"1101":1225169,"1108":1699529,"1109":1702232,"1110":653815,"1114":4241397,"1115":2729768,"1116":2093037,"1117":2689433,"1118":2764804,"1119":2731942,"1120":3114424,"1121":3114424,"1124":1461249,"1125":1449105,"1126":405340,"1127":403473,"1136":281992,"1140":1175007,"1143":1009030,"1161":875434,"1166":647706,"1185":1652343,"1186":4241397,"1187":906290,"1188":908725,"1189":118899,"1190":7781887,"1197":2421939,"1198":2455913,"1202":1173256,"1209":896554,"1225":294521,"1228":2270234,"1229":2258298,"1230":2283965,"1231":2292171,"1232":900296,"1233":909586,"1238":1175007,"1239":2071044,"1240":2044266,"1241":1941055,"1242":1952334,"1253":1796250,"1254":2831218,"1255":2831218,"1256":1066341,"1257":1029002,"1266":2372433,"1267":2103644,"1268":931154,"1269":931154,"1271":1441376,"1274":1506378,"1275":2218405,"1276":2212215,"1278":388951,"1279":376329,"1280":267092,"1281":349184,"1282":293048,"1284":295837,"1287":295837,"1288":546754,"1289":723229,"1290":723229,"1291":1873456,"1292":1873456,"1293":1796250,"1294":1796250,"1295":302689,"1297":559553,"1298":559553,"1299":3136318,"1300":3136318,"1301":3853720,"1302":3853720,"1306":2387986,"1307":2387986,"1308":740632,"1312":1578655,"1313":920421,"1315":280678,"1316":280678,"1324":883267,"1325":895266,"1326":3136318,"1328":2020328,"1329":2020328,"1330":1235655,"1331":2876425,"1332":2020328,"1337":2104000,"1338":2201000,"2200":653815,"2208":1743233,"2215":3030124,"2216":3030124,"2219":662024,"2223":1780674,"2225":1024090,"2232":1358915,"2233":991979,"2234":999801,"2235":1191136,"2236":837617,"2243":1021089,"2248":1604055,"2249":1177628,"2250":1176197,"2255":2486314,"2271":733305,"2276":1022677,"2277":812674,"2281":1438027,"2285":1009159,"2287":1800159,"2292":918721,"2294":1052784,"2297":1206746,"2307":1355613,"2308":922744,"2312":855231,"2313":924602,"2315":2018526,"2316":1551848,"2317":2597978,"2318":1530938,"2320":1253331,"2321":876545,"2322":1240684,"2323":880915,"2324":1020368,"2325":889847,"2326":889849,"2327":1155449,"2328":520640,"2330":1180569,"2331":876545,"2332":1132566,"2333":1065300,"2334":856332,"2335":978664,"2336":1873223,"2337":2478332,"2338":1856356,"2339":648766,"2340":788342,"2344":745620,"2345":546754,"2347":802530,"3311":689661,"5001":1706204,"5002":1706204,"5007":2048446};
 // Devuelve la URL de la foto: la cargada a mano, o la del PDF por código (fotos/COD.jpg)
 function fotoDe(b){ return b && (b.foto || (b.codigo ? `fotos/${b.codigo}.jpg` : "")); }
+// Impactos del cartel: el guardado, o el del PDF según su código
+function impactosDe(b){ return Number(b && (b.impactos || (b.codigo && IMPACTOS[b.codigo]))) || 0; }
+// Limpia la dirección para geolocalizar mejor (saca "(Tránsito...)", "luz...", etc.)
+function limpiarDir(q){
+  return String(q || "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/tr[aá]nsito[^,]*/gi, " ")
+    .replace(/\bluz\b[^,]*/gi, " ")
+    .replace(/\bhacia\b[^,]*/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .replace(/,\s*,/g, ",")
+    .trim();
+}
+// Agrupa un cartel en CABA / Norte / Oeste / Sur según su localidad
+function zonaCardinal(b){
+  const t = (`${b.zona || ""} ${b.ubicacion || ""}`).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const has = (...ws) => ws.some((w) => t.includes(w));
+  if (t.includes("parque avellaneda")) return "CABA";
+  if (has("caba", "capital", "boedo", "palermo", "belgrano", "once", "flores", "caballito", "liniers", "barracas", "retiro", "recoleta", "nunez", "saavedra", "colegiales", "chacarita", "paternal", "villa urquiza", "villa devoto", "villa crespo", "almagro", "san telmo", "constitucion", "abasto")) return "CABA";
+  if (has("vicente lopez", "vte", "olivos", "san isidro", "martinez", "tigre", "pacheco", "escobar", "maschwitz", "pilar", "tortuguitas", "nordelta", "san fernando", "beccar", "acassuso", "munro", "florida", "boulogne")) return "Norte";
+  if (has("moron", "ramos mejia", "ciudadela", "san justo", "la matanza", "3 de febrero", "tres de febrero", "caseros", "san martin", "haedo", "castelar", "ituzaingo", "merlo", "hurlingham")) return "Oeste";
+  if (has("avellaneda", "lanus", "lomas", "quilmes", "berazategui", "ezeiza", "canning", "banfield", "temperley", "wilde", "sarandi", "monte grande", "adrogue")) return "Sur";
+  return "Otras";
+}
+const ZONAS_CARD = ["Todas", "CABA", "Norte", "Oeste", "Sur", "Otras"];
 const bbColor = (e) => ({ "Disponible": "var(--green)", "Reservado": "var(--amber)", "Ocupado": "var(--red)", "Próximo a liberarse": "var(--blue)" }[e] || "var(--muted)");
 const bbChip = (e) => ({ "Disponible": "s-green", "Reservado": "s-amber", "Ocupado": "s-red", "Próximo a liberarse": "s-blue" }[e] || "s-gray");
 
@@ -471,6 +500,7 @@ const SEED = {
   tasks: [
     { id: uid(), ejemplo: true, titulo: "Tarea de ejemplo: llamar a un cliente", tipo: "Llamada", done: false },
   ],
+  config: { empresa: "Masa Ideas", asesor: "Mónica", tel: "", mail: "", lema: "Tu marca, donde todos la ven." },
 };
 function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 
@@ -598,6 +628,8 @@ function App() {
                 <h1>{titles[tab][0]}</h1>
                 <div className="sub">{titles[tab][1]}</div>
               </div>
+              <div style={{ flex: 1 }} />
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 2</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -605,7 +637,7 @@ function App() {
               {tab === "seguimiento" && <Seguimiento data={data} update={update} />}
               {tab === "inventario" && <Inventario data={data} update={update} />}
               {tab === "mapa" && <Mapa data={data} update={update} go={setTab} addUsage={addUsage} />}
-              {tab === "propuestas" && <Propuestas data={data} />}
+              {tab === "propuestas" && <Propuestas data={data} update={update} />}
               {tab === "prospectar" && <Prospectar data={data} update={update} go={setTab} addUsage={addUsage} setBudget={(v) => update({ budget: v })} />}
               {tab === "mails" && <Mails data={data} />}
               {tab === "asistente" && <Asistente data={data} addUsage={addUsage} />}
@@ -1079,6 +1111,8 @@ function Inventario({ data, update }) {
   const setBB = (b) => update({ billboards: b });
   const [edit, setEdit] = useState(null);
   const [fEstado, setFEstado] = useState("Todos");
+  const [fZona, setFZona] = useState("Todas");
+  const [busq, setBusq] = useState("");
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
   const [excelRev, setExcelRev] = useState(null);   // pantalla de revisión
@@ -1092,7 +1126,15 @@ function Inventario({ data, update }) {
   const res = billboards.filter((b) => b.estado === "Reservado").length;
   const premium = [...billboards].filter((b) => b.premium).sort((a, b) => b.precio - a.precio);
 
-  const list = billboards.filter((b) => fEstado === "Todos" || b.estado === fEstado);
+  const list = billboards.filter((b) => {
+    if (fEstado !== "Todos" && b.estado !== fEstado) return false;
+    if (fZona !== "Todas" && zonaCardinal(b) !== fZona) return false;
+    if (busq.trim()) {
+      const t = (`${b.nombre} ${b.ubicacion || ""} ${b.codigo || ""}`).toLowerCase();
+      if (!t.includes(busq.trim().toLowerCase())) return false;
+    }
+    return true;
+  });
   const save = (b) => { if (b.id) setBB(billboards.map((x) => x.id === b.id ? b : x)); else setBB([{ ...b, id: uid() }, ...billboards]); setEdit(null); };
   const remove = (id) => { if (confirm("¿Eliminar este cartel?")) setBB(billboards.filter((x) => x.id !== id)); };
 
@@ -1104,11 +1146,13 @@ function Inventario({ data, update }) {
 
   // Geocodificación de una dirección (para ubicar en el mapa)
   const geocodeOne = async (q) => {
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(q + ", Argentina")}`, { headers: { "Accept-Language": "es" } });
-      const j = await r.json();
-      if (j && j[0]) return { lat: +j[0].lat, lng: +j[0].lon };
-    } catch { }
+    for (let i = 0; i < 2; i++) {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(limpiarDir(q) + ", Buenos Aires, Argentina")}`, { headers: { "Accept-Language": "es" } });
+        const j = await r.json();
+        return (j && j[0]) ? { lat: +j[0].lat, lng: +j[0].lon } : null;
+      } catch { await new Promise((res) => setTimeout(res, 1500)); }
+    }
     return null;
   };
   // Lee JSON o CSV y devuelve un array de filas
@@ -1205,6 +1249,7 @@ function Inventario({ data, update }) {
         nombre: `${cod} — ${direccion}`,
         ubicacion: direccion + (zona ? `, ${zona}` : ""),
         tipo: normTipo(r[COL.tipo]),
+        zona,
         medidas: String(r[COL.medidas] ?? "").trim(),
         precio,
         produccion: Math.max(0, prodcoloc - coloc),
@@ -1286,10 +1331,10 @@ function Inventario({ data, update }) {
     for (let i = 0; i < excelRev.nuevos.length; i++) {
       const r = excelRev.nuevos[i];
       setExcelMsg(`Ubicando carteles nuevos en el mapa: ${i + 1} de ${excelRev.nuevos.length}…`);
-      let lat = -34.6037, lng = -58.3816;
+      let lat = null, lng = null;
       const g = await geocodeOne(r.ubicacion);
       if (g) { lat = g.lat; lng = g.lng; }
-      await new Promise((res) => setTimeout(res, 1100));
+      await new Promise((res) => setTimeout(res, 1200));
       nuevos.push({ id: uid(), ...r, foto: "", premium: false, lat, lng, hist: [{ fecha: hoy, precio: r.precio, estado: r.estado }] });
     }
     setBB([...nuevos, ...arr]);
@@ -1332,8 +1377,16 @@ function Inventario({ data, update }) {
       )}
 
       <div className="toolbar" style={{ marginTop: 18 }}>
+        <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar por nombre, dirección o código…" value={busq} onChange={(e) => setBusq(e.target.value)} /></div>
+        <select className="select" value={fZona} onChange={(e) => setFZona(e.target.value)}>
+          {ZONAS_CARD.map((z) => <option key={z} value={z}>{z === "Todas" ? "Todas las zonas" : "Zona " + z}</option>)}</select>
         <select className="select" value={fEstado} onChange={(e) => setFEstado(e.target.value)}>
           <option>Todos</option>{BB_ESTADOS.map((e) => <option key={e}>{e}</option>)}</select>
+        <span className="chip s-gray">{list.length} de {billboards.length}</span>
+      </div>
+
+      <div className="toolbar" style={{ marginTop: 10 }}>
         <div style={{ flex: 1 }} />
         <button className="btn btn-ghost" onClick={pedirExcel}><Mail size={18} /> Pedir Excel actualizado</button>
         <label className="btn btn-primary" style={{ cursor: "pointer" }}>
@@ -1364,7 +1417,7 @@ function Inventario({ data, update }) {
               <h3>{b.nombre}</h3>
               <div className="bb-meta"><MapPin size={15} /> {b.ubicacion}</div>
               <div className="bb-meta">{b.tipo} · {b.medidas}</div>
-              {b.impactos > 0 && <div className="bb-impactos"><Sparkles size={14} /> {Number(b.impactos).toLocaleString("es-AR")} impactos/sem</div>}
+              {impactosDe(b) > 0 && <div className="bb-impactos"><Sparkles size={14} /> {impactosDe(b).toLocaleString("es-AR")} impactos/sem</div>}
               {b.obs && <div className="cell-sub">{b.obs}</div>}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", flexWrap: "wrap", gap: 8 }}>
                 <div className="bb-price">{money(b.precio)}</div>
@@ -1536,10 +1589,10 @@ function BBForm({ initial, onClose, onSave }) {
 }
 
 /* ====================== MAPA (Leaflet · Buenos Aires) ====================== */
-const popupHtml = (b) => `
+const popupHtml = (b) => { const _f = b.foto || (b.codigo ? `fotos/${b.codigo}.jpg` : ""); return `
   <div style="width:230px">
-    ${b.foto
-    ? `<div style="height:110px;background:url('${esc(b.foto)}') center/cover;border-radius:13px 13px 0 0"></div>`
+    ${_f
+    ? `<div style="height:110px;background:url('${esc(_f)}') center/cover;border-radius:13px 13px 0 0"></div>`
     : `<div style="height:64px;display:grid;place-items:center;background:#16243b;border-radius:13px 13px 0 0;color:#5b6f93;font-size:12px">Sin foto</div>`}
     <div style="padding:12px 14px">
       <div style="font-weight:800;font-size:15px;margin-bottom:3px;color:#fff">${esc(b.nombre)}</div>
@@ -1551,7 +1604,7 @@ const popupHtml = (b) => `
       ${b.obs ? `<div style="color:#9fb0cc;font-size:11px;margin-top:8px">${esc(b.obs)}</div>` : ""}
       <a href="https://www.google.com/maps/search/${encodeURIComponent(b.ubicacion || b.nombre)}" target="_blank" rel="noreferrer" style="display:inline-block;margin-top:10px;color:#ff9a5a;font-weight:700;font-size:12px;text-decoration:none">Ver en Google Maps →</a>
     </div>
-  </div>`;
+  </div>`; };
 
 function Mapa({ data, update, go, addUsage }) {
   const { billboards } = data;
@@ -1565,6 +1618,8 @@ function Mapa({ data, update, go, addUsage }) {
   const [pending, setPending] = useState(null);
   const [q, setQ] = useState("");
   const [geoBusy, setGeoBusy] = useState(false);
+  const [reubBusy, setReubBusy] = useState(false);
+  const [reubMsg, setReubMsg] = useState("");
   const [neon, setNeon] = useState(true);
   // panel "empresas cerca de este cartel"
   const [sel, setSel] = useState(null);
@@ -1632,13 +1687,9 @@ function Mapa({ data, update, go, addUsage }) {
         className: "", iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -12],
         html: `<div class="leaf-pin" style="--c:${bbColor(b.estado)}"><span class="leaf-pulse"></span><span class="leaf-dot"></span></div>`,
       });
-      const m = L.marker([b.lat, b.lng], { icon, draggable: true }).addTo(map);
+      const m = L.marker([b.lat, b.lng], { icon, draggable: false }).addTo(map);
       m.bindPopup(popupHtml(b), { className: "tech-pop", maxWidth: 240, closeButton: true });
       m.on("click", () => { setSel(b); setEmpresasCerca([]); setRubroCerca(""); setErrCerca(""); setSavedCerca({}); });
-      m.on("dragend", (ev) => {
-        const { lat, lng } = ev.target.getLatLng();
-        update({ billboards: data.billboards.map((x) => x.id === b.id ? { ...x, lat, lng } : x) });
-      });
       markersRef.current[b.id] = m;
     });
   }, [billboards, ready]);
@@ -1647,7 +1698,7 @@ function Mapa({ data, update, go, addUsage }) {
     if (!q.trim() || !mapRef.current) return;
     setGeoBusy(true);
     try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(q + ", Buenos Aires, Argentina")}`);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(limpiarDir(q) + ", Buenos Aires, Argentina")}`);
       const j = await r.json();
       if (j && j[0]) mapRef.current.flyTo([+j[0].lat, +j[0].lon], 15);
       else alert("No encontré esa dirección. Probá agregando la localidad.");
@@ -1660,6 +1711,36 @@ function Mapa({ data, update, go, addUsage }) {
     setPending(null);
     if (mapRef.current) mapRef.current.flyTo([bb.lat, bb.lng], 15);
   };
+
+  // Geocodifica una dirección (con reintento)
+  const geoUno = async (q) => {
+    for (let i = 0; i < 2; i++) {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${encodeURIComponent(limpiarDir(q) + ", Buenos Aires, Argentina")}`, { headers: { "Accept-Language": "es" } });
+        const j = await r.json();
+        return (j && j[0]) ? { lat: +j[0].lat, lng: +j[0].lon } : null;
+      } catch { await new Promise((res) => setTimeout(res, 1500)); }
+    }
+    return null;
+  };
+  // Vuelve a ubicar TODOS los carteles desde su dirección (corrige movidos y mal ubicados)
+  const reubicarTodos = async () => {
+    if (!confirm("Voy a volver a ubicar TODOS los carteles según su dirección. Esto corrige los que se movieron o quedaron mal. Tarda unos minutos. ¿Seguimos?")) return;
+    setReubBusy(true);
+    const arr = [...billboards];
+    let ok = 0, fail = 0;
+    for (let i = 0; i < arr.length; i++) {
+      setReubMsg(`Ubicando ${i + 1} de ${arr.length}…`);
+      const g = await geoUno(arr[i].ubicacion || arr[i].nombre);
+      if (g) { arr[i] = { ...arr[i], lat: g.lat, lng: g.lng }; ok++; }
+      else { arr[i] = { ...arr[i], lat: null, lng: null }; fail++; }
+      await new Promise((res) => setTimeout(res, 1200));
+    }
+    update({ billboards: arr });
+    setReubBusy(false); setReubMsg("");
+    alert(`¡Listo!\n\n📍 ${ok} ubicados\n${fail ? `❓ ${fail} sin ubicar (no se encontró la dirección exacta). Esos los podés ubicar a mano tocando "Agregar cartel en el mapa" o editando la dirección.` : ""}`);
+  };
+  const sinUbicar = billboards.filter((b) => typeof b.lat !== "number" || typeof b.lng !== "number").length;
 
   const buscarCerca = async () => {
     if (!sel || !rubroCerca) { setErrCerca("Elegí un rubro."); return; }
@@ -1697,6 +1778,8 @@ function Mapa({ data, update, go, addUsage }) {
           <Plus size={18} /> {addMode ? "Tocá el mapa…" : "Agregar cartel en el mapa"}</button>
         <button className="btn btn-ghost" onClick={() => setNeon((v) => !v)} title="Cambiar estilo del mapa">
           <Sparkles size={18} /> {neon ? "Estilo neón" : "Estilo claro"}</button>
+        <button className="btn btn-ghost" onClick={reubicarTodos} title="Vuelve a ubicar todos los carteles según su dirección">
+          <MapPin size={18} /> Re-ubicar todos</button>
         <div style={{ flex: 1 }} />
         <span className="chip s-gray">{billboards.length} carteles</span>
       </div>
@@ -1722,8 +1805,23 @@ function Mapa({ data, update, go, addUsage }) {
         )}
       </div>
       <div className="cell-sub" style={{ marginTop: 10 }}>
-        Tip: arrastrá cualquier pin para corregir su ubicación. Tocá un pin para ver sus datos y buscar empresas cerca.
+        Tocá un pin para ver sus datos y buscar empresas cerca. Los pines quedan fijos en su lugar. Si alguno está mal ubicado, usá “Re-ubicar todos”.
       </div>
+      {sinUbicar > 0 && (
+        <div className="rev-box rev-alert" style={{ marginTop: 12 }}>
+          <div className="rev-box-title"><AlertTriangle size={17} /> {sinUbicar} cartel(es) sin ubicar en el mapa</div>
+          <div className="cell-sub" style={{ marginTop: 4 }}>No se encontró su dirección exacta. Podés ubicarlos a mano con “Agregar cartel en el mapa”, o corregir la dirección del cartel y volver a “Re-ubicar todos”.</div>
+        </div>
+      )}
+      {reubBusy && (
+        <div className="modal-bg">
+          <div className="modal" style={{ maxWidth: 380, textAlign: "center" }}>
+            <div className="spinner" style={{ margin: "8px auto 16px" }} />
+            <h2 style={{ fontSize: 17 }}>{reubMsg || "Ubicando carteles…"}</h2>
+            <div className="cell-sub" style={{ marginTop: 8 }}>Tarda unos minutos. No cierres la app.</div>
+          </div>
+        </div>
+      )}
 
       {sel && (
         <div className="card" style={{ marginTop: 16 }}>
@@ -1782,7 +1880,7 @@ function Mapa({ data, update, go, addUsage }) {
 }
 
 /* ====================== PROPUESTAS ====================== */
-function Propuestas({ data }) {
+function Propuestas({ data, update }) {
   const { clients, billboards } = data;
   const [clienteId, setClienteId] = useState("");
   const [picks, setPicks] = useState([]);
@@ -1798,6 +1896,9 @@ function Propuestas({ data }) {
   const grandTotal = (incluirPrecio ? total : 0) + (incluirProduccion ? totalProd : 0) + (incluirColocacion ? totalColoc : 0);
   const algunValor = incluirPrecio || incluirProduccion || incluirColocacion;
   const nCols = (incluirPrecio ? 1 : 0) + (incluirProduccion ? 1 : 0) + (incluirColocacion ? 1 : 0);
+  const cfg = data.config || {};
+  const alcance = seleccionados.reduce((s, b) => s + impactosDe(b), 0);
+  const fMill = (n) => n >= 1000000 ? (n / 1000000).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "M" : n.toLocaleString("es-AR");
   const toggle = (id) => setPicks((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   const [envioA, setEnvioA] = useState("");
 
@@ -1808,7 +1909,7 @@ function Propuestas({ data }) {
     t += `\nEspacios (${seleccionados.length}):\n`;
     seleccionados.forEach((b) => {
       t += `• ${b.nombre}`;
-      if (b.impactos > 0) t += ` — ${Number(b.impactos).toLocaleString("es-AR")} impactos/sem`;
+      if (impactosDe(b) > 0) t += ` — ${impactosDe(b).toLocaleString("es-AR")} impactos/sem`;
       if (incluirPrecio) t += ` — ${money(b.precio)}/mes`;
       t += "\n";
     });
@@ -1889,6 +1990,17 @@ function Propuestas({ data }) {
             </div>
             <div className="cell-sub" style={{ marginTop: 8 }}>Envía el <b>texto</b> de la propuesta. Para mandar el PDF, primero "Exportar a PDF", guardalo y adjuntalo.</div>
           </div>
+
+          <details style={{ marginTop: 14, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            <summary style={{ fontWeight: 700, cursor: "pointer" }}>Datos de tu empresa (salen en el PDF)</summary>
+            <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+              <div className="field"><label>Nombre de la empresa</label><input value={cfg.empresa || ""} onChange={(e) => update({ config: { ...cfg, empresa: e.target.value } })} /></div>
+              <div className="field"><label>Lema (frase de la portada)</label><input value={cfg.lema || ""} onChange={(e) => update({ config: { ...cfg, lema: e.target.value } })} /></div>
+              <div className="field"><label>Asesor/a</label><input value={cfg.asesor || ""} onChange={(e) => update({ config: { ...cfg, asesor: e.target.value } })} /></div>
+              <div className="field"><label>Teléfono / WhatsApp</label><input value={cfg.tel || ""} onChange={(e) => update({ config: { ...cfg, tel: e.target.value } })} /></div>
+              <div className="field"><label>Mail</label><input value={cfg.mail || ""} onChange={(e) => update({ config: { ...cfg, mail: e.target.value } })} /></div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -1917,49 +2029,77 @@ function Propuestas({ data }) {
       </div>
 
       {/* PRINT AREA */}
-      <div className="print-area">
-        <div style={{ borderBottom: "3px solid #e8590c", paddingBottom: 16, marginBottom: 20 }}>
-          <h1 style={{ fontSize: 28 }}>Propuesta Comercial</h1>
-          <div style={{ color: "#6b7790" }}>Publicidad en Vía Pública · {fmtDate(today())}</div>
+      <div className="print-area" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0d1b2a" }}>
+        {/* PORTADA */}
+        <div style={{ background: "linear-gradient(135deg,#25406b,#15233b 45%,#0b1422)", color: "#fff", padding: "44px 44px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 800, fontSize: 19, fontFamily: "'Bricolage Grotesque',sans-serif" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#ff5a1f,#ffb347)", display: "inline-grid", placeItems: "center", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}><span style={{ width: 12, height: 12, background: "#fff", borderRadius: 3, display: "block" }} /></span>
+              {cfg.empresa || "Mi empresa"}
+            </div>
+            <div style={{ fontSize: 11, color: "#8fa6c9", letterSpacing: 1 }}>{fmtDate(today())}</div>
+          </div>
+          <div style={{ fontSize: 12, letterSpacing: 3, color: "#ffb347", textTransform: "uppercase", marginTop: 44 }}>Propuesta de Publicidad Exterior</div>
+          <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 44, lineHeight: 1.02, letterSpacing: -1.2, margin: "12px 0 14px", maxWidth: 520 }}>{cfg.lema || "Tu marca, donde todos la ven."}</h1>
+          <div style={{ display: "flex", gap: 30, flexWrap: "wrap", borderTop: "1px solid #ffffff22", paddingTop: 16, marginTop: 18 }}>
+            {cliente && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Preparada para</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cliente.empresa}</div></div>}
+            {cfg.asesor && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Asesor/a</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cfg.asesor}</div></div>}
+            <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Vigencia</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>15 días</div></div>
+          </div>
         </div>
-        {cliente && <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontSize: 18 }}>Cliente</h2>
-          <div><b>{cliente.empresa}</b></div>
-          <div>{cliente.contacto}{cliente.cargo ? " · " + cliente.cargo : ""}</div>
-          <div>{cliente.telefono} · {cliente.email}</div>
-        </div>}
-        <h2 style={{ fontSize: 18, marginBottom: 8 }}>Espacios propuestos</h2>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr style={{ background: "#f4f1ea" }}>
-            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Cartel</th>
-            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Ubicación</th>
-            <th style={{ textAlign: "left", padding: 8, border: "1px solid #e6e1d6" }}>Tipo / Medidas</th>
-            {incluirPrecio && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Precio mensual</th>}
-            {incluirProduccion && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Producción</th>}
-            {incluirColocacion && <th style={{ textAlign: "right", padding: 8, border: "1px solid #e6e1d6" }}>Colocación</th>}
-          </tr></thead>
-          <tbody>
-            {seleccionados.map((b) => (
-              <tr key={b.id}>
-                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.nombre}{b.obs ? ` — ${b.obs}` : ""}</td>
-                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.ubicacion}</td>
-                <td style={{ padding: 8, border: "1px solid #e6e1d6" }}>{b.tipo} · {b.medidas}</td>
-                {incluirPrecio && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.precio)}</td>}
-                {incluirProduccion && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.produccion)}</td>}
-                {incluirColocacion && <td style={{ padding: 8, border: "1px solid #e6e1d6", textAlign: "right" }}>{money(b.colocacion)}</td>}
-              </tr>
-            ))}
-            {algunValor && <tr>
-              <td colSpan={3} style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>TOTAL</td>
-              {incluirPrecio && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(total)}</td>}
-              {incluirProduccion && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(totalProd)}</td>}
-              {incluirColocacion && <td style={{ padding: 8, textAlign: "right", fontWeight: 800, border: "1px solid #e6e1d6" }}>{money(totalColoc)}</td>}
-            </tr>}
-          </tbody>
-        </table>
-        {algunValor && nCols > 1 && <p style={{ marginTop: 12, textAlign: "right", fontSize: 18, fontWeight: 800 }}>TOTAL GENERAL: {money(grandTotal)}</p>}
-        {!algunValor && <p style={{ marginTop: 12, color: "#6b7790", fontStyle: "italic" }}>Valores y condiciones comerciales se informan por separado.</p>}
-        {obs && <div style={{ marginTop: 20 }}><h2 style={{ fontSize: 16 }}>Observaciones</h2><p>{obs}</p></div>}
+        {/* KPIs */}
+        <div style={{ display: "flex", borderBottom: "1px solid #e6e1d6" }}>
+          <div style={{ flex: 1, padding: "18px 20px", borderRight: "1px solid #e6e1d6" }}><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 28 }}>{seleccionados.length}</div><div style={{ fontSize: 12, color: "#6b7790", fontWeight: 600 }}>Espacios</div></div>
+          <div style={{ flex: 1, padding: "18px 20px", borderRight: incluirPrecio ? "1px solid #e6e1d6" : "none" }}><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 28 }}>{fMill(alcance)}</div><div style={{ fontSize: 12, color: "#6b7790", fontWeight: 600 }}>Impactos / semana</div></div>
+          {incluirPrecio && <div style={{ flex: 1, padding: "18px 20px" }}><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 28 }}>{money(total)}</div><div style={{ fontSize: 12, color: "#6b7790", fontWeight: 600 }}>Inversión mensual</div></div>}
+        </div>
+        {/* ESPACIOS */}
+        <div style={{ padding: "30px 44px 36px" }}>
+          <h2 style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22, marginBottom: 18 }}>Espacios propuestos</h2>
+          {seleccionados.map((b) => {
+            const f = fotoDe(b);
+            return (
+              <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 16, breakInside: "avoid" }}>
+                <div style={{ position: "relative", minHeight: 170, background: f ? `#0d1b2a url('${f}') center/cover` : "#16243b", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+                  {b.codigo && <span style={{ position: "absolute", left: 12, bottom: 12, fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "4px 10px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
+                </div>
+                <div style={{ padding: "18px 20px" }}>
+                  <div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 19, lineHeight: 1.1 }}>{b.nombre}</div>
+                  <div style={{ color: "#6b7790", fontSize: 13, marginTop: 4, fontWeight: 600 }}>{b.ubicacion}</div>
+                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 9px", borderRadius: 7, background: b.estado === "Disponible" ? "#e6f6ec" : "#f4f1ea", color: b.estado === "Disponible" ? "#137a3e" : "#15233b", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>{b.estado}</span>
+                    {b.medidas && <span style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 9px", borderRadius: 7, background: "#f4f1ea", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>{b.tipo} · {b.medidas}</span>}
+                  </div>
+                  {impactosDe(b) > 0 && <div style={{ marginTop: 12, fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 23, color: "#ff5a1f", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>{impactosDe(b).toLocaleString("es-AR")} <span style={{ fontSize: 12, color: "#6b7790", fontWeight: 600 }}>impactos/sem</span></div>}
+                  {algunValor && <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed #e6e1d6", fontSize: 13 }}>
+                    {incluirPrecio && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7790" }}>Mensual</span><b>{money(b.precio)}</b></div>}
+                    {incluirProduccion && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7790" }}>Producción</span><b>{money(b.produccion)}</b></div>}
+                    {incluirColocacion && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#6b7790" }}>Colocación</span><b>{money(b.colocacion)}</b></div>}
+                  </div>}
+                </div>
+              </div>
+            );
+          })}
+          {algunValor && <div style={{ background: "#15233b", color: "#fff", borderRadius: 14, padding: "22px 26px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+            <div>
+              {incluirPrecio && <div style={{ padding: "2px 0", color: "#c4d2e8" }}><b style={{ color: "#fff", minWidth: 130, display: "inline-block" }}>Inversión mensual</b> {money(total)}</div>}
+              {incluirProduccion && <div style={{ padding: "2px 0", color: "#c4d2e8" }}><b style={{ color: "#fff", minWidth: 130, display: "inline-block" }}>Producción</b> {money(totalProd)}</div>}
+              {incluirColocacion && <div style={{ padding: "2px 0", color: "#c4d2e8" }}><b style={{ color: "#fff", minWidth: 130, display: "inline-block" }}>Colocación</b> {money(totalColoc)}</div>}
+            </div>
+            <div style={{ textAlign: "right" }}><div style={{ fontSize: 10, letterSpacing: 2, color: "#ffb347", textTransform: "uppercase" }}>Total general</div><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 34 }}>{money(grandTotal)}</div></div>
+          </div>}
+          {!algunValor && <p style={{ marginTop: 8, color: "#6b7790", fontStyle: "italic" }}>Valores y condiciones comerciales se informan por separado.</p>}
+          {obs && <div style={{ marginTop: 18 }}><b>Observaciones:</b> {obs}</div>}
+        </div>
+        {/* CIERRE */}
+        <div style={{ background: "linear-gradient(115deg,#0b1422,#1c2c47)", color: "#fff", padding: "30px 44px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+          <div><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22 }}>¿Reservamos estos espacios?</div><div style={{ color: "#a9bbd6", fontSize: 13, marginTop: 6 }}>Los espacios disponibles se asignan por orden de confirmación.</div></div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 700 }}>{cfg.asesor || ""}{cfg.asesor && cfg.empresa ? " · " : ""}{cfg.empresa || ""}</div>
+            {cfg.tel && <div style={{ color: "#a9bbd6", fontSize: 14, marginTop: 3 }}>{cfg.tel}</div>}
+            {cfg.mail && <div style={{ color: "#a9bbd6", fontSize: 14 }}>{cfg.mail}</div>}
+          </div>
+        </div>
       </div>
     </>
   );
