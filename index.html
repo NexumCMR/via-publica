@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 9</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 10</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1902,7 +1902,7 @@ function loadImg(src) {
     if (!src) return res(null);
     const im = new Image();
     im.crossOrigin = "anonymous";
-    im.onload = () => res(im.width ? im : null);
+    im.onload = () => res((im.naturalWidth || im.width) ? im : null);
     im.onerror = () => res(null);
     im.src = src;
   });
@@ -1916,15 +1916,16 @@ async function fotosToJpeg(carteles, fotoDe, chs) {
     const im = await loadImg(src);
     if (!im) return;
     try {
+      const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
       const bw = PHOTOW, bh = Math.max(1, (chs && chs[i] ? chs[i] : 150)), sc = 2;
       const cv = document.createElement("canvas"); cv.width = Math.round(bw * sc); cv.height = Math.round(bh * sc);
       const ctx = cv.getContext("2d");
-      ctx.fillStyle = "#0d1b2a"; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#eef2f7"; ctx.fillRect(0, 0, cv.width, cv.height);
       // cover: escala para cubrir todo el cuadro y recorta lo que sobra, centrado
-      const ir = im.width / im.height, br = cv.width / cv.height;
+      const ir = iw / ih, br = cv.width / cv.height;
       let sw, sh, sx, sy;
-      if (ir > br) { sh = im.height; sw = im.height * br; sx = (im.width - sw) / 2; sy = 0; }
-      else { sw = im.width; sh = im.width / br; sx = 0; sy = (im.height - sh) / 2; }
+      if (ir > br) { sh = ih; sw = ih * br; sx = (iw - sw) / 2; sy = 0; }
+      else { sw = iw; sh = iw / br; sx = 0; sy = (ih - sh) / 2; }
       ctx.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
       map[b.id] = cv.toDataURL("image/jpeg", 0.85);
     } catch (e) { /* foto con CORS u otro problema: queda recuadro azul */ }
@@ -1998,8 +1999,8 @@ function buildProposalDoc(JsPDF, P) {
     const h = chs[idx];
     bord(MX, y, CARDW, h, LINE, 0, 1);
     const f = (P.fotos && P.fotos[b.id]) || "";
-    if (f) { try { doc.addImage(f, "JPEG", MX, y, PHOTOW, h); } catch (e) { rect(MX, y, PHOTOW, h, "#16243b"); } }
-    else { rect(MX, y, PHOTOW, h, "#16243b"); }
+    if (f) { try { doc.addImage(f, "JPEG", MX, y, PHOTOW, h); } catch (e) { rect(MX, y, PHOTOW, h, "#eef2f7"); T(MX + PHOTOW / 2, y + h / 2 - 6, "Sin foto", "normal", 11, "#9aa7ba", "center"); } }
+    else { rect(MX, y, PHOTOW, h, "#eef2f7"); T(MX + PHOTOW / 2, y + h / 2 - 6, "Sin foto", "normal", 11, "#9aa7ba", "center"); }
     const cod = "COD " + (b.codigo || "");
     doc.setFont("helvetica", "bold"); doc.setFontSize(10);
     const cwid = doc.getTextWidth(cod) + 18;
@@ -2081,7 +2082,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()),
+        dateStr: fmtDate(today()) + " · v10",
         fotos,
         chs,
         impactosDe,
@@ -2260,7 +2261,8 @@ function Propuestas({ data, update }) {
             const f = fotoDe(b);
             return (
               <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 14, breakInside: "avoid" }}>
-                <div style={{ position: "relative", minHeight: 150, backgroundColor: "#0d1b2a", backgroundImage: f ? `url('${f}')` : "none", backgroundSize: "cover", backgroundPosition: "center", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+                <div style={{ position: "relative", minHeight: 150, background: "#eef2f7", overflow: "hidden", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+                  {f && <img src={f} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
                   {b.codigo && <span style={{ position: "absolute", left: 14, bottom: 14, fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "5px 11px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
                 </div>
                 <div style={{ padding: "18px 20px" }}>
