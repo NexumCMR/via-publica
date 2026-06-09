@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 8</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 9</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1916,7 +1916,7 @@ async function fotosToJpeg(carteles, fotoDe, chs) {
     const im = await loadImg(src);
     if (!im) return;
     try {
-      const bw = PHOTOW - 1, bh = Math.max(1, (chs && chs[i] ? chs[i] : 150) - 2), sc = 2;
+      const bw = PHOTOW, bh = Math.max(1, (chs && chs[i] ? chs[i] : 150)), sc = 2;
       const cv = document.createElement("canvas"); cv.width = Math.round(bw * sc); cv.height = Math.round(bh * sc);
       const ctx = cv.getContext("2d");
       ctx.fillStyle = "#0d1b2a"; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -1996,10 +1996,10 @@ function buildProposalDoc(JsPDF, P) {
   T(MX, y, "Espacios propuestos", "bold", 19, INK); y += 19 + 16;
   cs.forEach((b, idx) => {
     const h = chs[idx];
-    bord(MX, y, CARDW, h, LINE, 12, 1);
+    bord(MX, y, CARDW, h, LINE, 0, 1);
     const f = (P.fotos && P.fotos[b.id]) || "";
-    if (f) { try { doc.addImage(f, "JPEG", MX + 1, y + 1, PHOTOW - 1, h - 2); } catch (e) { rect(MX + 1, y + 1, PHOTOW - 1, h - 2, "#16243b"); } }
-    else { rect(MX + 1, y + 1, PHOTOW - 1, h - 2, "#16243b"); }
+    if (f) { try { doc.addImage(f, "JPEG", MX, y, PHOTOW, h); } catch (e) { rect(MX, y, PHOTOW, h, "#16243b"); } }
+    else { rect(MX, y, PHOTOW, h, "#16243b"); }
     const cod = "COD " + (b.codigo || "");
     doc.setFont("helvetica", "bold"); doc.setFontSize(10);
     const cwid = doc.getTextWidth(cod) + 18;
