@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#15233b" /><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23e8590c'/%3E%3Crect x='126' y='150' width='260' height='150' rx='20' fill='white'/%3E%3Crect x='244' y='300' width='24' height='96' fill='white'/%3E%3C/svg%3E" /><link rel="manifest" href="data:application/json,%7B%22name%22%3A%22V%C3%ADa%20P%C3%BAblica%20%E2%80%94%20Asistente%20Comercial%22%2C%22short_name%22%3A%22V%C3%ADa%20P%C3%BAblica%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b1422%22%2C%22theme_color%22%3A%22%2315233b%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20512%20512'%253E%253Crect%20width%3D'512'%20height%3D'512'%20rx%3D'112'%20fill%3D'%2523e8590c'%2F%253E%253Crect%20x%3D'126'%20y%3D'150'%20width%3D'260'%20height%3D'150'%20rx%3D'20'%20fill%3D'white'%2F%253E%253Crect%20x%3D'244'%20y%3D'300'%20width%3D'24'%20height%3D'96'%20fill%3D'white'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
 <meta name="apple-mobile-web-app-capable" content="yes" /><meta name="apple-mobile-web-app-title" content="Vía Pública" />
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <style>html,body{margin:0;padding:0;background:#f4f1ea;}#boot{position:fixed;inset:0;display:grid;place-items:center;background:#0b1422;color:#9fb0cc;font-family:system-ui,sans-serif;z-index:1;}</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 </head><body>
@@ -20,7 +20,7 @@ if (!window.storage) { window.storage = { get: async (k) => { const v = localSto
 
 /* ====================== ESTILOS ====================== */
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root{
@@ -629,7 +629,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 4</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 5</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1901,6 +1901,39 @@ function Propuestas({ data, update }) {
   const fMill = (n) => n >= 1000000 ? (n / 1000000).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "M" : n.toLocaleString("es-AR");
   const toggle = (id) => setPicks((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
   const [envioA, setEnvioA] = useState("");
+  const [expBusy, setExpBusy] = useState(false);
+
+  // Genera y descarga el PDF directamente (sin diálogo de impresión → sin pie de página ni espacios en blanco)
+  const descargarPDF = async () => {
+    setExpBusy(true);
+    try {
+      const [h2c, jspdf] = await Promise.all([
+        import("https://esm.sh/html2canvas@1.4.1"),
+        import("https://esm.sh/jspdf@2.5.1"),
+      ]);
+      const html2canvas = h2c.default || h2c;
+      const JsPDF = jspdf.jsPDF || jspdf.default || jspdf;
+      const el = document.querySelector(".print-area");
+      if (!el) throw new Error("no print-area");
+      const prev = el.getAttribute("style") || "";
+      el.setAttribute("style", prev + ";display:block;position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;");
+      if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+      await new Promise((r) => setTimeout(r, 250));
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff", windowWidth: 794, width: 794 });
+      el.setAttribute("style", prev);
+      const w = 794, h = Math.round(canvas.height * (794 / canvas.width));
+      const pdf = new JsPDF({ unit: "px", format: [w, h], orientation: "portrait", compress: true });
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, w, h);
+      pdf.save("Propuesta" + (cliente ? " - " + cliente.empresa : (cfg.empresa ? " - " + cfg.empresa : "")) + ".pdf");
+    } catch (e) {
+      const el2 = document.querySelector(".print-area");
+      if (el2) el2.setAttribute("style", el2.getAttribute("style").replace(/;display:block;position:fixed[^"]*/, ""));
+      alert("No pude generar el archivo automáticamente esta vez. Abro la opción de imprimir como alternativa.");
+      window.print();
+    } finally {
+      setExpBusy(false);
+    }
+  };
 
   // Texto resumen de la propuesta (para WhatsApp / mail)
   const resumenTexto = () => {
@@ -1977,9 +2010,11 @@ function Propuestas({ data, update }) {
           </div>
           <div className="cell-sub" style={{ marginTop: 8 }}>Lo que destildes no aparece en el PDF. Si destildás todo, sale sin valores.</div>
           <button className="btn btn-primary" style={{ width: "100%", marginTop: 16 }}
-            disabled={!seleccionados.length}
-            onClick={() => window.print()}><Printer size={19} /> Exportar a PDF</button>
-          <div className="cell-sub" style={{ marginTop: 8, textAlign: "center" }}>Se abre el diálogo de impresión → elegí “Guardar como PDF”.</div>
+            disabled={!seleccionados.length || expBusy}
+            onClick={descargarPDF}><Download size={19} /> {expBusy ? "Generando PDF…" : "Descargar PDF"}</button>
+          <div className="cell-sub" style={{ marginTop: 8, textAlign: "center" }}>Descarga un archivo PDF listo para adjuntar por mail o WhatsApp. Si pregunta dónde guardar, elegí “Descargas”.</div>
+          <button className="btn btn-ghost" style={{ width: "100%", marginTop: 8 }}
+            disabled={!seleccionados.length} onClick={() => window.print()}><Printer size={18} /> Imprimir (alternativa)</button>
 
           <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 14 }}>
             <div className="field"><label>Enviar resumen a (mail o WhatsApp) — opcional</label>
@@ -2031,20 +2066,26 @@ function Propuestas({ data, update }) {
       {/* PRINT AREA */}
       {createPortal(<div className="print-area" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0d1b2a" }}>
         {/* PORTADA */}
-        <div style={{ background: "linear-gradient(135deg,#25406b,#15233b 45%,#0b1422)", color: "#fff", padding: "30px 40px", breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 800, fontSize: 19, fontFamily: "'Bricolage Grotesque',sans-serif" }}>
-              <span style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#ff5a1f,#ffb347)", display: "inline-grid", placeItems: "center", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}><span style={{ width: 12, height: 12, background: "#fff", borderRadius: 3, display: "block" }} /></span>
-              {cfg.empresa || "Mi empresa"}
+        <div style={{ position: "relative", overflow: "hidden", backgroundColor: "#15233b", backgroundImage: "radial-gradient(120% 90% at 80% -10%,#25406b,#15233b 45%,#0b1422 100%)", color: "#fff", padding: "32px 40px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34'%3E%3Cpath d='M34 0H0V34' fill='none' stroke='rgba(255,255,255,0.07)' stroke-width='1'/%3E%3C/svg%3E\")", backgroundRepeat: "repeat", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11, fontWeight: 800, fontSize: 19, letterSpacing: 0.5, fontFamily: "'Bricolage Grotesque',sans-serif" }}>
+                <span style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#ff5a1f,#ffb347)", display: "inline-grid", placeItems: "center", boxShadow: "0 0 20px rgba(255,90,31,.45)", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}><span style={{ width: 13, height: 13, background: "#fff", borderRadius: 3, display: "block" }} /></span>
+                {cfg.empresa || "Masa Ideas"}
+              </div>
+              <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#8fa6c9", letterSpacing: 1 }}>{fmtDate(today())}</div>
             </div>
-            <div style={{ fontSize: 11, color: "#8fa6c9", letterSpacing: 1 }}>{fmtDate(today())}</div>
-          </div>
-          <div style={{ fontSize: 12, letterSpacing: 3, color: "#ffb347", textTransform: "uppercase", marginTop: 26 }}>Propuesta de Publicidad Exterior</div>
-          <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 38, lineHeight: 1.04, letterSpacing: -1.2, margin: "10px 0 12px", maxWidth: 520 }}>{cfg.lema || "Tu marca, donde todos la ven."}</h1>
-          <div style={{ display: "flex", gap: 30, flexWrap: "wrap", borderTop: "1px solid #ffffff22", paddingTop: 12, marginTop: 14 }}>
-            {cliente && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Preparada para</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cliente.empresa}</div></div>}
-            {cfg.asesor && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Asesor/a</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cfg.asesor}</div></div>}
-            <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Vigencia</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>15 días</div></div>
+            <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, letterSpacing: 3, color: "#ffb347", textTransform: "uppercase", marginTop: 40 }}>Propuesta de Publicidad Exterior</div>
+            <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 46, lineHeight: 0.98, letterSpacing: -1.5, margin: "12px 0 14px", maxWidth: 470 }}>
+              {(() => { const L = (cfg.lema || "Tu marca, donde todos la ven."); const i = L.indexOf(","); if (i === -1) return L; return (<>{L.slice(0, i + 1)}<br /><span style={{ color: "#ff5a1f", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>{L.slice(i + 1).trim()}</span></>); })()}
+            </h1>
+            <div style={{ fontSize: 16, color: "#c4d2e8", maxWidth: 420, lineHeight: 1.5 }}>Una selección de espacios premium en los puntos de mayor circulación, a medida para tu campaña.</div>
+            <div style={{ display: "flex", gap: 34, flexWrap: "wrap", borderTop: "1px solid #ffffff1f", paddingTop: 18, marginTop: 22 }}>
+              {cliente && <div><div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Preparada para</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 3 }}>{cliente.empresa}</div></div>}
+              <div><div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Asesor/a</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 3 }}>{cfg.asesor || "Mónica"}</div></div>
+              <div><div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Vigencia</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 3 }}>15 días</div></div>
+            </div>
           </div>
         </div>
         {/* KPIs */}
@@ -2060,8 +2101,8 @@ function Propuestas({ data, update }) {
             const f = fotoDe(b);
             return (
               <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 14, breakInside: "avoid" }}>
-                <div style={{ position: "relative", minHeight: 150, background: f ? `#0d1b2a url('${f}') center/cover` : "#16243b", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                  {b.codigo && <span style={{ position: "absolute", left: 12, bottom: 12, fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "4px 10px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
+                <div style={{ position: "relative", minHeight: 150, backgroundColor: "#0d1b2a", backgroundImage: f ? `url('${f}')` : "none", backgroundSize: "cover", backgroundPosition: "center", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+                  {b.codigo && <span style={{ position: "absolute", left: 14, bottom: 14, fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "5px 11px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
                 </div>
                 <div style={{ padding: "18px 20px" }}>
                   <div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 19, lineHeight: 1.1 }}>{b.nombre}</div>
@@ -2092,10 +2133,10 @@ function Propuestas({ data, update }) {
           {obs && <div style={{ marginTop: 18 }}><b>Observaciones:</b> {obs}</div>}
         </div>
         {/* CIERRE */}
-        <div style={{ background: "linear-gradient(115deg,#0b1422,#1c2c47)", color: "#fff", padding: "26px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18, breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+        <div style={{ backgroundColor: "#0b1422", backgroundImage: "linear-gradient(115deg,#0b1422,#1c2c47)", color: "#fff", padding: "28px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
           <div><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22 }}>¿Reservamos estos espacios?</div><div style={{ color: "#a9bbd6", fontSize: 13, marginTop: 6 }}>Los espacios disponibles se asignan por orden de confirmación.</div></div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontWeight: 700 }}>{cfg.asesor || ""}{cfg.asesor && cfg.empresa ? " · " : ""}{cfg.empresa || ""}</div>
+            <div style={{ fontWeight: 700 }}>{(cfg.asesor || "Mónica")} · {(cfg.empresa || "Masa Ideas")}</div>
             {cfg.tel && <div style={{ color: "#a9bbd6", fontSize: 14, marginTop: 3 }}>{cfg.tel}</div>}
             {cfg.mail && <div style={{ color: "#a9bbd6", fontSize: 14 }}>{cfg.mail}</div>}
           </div>
