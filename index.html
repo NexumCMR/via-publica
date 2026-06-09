@@ -629,7 +629,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 3</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 4</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -2031,7 +2031,7 @@ function Propuestas({ data, update }) {
       {/* PRINT AREA */}
       {createPortal(<div className="print-area" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0d1b2a" }}>
         {/* PORTADA */}
-        <div style={{ background: "linear-gradient(135deg,#25406b,#15233b 45%,#0b1422)", color: "#fff", padding: "44px 44px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+        <div style={{ background: "linear-gradient(135deg,#25406b,#15233b 45%,#0b1422)", color: "#fff", padding: "30px 40px", breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 800, fontSize: 19, fontFamily: "'Bricolage Grotesque',sans-serif" }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#ff5a1f,#ffb347)", display: "inline-grid", placeItems: "center", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}><span style={{ width: 12, height: 12, background: "#fff", borderRadius: 3, display: "block" }} /></span>
@@ -2039,9 +2039,9 @@ function Propuestas({ data, update }) {
             </div>
             <div style={{ fontSize: 11, color: "#8fa6c9", letterSpacing: 1 }}>{fmtDate(today())}</div>
           </div>
-          <div style={{ fontSize: 12, letterSpacing: 3, color: "#ffb347", textTransform: "uppercase", marginTop: 44 }}>Propuesta de Publicidad Exterior</div>
-          <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 44, lineHeight: 1.02, letterSpacing: -1.2, margin: "12px 0 14px", maxWidth: 520 }}>{cfg.lema || "Tu marca, donde todos la ven."}</h1>
-          <div style={{ display: "flex", gap: 30, flexWrap: "wrap", borderTop: "1px solid #ffffff22", paddingTop: 16, marginTop: 18 }}>
+          <div style={{ fontSize: 12, letterSpacing: 3, color: "#ffb347", textTransform: "uppercase", marginTop: 26 }}>Propuesta de Publicidad Exterior</div>
+          <h1 style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontWeight: 800, fontSize: 38, lineHeight: 1.04, letterSpacing: -1.2, margin: "10px 0 12px", maxWidth: 520 }}>{cfg.lema || "Tu marca, donde todos la ven."}</h1>
+          <div style={{ display: "flex", gap: 30, flexWrap: "wrap", borderTop: "1px solid #ffffff22", paddingTop: 12, marginTop: 14 }}>
             {cliente && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Preparada para</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cliente.empresa}</div></div>}
             {cfg.asesor && <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Asesor/a</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{cfg.asesor}</div></div>}
             <div><div style={{ fontSize: 10, letterSpacing: 1.5, color: "#8fa6c9", textTransform: "uppercase" }}>Vigencia</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>15 días</div></div>
@@ -2054,13 +2054,13 @@ function Propuestas({ data, update }) {
           {incluirPrecio && <div style={{ flex: 1, padding: "18px 20px" }}><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 28 }}>{money(total)}</div><div style={{ fontSize: 12, color: "#6b7790", fontWeight: 600 }}>Inversión mensual</div></div>}
         </div>
         {/* ESPACIOS */}
-        <div style={{ padding: "30px 44px 36px" }}>
-          <h2 style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22, marginBottom: 18 }}>Espacios propuestos</h2>
+        <div style={{ padding: "24px 40px 30px" }}>
+          <h2 style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22, marginBottom: 16 }}>Espacios propuestos</h2>
           {seleccionados.map((b) => {
             const f = fotoDe(b);
             return (
-              <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 16, breakInside: "avoid" }}>
-                <div style={{ position: "relative", minHeight: 170, background: f ? `#0d1b2a url('${f}') center/cover` : "#16243b", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+              <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 14, breakInside: "avoid" }}>
+                <div style={{ position: "relative", minHeight: 150, background: f ? `#0d1b2a url('${f}') center/cover` : "#16243b", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                   {b.codigo && <span style={{ position: "absolute", left: 12, bottom: 12, fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "4px 10px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
                 </div>
                 <div style={{ padding: "18px 20px" }}>
@@ -2080,7 +2080,7 @@ function Propuestas({ data, update }) {
               </div>
             );
           })}
-          {algunValor && <div style={{ background: "#15233b", color: "#fff", borderRadius: 14, padding: "22px 26px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+          {algunValor && <div style={{ background: "#15233b", color: "#fff", borderRadius: 14, padding: "22px 26px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
             <div>
               {incluirPrecio && <div style={{ padding: "2px 0", color: "#c4d2e8" }}><b style={{ color: "#fff", minWidth: 130, display: "inline-block" }}>Inversión mensual</b> {money(total)}</div>}
               {incluirProduccion && <div style={{ padding: "2px 0", color: "#c4d2e8" }}><b style={{ color: "#fff", minWidth: 130, display: "inline-block" }}>Producción</b> {money(totalProd)}</div>}
@@ -2092,7 +2092,7 @@ function Propuestas({ data, update }) {
           {obs && <div style={{ marginTop: 18 }}><b>Observaciones:</b> {obs}</div>}
         </div>
         {/* CIERRE */}
-        <div style={{ background: "linear-gradient(115deg,#0b1422,#1c2c47)", color: "#fff", padding: "30px 44px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+        <div style={{ background: "linear-gradient(115deg,#0b1422,#1c2c47)", color: "#fff", padding: "26px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 18, breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
           <div><div style={{ fontFamily: "'Bricolage Grotesque'", fontWeight: 800, fontSize: 22 }}>¿Reservamos estos espacios?</div><div style={{ color: "#a9bbd6", fontSize: 13, marginTop: 6 }}>Los espacios disponibles se asignan por orden de confirmación.</div></div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontWeight: 700 }}>{cfg.asesor || ""}{cfg.asesor && cfg.empresa ? " · " : ""}{cfg.empresa || ""}</div>
