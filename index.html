@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 7</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 8</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1907,24 +1907,44 @@ function loadImg(src) {
     im.src = src;
   });
 }
-// Convierte TODAS las fotos a JPEG (formato seguro para el PDF) y las achica un poco
-async function fotosToJpeg(carteles, fotoDe) {
-  const map = {};
-  await Promise.all((carteles || []).map(async (b) => {
+// Recorta cada foto al tamaño exacto del cuadro (modo "cover", centrada) → llena todo sin bordes
+async function fotosToJpeg(carteles, fotoDe, chs) {
+  const PHOTOW = 210, map = {};
+  await Promise.all((carteles || []).map(async (b, i) => {
     const src = fotoDe(b);
     if (!src) return;
     const im = await loadImg(src);
     if (!im) return;
     try {
-      const cw = Math.min(720, im.width), ratio = cw / im.width, ch = Math.max(1, Math.round(im.height * ratio));
-      const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+      const bw = PHOTOW - 1, bh = Math.max(1, (chs && chs[i] ? chs[i] : 150) - 2), sc = 2;
+      const cv = document.createElement("canvas"); cv.width = Math.round(bw * sc); cv.height = Math.round(bh * sc);
       const ctx = cv.getContext("2d");
-      ctx.fillStyle = "#0d1b2a"; ctx.fillRect(0, 0, cw, ch);
-      ctx.drawImage(im, 0, 0, cw, ch);
+      ctx.fillStyle = "#0d1b2a"; ctx.fillRect(0, 0, cv.width, cv.height);
+      // cover: escala para cubrir todo el cuadro y recorta lo que sobra, centrado
+      const ir = im.width / im.height, br = cv.width / cv.height;
+      let sw, sh, sx, sy;
+      if (ir > br) { sh = im.height; sw = im.height * br; sx = (im.width - sw) / 2; sy = 0; }
+      else { sw = im.width; sh = im.width / br; sx = 0; sy = (im.height - sh) / 2; }
+      ctx.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
       map[b.id] = cv.toDataURL("image/jpeg", 0.85);
     } catch (e) { /* foto con CORS u otro problema: queda recuadro azul */ }
   }));
   return map;
+}
+// Calcula la altura de cada tarjeta (igual que el armador) para recortar las fotos a medida
+function computeCardHeights(md, cs, inc, impactosDe) {
+  const CW = 794 - 80 - 210 - 40;
+  return (cs || []).map((b) => {
+    md.setFont("helvetica", "bold"); md.setFontSize(16);
+    const nl = md.splitTextToSize(b.nombre || "", CW);
+    md.setFont("helvetica", "normal"); md.setFontSize(11.5);
+    const ul = md.splitTextToSize(b.ubicacion || "", CW);
+    let h = 18 + nl.length * 19 + 5 + ul.length * 14 + 11 + 22;
+    if (impactosDe(b) > 0) h += 10 + 24;
+    const nr = (inc.precio ? 1 : 0) + (inc.prod ? 1 : 0) + (inc.coloc ? 1 : 0);
+    if (nr) h += 12 + nr * 16;
+    h += 18; return Math.max(150, h);
+  });
 }
 function buildProposalDoc(JsPDF, P) {
   const W = 794, MX = 40, CARDW = W - 2 * MX, PHOTOW = 210, CW = CARDW - PHOTOW - 40;
@@ -1934,20 +1954,9 @@ function buildProposalDoc(JsPDF, P) {
   const sum = (k) => cs.reduce((a, b) => a + (Number(b[k]) || 0), 0);
   const rowsArr = [["Inversión mensual", inc.precio, sum("precio")], ["Producción", inc.prod, sum("produccion")], ["Colocación", inc.coloc, sum("colocacion")]].filter((r) => r[1]);
   const grand = rowsArr.reduce((a, r) => a + r[2], 0);
-  // --- medir alturas de tarjetas ---
+  // --- medir alturas de tarjetas (reutiliza las ya calculadas si vienen) ---
   const md = new JsPDF({ unit: "px", format: [W, 2000] });
-  const cardH = (b) => {
-    md.setFont("helvetica", "bold"); md.setFontSize(16);
-    const nl = md.splitTextToSize(b.nombre || "", CW);
-    md.setFont("helvetica", "normal"); md.setFontSize(11.5);
-    const ul = md.splitTextToSize(b.ubicacion || "", CW);
-    let h = 18 + nl.length * 19 + 5 + ul.length * 14 + 11 + 22;
-    if (P.impactosDe(b) > 0) h += 10 + 24;
-    const nr = (inc.precio ? 1 : 0) + (inc.prod ? 1 : 0) + (inc.coloc ? 1 : 0);
-    if (nr) h += 12 + nr * 16;
-    h += 18; return Math.max(150, h);
-  };
-  const chs = cs.map(cardH);
+  const chs = (P.chs && P.chs.length === cs.length) ? P.chs : computeCardHeights(md, cs, inc, P.impactosDe);
   let H = 302 + 72 + 24 + 19 + 16;
   chs.forEach((ch) => H += ch + 14);
   if (rowsArr.length) H += Math.max(86, 24 + rowsArr.length * 18 + 18);
@@ -2063,14 +2072,18 @@ function Propuestas({ data, update }) {
     setExpBusy(true);
     try {
       const JsPDF = await loadJsPDF();
-      const fotos = await fotosToJpeg(seleccionados, fotoDe);
+      const inc = { precio: incluirPrecio, prod: incluirProduccion, coloc: incluirColocacion };
+      const md = new JsPDF({ unit: "px", format: [794, 2000] });
+      const chs = computeCardHeights(md, seleccionados, inc, impactosDe);
+      const fotos = await fotosToJpeg(seleccionados, fotoDe, chs);
       const doc = buildProposalDoc(JsPDF, {
         carteles: seleccionados,
         cfg,
         cliente,
-        inc: { precio: incluirPrecio, prod: incluirProduccion, coloc: incluirColocacion },
+        inc,
         dateStr: fmtDate(today()),
         fotos,
+        chs,
         impactosDe,
       });
       doc.save("Propuesta" + (cliente ? " - " + cliente.empresa : (cfg.empresa ? " - " + cfg.empresa : "")) + ".pdf");
