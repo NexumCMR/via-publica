@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 6</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 7</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1896,6 +1896,36 @@ function loadJsPDF() {
   });
 }
 function hx(h) { h = String(h).replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+// Carga una imagen (data URL o URL) y devuelve el <img>, o null si falla
+function loadImg(src) {
+  return new Promise((res) => {
+    if (!src) return res(null);
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => res(im.width ? im : null);
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+}
+// Convierte TODAS las fotos a JPEG (formato seguro para el PDF) y las achica un poco
+async function fotosToJpeg(carteles, fotoDe) {
+  const map = {};
+  await Promise.all((carteles || []).map(async (b) => {
+    const src = fotoDe(b);
+    if (!src) return;
+    const im = await loadImg(src);
+    if (!im) return;
+    try {
+      const cw = Math.min(720, im.width), ratio = cw / im.width, ch = Math.max(1, Math.round(im.height * ratio));
+      const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#0d1b2a"; ctx.fillRect(0, 0, cw, ch);
+      ctx.drawImage(im, 0, 0, cw, ch);
+      map[b.id] = cv.toDataURL("image/jpeg", 0.85);
+    } catch (e) { /* foto con CORS u otro problema: queda recuadro azul */ }
+  }));
+  return map;
+}
 function buildProposalDoc(JsPDF, P) {
   const W = 794, MX = 40, CARDW = W - 2 * MX, PHOTOW = 210, CW = CARDW - PHOTOW - 40;
   const NAVY = "#15233b", NAVY2 = "#0b1422", ORANGE = "#ff5a1f", AMBER = "#ffb347", INK = "#0d1b2a", MUT = "#6b7790", LINE = "#e6e1d6", GRID = "#2a3c57";
@@ -1958,8 +1988,8 @@ function buildProposalDoc(JsPDF, P) {
   cs.forEach((b, idx) => {
     const h = chs[idx];
     bord(MX, y, CARDW, h, LINE, 12, 1);
-    const f = P.fotoDe(b);
-    if (f && /^data:/.test(f)) { try { doc.addImage(f, "JPEG", MX + 1, y + 1, PHOTOW - 1, h - 2); } catch (e) { rect(MX + 1, y + 1, PHOTOW - 1, h - 2, "#16243b"); } }
+    const f = (P.fotos && P.fotos[b.id]) || "";
+    if (f) { try { doc.addImage(f, "JPEG", MX + 1, y + 1, PHOTOW - 1, h - 2); } catch (e) { rect(MX + 1, y + 1, PHOTOW - 1, h - 2, "#16243b"); } }
     else { rect(MX + 1, y + 1, PHOTOW - 1, h - 2, "#16243b"); }
     const cod = "COD " + (b.codigo || "");
     doc.setFont("helvetica", "bold"); doc.setFontSize(10);
@@ -2033,13 +2063,14 @@ function Propuestas({ data, update }) {
     setExpBusy(true);
     try {
       const JsPDF = await loadJsPDF();
+      const fotos = await fotosToJpeg(seleccionados, fotoDe);
       const doc = buildProposalDoc(JsPDF, {
         carteles: seleccionados,
         cfg,
         cliente,
         inc: { precio: incluirPrecio, prod: incluirProduccion, coloc: incluirColocacion },
         dateStr: fmtDate(today()),
-        fotoDe,
+        fotos,
         impactosDe,
       });
       doc.save("Propuesta" + (cliente ? " - " + cliente.empresa : (cfg.empresa ? " - " + cfg.empresa : "")) + ".pdf");
