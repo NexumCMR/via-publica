@@ -13,6 +13,7 @@
 <script type="text/babel" data-type="module" data-presets="react">
 import React, { useState, useEffect, useMemo, useRef } from "https://esm.sh/react@18.2.0";
 import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+import { createPortal } from "https://esm.sh/react-dom@18.2.0?deps=react@18.2.0";
 import { LayoutDashboard, Users, BellRing, LayoutPanelTop, MapPin, FileText, Search, Sparkles, Plus, Pencil, Phone, Mail, MessageCircle, History, X, Trash2, Star, ExternalLink, Printer, ChevronRight, CheckCircle2, AlertTriangle, AlertCircle, Calendar, Menu, ClipboardList, Building2, Download, Upload, ShieldCheck } from "https://esm.sh/lucide-react@0.383.0?deps=react@18.2.0";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 if (!window.storage) { window.storage = { get: async (k) => { const v = localStorage.getItem(k); return v ? { value: v } : null; }, set: async (k, v) => { try { localStorage.setItem(k, v); } catch (e) { alert("El teléfono se quedó sin espacio (suele pasar por muchas fotos). Quitá algunas. Tus datos anteriores siguen guardados."); throw e; } return { value: v }; } }; }
@@ -297,10 +298,9 @@ tr:hover td{ background:#fcfbf8; }
 .client-card:hover, .bb-card:hover, .rank-item:hover{ transform:translateY(-2px); box-shadow:0 10px 30px rgba(21,35,59,.12); border-color:#d9d2c4; }
 
 @media print{
-  body * { visibility:hidden; }
-  .print-area, .print-area *{ visibility:visible; }
-  .print-area{ display:block !important; position:absolute; left:0; top:0; width:100%; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .app{ background:#fff; }
+  body > *:not(.print-area){ display:none !important; }
+  .print-area{ display:block !important; position:static !important; left:auto; top:auto; width:100%; padding:0; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  html, body{ background:#fff !important; margin:0; padding:0; }
   @page{ margin:0; }
 }
 
@@ -629,7 +629,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 2</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 3</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -2029,7 +2029,7 @@ function Propuestas({ data, update }) {
       </div>
 
       {/* PRINT AREA */}
-      <div className="print-area" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0d1b2a" }}>
+      {createPortal(<div className="print-area" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0d1b2a" }}>
         {/* PORTADA */}
         <div style={{ background: "linear-gradient(135deg,#25406b,#15233b 45%,#0b1422)", color: "#fff", padding: "44px 44px", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2100,7 +2100,7 @@ function Propuestas({ data, update }) {
             {cfg.mail && <div style={{ color: "#a9bbd6", fontSize: 14 }}>{cfg.mail}</div>}
           </div>
         </div>
-      </div>
+      </div>, document.body)}
     </>
   );
 }
