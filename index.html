@@ -642,7 +642,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 17</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 18</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1241,6 +1241,28 @@ function armarPlaca(img, encuadre, cartel) {
   return c.toDataURL("image/jpeg", 0.93);
 }
 
+// Arma la portada de la ficha: misma foto y mismo encuadre que la placa,
+// con la parte de abajo en negro para que el texto nunca tape el cartel.
+function armarPortada(img, encuadre) {
+  const W = 1080, H = 1920, FOTO_H = 1180, NEGRO = "#0a0a0c";
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = NEGRO; x.fillRect(0, 0, W, H);
+  x.save(); x.beginPath(); x.rect(0, 0, W, FOTO_H); x.clip();
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const esc = Math.max(W / iw, FOTO_H / ih) * (encuadre.zoom || 1);
+  const dw = iw * esc, dh = ih * esc;
+  x.drawImage(img, (W - dw) / 2, (FOTO_H - dh) / 2 + (encuadre.y || 0), dw, dh);
+  let g = x.createLinearGradient(0, 0, 0, 280);
+  g.addColorStop(0, "rgba(10,10,12,.5)"); g.addColorStop(1, "rgba(10,10,12,0)");
+  x.fillStyle = g; x.fillRect(0, 0, W, 280);
+  g = x.createLinearGradient(0, FOTO_H - 300, 0, FOTO_H);
+  g.addColorStop(0, "rgba(10,10,12,0)"); g.addColorStop(1, NEGRO);
+  x.fillStyle = g; x.fillRect(0, FOTO_H - 300, W, 300);
+  x.restore();
+  return c.toDataURL("image/jpeg", 0.88);
+}
+
 function PublicarCartel({ cartel, onClose, onListo }) {
   const [paso, setPaso] = useState(1);
   const [fotos, setFotos] = useState([]);          // {dataUrl, w, h, nombre}
@@ -1320,6 +1342,19 @@ function PublicarCartel({ cartel, onClose, onListo }) {
     setError(""); setTrabajando(true);
     try {
       const subidas = [];
+      // 1) la portada, con el encuadre que ella eligió (así el texto nunca tapa el cartel)
+      setAvance("Preparando la portada…");
+      if (imgRef.current) {
+        const portadaImg = armarPortada(imgRef.current, { zoom, y: desp });
+        const rp = await fetch("/api/masa?accion=foto", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigo, nombre: "portada", base64: portadaImg, tipo: "image/jpeg" }),
+        });
+        const jp = await rp.json();
+        if (!rp.ok) throw new Error(jp.error || "No se pudo subir la portada");
+        subidas.push({ url: jp.url, orden: -1, portada: true, epigrafe: null });
+      }
+      // 2) las fotos normales, para la galería
       for (let i = 0; i < fotos.length; i++) {
         setAvance(`Subiendo foto ${i + 1} de ${fotos.length}…`);
         const r = await fetch("/api/masa?accion=foto", {
@@ -1328,7 +1363,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || "No se pudo subir una foto");
-        subidas.push({ url: j.url, orden: i, portada: i === principal, epigrafe: null });
+        subidas.push({ url: j.url, orden: i, portada: false, epigrafe: null });
       }
       setAvance("Publicando la ficha…");
       const cuerpo = {
@@ -2688,7 +2723,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v17",
+        dateStr: fmtDate(today()) + " · v18",
         fotos,
         chs,
         impactosDe,
