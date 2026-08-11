@@ -161,6 +161,12 @@
   footer{margin-top:52px;padding:26px 0 10px;border-top:1px solid var(--linea);font-size:13.5px;color:var(--gris)}
   footer b{color:var(--tinta);font-weight:700}
 
+  .btn-wa-grande{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;
+    background:var(--azul);color:#fff;text-decoration:none;padding:22px 20px;border-radius:20px;
+    box-shadow:0 10px 26px rgba(31,60,255,.26)}
+  .btn-wa-grande b{font-family:var(--disp);font-weight:800;font-size:21px;letter-spacing:-.02em}
+  .btn-wa-grande span{font-size:14.5px;opacity:.92}
+
   /* cta fija */
   .cta{position:fixed;left:0;right:0;bottom:0;z-index:9;padding:14px 22px calc(14px + env(safe-area-inset-bottom));
        background:linear-gradient(180deg,rgba(241,242,244,0),rgba(241,242,244,.96) 36%)}
@@ -244,7 +250,8 @@
 
     var msg="Hola! Me interesa el cartel COD "+c.codigo+(c.nombre?" — "+c.nombre:"")+". ¿Me pasás más información?";
     var wa="https://wa.me/"+TEL+"?text="+encodeURIComponent(msg);
-    var compartir="https://wa.me/?text="+encodeURIComponent("Te paso este espacio: "+(c.nombre||("COD "+c.codigo))+". Ficha completa: "+location.href);
+    var txtCompartir="Te paso este espacio: "+(c.nombre||("COD "+c.codigo))+". Ficha completa: "+location.href;
+    var compartir="https://api.whatsapp.com/send?text="+encodeURIComponent(txtCompartir);
 
     var precio = c.mostrar_precio===false
       ? '<div class="v">Consultar <span>precio</span></div><small>Escribinos por WhatsApp y te pasamos el valor actualizado de este espacio.</small>'
@@ -278,6 +285,8 @@
         (c.visual?'<div class="tile"><dt>Visual</dt><dd>'+esc(c.visual)+'</dd></div>':'')+
         (c.localidad?'<div class="tile"><dt>Localidad</dt><dd>'+esc(c.localidad)+'</dd></div>':'')+
       '</dl></section>'+
+      '<section class="sec rev"><a class="btn-wa-grande" href="'+wa+'" target="_blank" rel="noopener">'+
+        '<b>¿Te interesa este espacio?</b><span>Escribinos por WhatsApp</span></a></section>'+
       '<section class="sec rev"><p class="kicker">Disponibilidad</p><h2>'+(libre?"Disponible para tomar":"Reservalo antes de que quede libre")+'</h2>'+
         '<div class="avail"><div class="top"><i></i> '+(libre?"Libre":"Ocupado hoy")+'</div>'+
         (c.disponible_desde&&!libre?'<h3>Se libera el <b>'+esc(fecha(c.disponible_desde))+'</b></h3>':'<h3>Se puede tomar <b>ya mismo</b></h3>')+
@@ -288,11 +297,17 @@
         '<a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query='+
           encodeURIComponent((c.direccion||"")+", "+(c.localidad||"")+", Buenos Aires")+'">Abrir en el mapa</a></div>'+
         '<div class="share"><div><b>Pasá esta ficha</b><p>Mandásela a quien decide.</p>'+
-        '<a class="wa-share" href="'+compartir+'" target="_blank" rel="noopener">Enviar por WhatsApp</a></div></div>'+
+        '<a class="wa-share" id="compartir" href="'+compartir+'" target="_blank" rel="noopener">Enviar por WhatsApp</a></div></div>'+
       '</section>'+
       '<footer><b>Masa Ideas</b> · Publicidad en vía pública<br>Consultas y reservas por WhatsApp.</footer>'+
     '</main>'+
     '<div class="cta"><a href="'+wa+'" target="_blank" rel="noopener">Consultar por WhatsApp</a></div>';
+
+    var bc=document.getElementById("compartir");
+    if(bc) bc.addEventListener("click",function(ev){
+      if(navigator.share){ ev.preventDefault();
+        navigator.share({title:c.nombre||("Cartel "+c.codigo),text:txtCompartir,url:location.href}).catch(function(){}); }
+    });
 
     if("IntersectionObserver" in window){
       var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.14});

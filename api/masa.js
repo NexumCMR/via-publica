@@ -102,6 +102,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, link: `/cartel/${cartel.codigo}` });
     }
 
+    // -------- Borrar una ficha publicada --------
+    if (accion === "borrar") {
+      const { codigo } = body;
+      if (!codigo) return res.status(400).json({ error: "Falta el código" });
+      await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(codigo)}`, { method: "DELETE" });
+      const r = await sb(`/rest/v1/masa_carteles?codigo=eq.${encodeURIComponent(codigo)}`, { method: "DELETE" });
+      if (!r.ok) return res.status(502).json({ error: "No se pudo borrar", detalle: await r.text() });
+      return res.status(200).json({ ok: true });
+    }
+
     // -------- Cuántas visitas tuvo cada ficha --------
     if (accion === "visitas") {
       const r = await sb("/rest/v1/masa_visitas?select=codigo", { method: "GET" });

@@ -642,7 +642,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 15</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 17</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1122,6 +1122,14 @@ function Seguimiento({ data, update }) {
 /* ====================== INVENTARIO ====================== */
 /* ====================== PUBLICAR: ficha + placa para WhatsApp ====================== */
 const PUB_BASE = "https://via-publica-delta.vercel.app";
+const PUB_SB = "https://vdxkgywwcxluklvhzmor.supabase.co/rest/v1";
+const PUB_KEY = "sb_publishable_Pde178b3hSbn8bjirUR9Lw_PsaJiUC_";
+async function traerPublicados() {
+  const r = await fetch(PUB_SB + "/masa_carteles?select=codigo,nombre,localidad,estado,actualizado&publicado=eq.true&order=actualizado.desc",
+    { headers: { apikey: PUB_KEY, Authorization: "Bearer " + PUB_KEY } });
+  if (!r.ok) throw new Error("No se pudo leer la lista");
+  return r.json();
+}
 
 function pubLink(codigo) { return PUB_BASE + "/cartel/" + codigo; }
 
@@ -1262,7 +1270,8 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const previaRef = useRef(null);
   const imgRef = useRef(null);
 
-  const codigo = String(cartel.codigo || "").trim() || ("c" + String(cartel.id || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-6));
+  const [cod, setCod] = useState(String(cartel.codigo || "").trim() || ("c" + String(cartel.id || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-6)));
+  const codigo = (cod || "").trim() || "sin-codigo";
   const impactos = Number(d.impactos) || 0;
 
   const datosPlaca = {
@@ -1349,7 +1358,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
       if (!r2.ok) throw new Error(j2.error || "No se pudo publicar");
       setLink(pubLink(codigo));
       setPaso(5);
-      if (onListo) onListo(pubLink(codigo));
+      if (onListo) onListo(codigo);
     } catch (e) {
       setError(String((e && e.message) || e) + ". Fijate que tengas internet y probá de nuevo.");
     }
@@ -1396,8 +1405,8 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   );
 
   return (
-    <div className="modal-bg" onClick={(e) => { if (e.target === e.currentTarget && !trabajando) onClose(); }}>
-      <div className="modal" style={{ maxWidth: 520, width: "94vw" }}>
+    <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget && !trabajando) onClose(); }}>
+      <div className="modal" style={{ maxWidth: 520, width: "100%", padding: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
           <div>
             <h2 style={{ fontSize: 20 }}>Publicar este cartel</h2>
@@ -1462,6 +1471,8 @@ function PublicarCartel({ cartel, onClose, onListo }) {
               Estos son los datos que va a ver el cliente. <b>Corregí lo que quieras</b> o dejalo como está.
             </p>
             <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+              <label className="campo"><span>Código (aparece en el link)</span>
+                <input value={cod} onChange={(e) => setCod(e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))} placeholder="Ej: 1297" /></label>
               <label className="campo"><span>Nombre del cartel</span>
                 <input value={d.nombre} onChange={(e) => set1("nombre", e.target.value)} placeholder="Ej: Acc. Oeste Km 22,5" /></label>
               <label className="campo"><span>Dirección</span>
@@ -1574,25 +1585,80 @@ function PublicarCartel({ cartel, onClose, onListo }) {
 function PublicarSeccion({ data }) {
   const [busq, setBusq] = useState("");
   const [elegido, setElegido] = useState(null);
+  const [pubs, setPubs] = useState(null);
+  const [borrando, setBorrando] = useState("");
+
+  const cargar = () => { traerPublicados().then(setPubs).catch(() => setPubs([])); };
+  useEffect(() => { cargar(); }, []);
+
   const lista = (data.billboards || []).filter((b) => {
     if (!busq.trim()) return true;
     const t = `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase();
     return t.includes(busq.trim().toLowerCase());
   });
 
+  const borrar = async (codigo, nombre) => {
+    if (!confirm(`¿Seguro que querés borrar la publicación de "${nombre || codigo}"?\n\nEl link va a dejar de funcionar. Podés volver a publicarlo cuando quieras.`)) return;
+    setBorrando(codigo);
+    try {
+      const r = await fetch("/api/masa?accion=borrar", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ codigo }),
+      });
+      if (!r.ok) throw new Error();
+      setPubs((p) => (p || []).filter((x) => x.codigo !== codigo));
+    } catch (e) { alert("No se pudo borrar. Fijate que tengas internet y probá de nuevo."); }
+    setBorrando("");
+  };
+
+  const copiar = async (codigo) => {
+    try { await navigator.clipboard.writeText(pubLink(codigo)); alert("¡Link copiado!"); }
+    catch (e) { prompt("Copiá este link:", pubLink(codigo)); }
+  };
+
+  const nuevoVacio = () => setElegido({ id: "nuevo-" + Date.now(), codigo: "", nombre: "", ubicacion: "", zona: "", tipo: "", medidas: "", estado: "Disponible", precio: "" });
+
   return (
     <div>
       <div className="card" style={{ marginBottom: 16 }}>
         <h3 style={{ fontSize: 17, marginBottom: 6 }}>¿Cómo funciona?</h3>
         <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--muted)" }}>
-          Elegí un cartel de la lista. Te va a pedir las fotos, vas a poder revisar los datos, y te arma
-          <b> la imagen para el estado</b> y <b>el link</b> con toda la información para el cliente.
+          Elegí un cartel, subí las fotos y revisá los datos. Te arma <b>la imagen para el estado</b> y
+          <b> el link</b> con toda la información para el cliente.
         </div>
+        <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "14px", fontSize: 15.5 }} onClick={nuevoVacio}>
+          <Plus size={19} /> Crear uno nuevo a mano
+        </button>
       </div>
 
+      {pubs === null && <div className="cell-sub" style={{ padding: "6px 2px 14px" }}>Buscando lo que ya publicaste…</div>}
+
+      {pubs && pubs.length > 0 && (
+        <div style={{ marginBottom: 22 }}>
+          <h3 style={{ fontSize: 16, marginBottom: 10 }}>Ya publicados ({pubs.length})</h3>
+          {pubs.map((p) => (
+            <div key={p.codigo} className="pub-item" style={{ cursor: "default", flexWrap: "wrap" }}>
+              <span style={{ flex: "1 1 160px", minWidth: 0 }}>
+                <span style={{ display: "block", fontWeight: 700, fontSize: 15 }}>{p.nombre || p.codigo}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)" }}>
+                  {p.localidad || "—"} · {PUB_BASE.replace("https://", "")}/cartel/{p.codigo}
+                </span>
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                <a className="btn btn-ghost" style={{ padding: "9px 12px", fontSize: 13 }} href={pubLink(p.codigo)} target="_blank" rel="noopener">Ver</a>
+                <button className="btn btn-ghost" style={{ padding: "9px 12px", fontSize: 13 }} onClick={() => copiar(p.codigo)}>Copiar link</button>
+                <button className="btn btn-icon ico-edit" onClick={() => borrar(p.codigo, p.nombre)} disabled={borrando === p.codigo}>
+                  <Trash2 size={16} />
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>Tus carteles</h3>
       <div className="toolbar" style={{ marginBottom: 14 }}>
         <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
-          <input placeholder="Buscar un cartel por nombre, dirección o código…"
+          <input placeholder="Buscar por nombre, dirección o código…"
             value={busq} onChange={(e) => setBusq(e.target.value)} /></div>
       </div>
 
@@ -1615,11 +1681,11 @@ function PublicarSeccion({ data }) {
       {!lista.length && (
         <div className="empty"><LayoutPanelTop size={40} />
           <div>No hay carteles para mostrar.</div>
-          <div className="cell-sub" style={{ marginTop: 6 }}>Cargalos primero en la sección «Carteles».</div>
+          <div className="cell-sub" style={{ marginTop: 6 }}>Cargalos en «Carteles» o creá uno a mano acá arriba.</div>
         </div>
       )}
 
-      {elegido && <PublicarCartel cartel={elegido} onClose={() => setElegido(null)} />}
+      {elegido && <PublicarCartel cartel={elegido} onClose={() => { setElegido(null); cargar(); }} onListo={cargar} />}
     </div>
   );
 }
@@ -1955,14 +2021,14 @@ function Inventario({ data, update }) {
 
       {/* Foto ampliada */}
       {verFoto && (
-        <div className="modal-bg" onClick={() => setVerFoto(null)} style={{ cursor: "zoom-out" }}>
+        <div className="overlay" onClick={() => setVerFoto(null)} style={{ cursor: "zoom-out" }}>
           <img src={verFoto} alt="Cartel" style={{ maxWidth: "94vw", maxHeight: "90vh", borderRadius: 14, boxShadow: "0 30px 80px rgba(0,0,0,.5)" }} />
         </div>
       )}
 
       {/* Cargando / aplicando Excel */}
       {excelBusy && (
-        <div className="modal-bg">
+        <div className="overlay">
           <div className="modal" style={{ maxWidth: 420, textAlign: "center" }}>
             <div className="spinner" style={{ margin: "8px auto 16px" }} />
             <h2 style={{ fontSize: 18 }}>{excelMsg || "Procesando…"}</h2>
@@ -1973,7 +2039,7 @@ function Inventario({ data, update }) {
 
       {/* Pantalla de revisión del Excel */}
       {excelRev && !excelBusy && (
-        <div className="modal-bg" onClick={() => setExcelRev(null)}>
+        <div className="overlay" onClick={() => setExcelRev(null)}>
           <div className="modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h2>Revisá antes de aplicar</h2>
@@ -2333,7 +2399,7 @@ function Mapa({ data, update, go, addUsage }) {
         </div>
       )}
       {reubBusy && (
-        <div className="modal-bg">
+        <div className="overlay">
           <div className="modal" style={{ maxWidth: 380, textAlign: "center" }}>
             <div className="spinner" style={{ margin: "8px auto 16px" }} />
             <h2 style={{ fontSize: 17 }}>{reubMsg || "Ubicando carteles…"}</h2>
@@ -2622,7 +2688,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v15",
+        dateStr: fmtDate(today()) + " · v17",
         fotos,
         chs,
         impactosDe,
