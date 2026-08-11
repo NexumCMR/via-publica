@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 13</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 14</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1236,7 +1236,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const previaRef = useRef(null);
   const imgRef = useRef(null);
 
-  const codigo = cartel.codigo || "";
+  const codigo = String(cartel.codigo || "").trim() || ("c" + String(cartel.id || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-6));
   const impactos = impactosDe(cartel);
 
   const datosPlaca = {
@@ -1278,6 +1278,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
       setPaso(2);
     } catch (e) { setError("Hubo un problema al abrir las fotos. Probá de nuevo."); }
     setTrabajando(false); setAvance("");
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const publicar = async () => {
@@ -1373,13 +1374,14 @@ function PublicarCartel({ cartel, onClose, onListo }) {
           </div>
         )}
 
+        <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={elegirFotos} />
+
         {!trabajando && paso === 1 && (
           <div>
             <p style={{ fontSize: 15, lineHeight: 1.5 }}>
               Elegí las fotos de este cartel. <b>Lo ideal son 3 o 4</b>, tomadas de lejos y de cerca,
               donde se vean los autos y la avenida.
             </p>
-            <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={elegirFotos} />
             <button className="btn btn-primary" style={{ width: "100%", marginTop: 18, padding: "16px", fontSize: 16 }}
               onClick={() => inputRef.current && inputRef.current.click()}>
               <Upload size={20} /> Elegir fotos del teléfono
@@ -1792,8 +1794,7 @@ function Inventario({ data, update }) {
               </div>
               <div style={{ marginTop: 10 }}>
                 <button className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: 15 }}
-                  onClick={() => setPublicar(b)} disabled={!b.codigo}
-                  title={b.codigo ? "" : "Este cartel no tiene código"}>
+                  onClick={() => setPublicar(b)}>
                   <Sparkles size={18} /> Publicar para WhatsApp
                 </button>
               </div>
@@ -2476,7 +2477,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v13",
+        dateStr: fmtDate(today()) + " · v14",
         fotos,
         chs,
         impactosDe,
