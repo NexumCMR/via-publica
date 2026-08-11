@@ -230,11 +230,11 @@
 
     var chips=[];
     if(c.impactos) chips.push(Number(c.impactos).toLocaleString("es-AR")+" impactos por semana");
-    if(c.medidas) chips.push(c.medidas);
-    if(c.iluminado) chips.push("Iluminado");
-    if(c.localidad) chips.push(c.localidad);
-    if(c.visual) chips.push(c.visual);
-    chips.push("COD "+c.codigo);
+    if(c.medidas) chips.push(c.medidas+" de pantalla");
+    if(c.iluminado) chips.push("Iluminado todas las noches");
+    if(c.localidad) chips.push("En "+c.localidad);
+    if(c.visual) chips.push("Visual "+String(c.visual).toLowerCase());
+    if(libre) chips.push("Disponible");
 
     var slides=fotos.map(function(f,i){
       return '<figure class="slide"><img src="'+esc(f.url)+'" alt="'+esc(f.epigrafe||"")+'" loading="'+(i<2?"eager":"lazy")+'">'+
@@ -251,7 +251,7 @@
       : '<div class="v">'+plata(c.precio)+' <span>+ IVA</span></div><small>Producción y colocación de la gráfica se cotizan aparte, según la campaña.</small>';
 
     app.innerHTML=
-    '<header class="nav"><div class="logo"><i></i><span>Masa Ideas</span></div><div class="tag">COD '+esc(c.codigo)+'</div></header>'+
+    '<header class="nav"><div class="logo"><i></i><span>Masa Ideas</span></div></header>'+
     '<section class="hero">'+(portada?'<img src="'+esc(portada)+'" alt="'+esc(c.nombre||"")+'">':'')+
       '<div class="hero-in">'+
         (!libre&&c.disponible_desde?'<span class="badge">Se libera el '+esc(fecha(c.disponible_desde))+'</span>':
@@ -261,7 +261,7 @@
         (c.direccion?'<p>'+esc(c.direccion)+'</p>':'')+
         '<div class="scroll"><i></i> Deslizá para ver</div>'+
       '</div></section>'+
-    '<div class="ticker"><div class="track">'+chips.concat(chips).map(function(x){return "<span>"+esc(x)+"</span>";}).join("")+'</div></div>'+
+    (chips.length>=2?'<div class="ticker"><div class="track">'+chips.concat(chips).map(function(x){return "<span>"+esc(x)+"</span>";}).join("")+'</div></div>':'')+
     (c.impactos?'<section class="stat"><div class="wrap"><div class="n">'+Number(c.impactos).toLocaleString("es-AR")+'</div>'+
       '<div class="l">impactos por semana</div><p class="d">Cerca de <b>'+Math.round(c.impactos/7).toLocaleString("es-AR")+
       ' personas por día</b> pasan frente a este cartel.</p></div></section>':'')+

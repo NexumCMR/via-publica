@@ -177,6 +177,16 @@ tr:hover td{ background:#fcfbf8; }
 
 /* ---- Misc ---- */
 .empty{ text-align:center; padding:50px 20px; color:var(--muted); }
+.campo{ display:block; }
+.campo>span{ display:block; font-size:13px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+.campo input,.campo select{ width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:12px;
+  font-size:16px; font-family:inherit; background:#fff; color:var(--ink); }
+.campo input:focus,.campo select:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+.pub-item{ display:flex; align-items:center; gap:14px; padding:14px; border:1px solid var(--line);
+  border-radius:16px; background:var(--panel); margin-bottom:10px; cursor:pointer; text-align:left; width:100%; }
+.pub-item:hover{ border-color:var(--brand); }
+.pub-thumb{ width:64px; height:64px; flex:0 0 64px; border-radius:12px; background:#eef2f7 center/cover no-repeat;
+  display:grid; place-items:center; color:#9aa7ba; }
 .empty svg{ opacity:.4; margin-bottom:12px; }
 .alert{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px; margin-bottom:12px; font-weight:600; }
 .alert.r{ background:var(--red-bg); color:#9c1f29; }
@@ -564,6 +574,7 @@ function App() {
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "seguimiento", label: "Seguimiento", icon: BellRing },
     { id: "inventario", label: "Carteles", icon: LayoutPanelTop },
+    { id: "publicar", label: "Publicar en WhatsApp", icon: MessageCircle },
     { id: "mapa", label: "Mapa", icon: MapPin },
     { id: "propuestas", label: "Propuestas", icon: FileText },
     { id: "prospectar", label: "Buscar empresas", icon: Search },
@@ -574,6 +585,7 @@ function App() {
     dashboard: ["Inicio", "Tu resumen del día"],
     clientes: ["Clientes", "Tu cartera de contactos"],
     seguimiento: ["Seguimiento comercial", "No pierdas ningún cliente"],
+    publicar: ["Publicar en WhatsApp", "Armá la imagen y el link de un cartel"],
     inventario: ["Inventario de carteles", "Tus espacios publicitarios"],
     mapa: ["Mapa de ubicaciones", "Dónde está cada cartel"],
     propuestas: ["Propuestas comerciales", "Armá y exportá propuestas"],
@@ -630,13 +642,14 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 14</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 15</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
               {tab === "clientes" && <Clientes data={data} update={update} />}
               {tab === "seguimiento" && <Seguimiento data={data} update={update} />}
               {tab === "inventario" && <Inventario data={data} update={update} />}
+              {tab === "publicar" && <PublicarSeccion data={data} />}
               {tab === "mapa" && <Mapa data={data} update={update} go={setTab} addUsage={addUsage} />}
               {tab === "propuestas" && <Propuestas data={data} update={update} />}
               {tab === "prospectar" && <Prospectar data={data} update={update} go={setTab} addUsage={addUsage} setBudget={(v) => update({ budget: v })} />}
@@ -1227,6 +1240,19 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const [zoom, setZoom] = useState(1);
   const [desp, setDesp] = useState(0);
   const [mostrarPrecio, setMostrarPrecio] = useState(true);
+  const [d, setD] = useState({
+    nombre: cartel.nombre || "",
+    ubicacion: cartel.ubicacion || "",
+    zona: cartel.zona || "",
+    tipo: cartel.tipo || "",
+    medidas: cartel.medidas || "",
+    iluminado: /si|sí/i.test(String(cartel.luz || "")) || !!cartel.iluminado,
+    impactos: impactosDe(cartel) || "",
+    precio: cartel.precio || "",
+    estado: cartel.estado || "Disponible",
+    disponible_desde: cartel.disponibleDesde || "",
+  });
+  const set1 = (k, v) => setD((o) => ({ ...o, [k]: v }));
   const [trabajando, setTrabajando] = useState(false);
   const [avance, setAvance] = useState("");
   const [error, setError] = useState("");
@@ -1237,20 +1263,20 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const imgRef = useRef(null);
 
   const codigo = String(cartel.codigo || "").trim() || ("c" + String(cartel.id || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-6));
-  const impactos = impactosDe(cartel);
+  const impactos = Number(d.impactos) || 0;
 
   const datosPlaca = {
-    epigrafe: (cartel.zona || cartel.ubicacion || "").split(",")[0] || "Vía pública",
-    titulo: cartel.nombre || ("Cartel " + codigo),
+    epigrafe: (d.zona || d.ubicacion || "").split(",")[0] || "Vía pública",
+    titulo: d.nombre || ("Cartel " + codigo),
     numero: impactos ? Math.round(impactos / 7).toLocaleString("es-AR") : "",
     numeroTxt: impactos ? "personas por día" : "",
-    detalle: [cartel.medidas, cartel.tipo, impactos ? impactos.toLocaleString("es-AR") + " impactos/semana" : ""].filter(Boolean).join(" · "),
-    avisoPlaca: cartel.estado === "Disponible" ? "DISPONIBLE" : "",
+    detalle: [d.medidas, d.tipo, d.iluminado ? "Iluminado" : "", impactos ? impactos.toLocaleString("es-AR") + " impactos/semana" : ""].filter(Boolean).join(" · "),
+    avisoPlaca: d.estado === "Disponible" ? "DISPONIBLE" : "",
   };
 
   // dibuja la previa cada vez que cambia el encuadre
   useEffect(() => {
-    if (paso !== 3 || !fotos[principal]) return;
+    if (paso !== 4 || !fotos[principal]) return;
     const im = new Image();
     im.onload = () => {
       imgRef.current = im;
@@ -1299,17 +1325,18 @@ function PublicarCartel({ cartel, onClose, onListo }) {
       const cuerpo = {
         cartel: {
           codigo,
-          nombre: cartel.nombre || null,
-          direccion: cartel.ubicacion || null,
-          localidad: cartel.zona || null,
-          zona: cartel.zona || null,
-          tipo: cartel.tipo || null,
-          medidas: cartel.medidas || null,
-          iluminado: /si|sí/i.test(String(cartel.luz || "")) || !!cartel.iluminado,
+          nombre: d.nombre || null,
+          direccion: d.ubicacion || null,
+          localidad: d.zona || null,
+          zona: d.zona || null,
+          tipo: d.tipo || null,
+          medidas: d.medidas || null,
+          iluminado: !!d.iluminado,
           impactos: impactos || null,
-          precio: Number(cartel.precio) || null,
+          precio: Number(d.precio) || null,
           mostrar_precio: mostrarPrecio,
-          estado: cartel.estado || null,
+          estado: d.estado || null,
+          disponible_desde: d.disponible_desde || null,
           cliente: cartel.cliente || null,
           publicado: true,
         },
@@ -1321,7 +1348,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
       const j2 = await r2.json();
       if (!r2.ok) throw new Error(j2.error || "No se pudo publicar");
       setLink(pubLink(codigo));
-      setPaso(4);
+      setPaso(5);
       if (onListo) onListo(pubLink(codigo));
     } catch (e) {
       setError(String((e && e.message) || e) + ". Fijate que tengas internet y probá de nuevo.");
@@ -1329,10 +1356,29 @@ function PublicarCartel({ cartel, onClose, onListo }) {
     setTrabajando(false); setAvance("");
   };
 
-  const bajarPlaca = () => {
+  const [guardando, setGuardando] = useState(false);
+  const bajarPlaca = async () => {
     if (!placa) return;
-    const a = document.createElement("a");
-    a.href = placa; a.download = `Cartel-${codigo}-para-WhatsApp.jpg`; a.click();
+    setGuardando(true);
+    try {
+      const blob = await (await fetch(placa)).blob();
+      const archivo = new File([blob], `Cartel-${codigo}.jpg`, { type: "image/jpeg" });
+      // En el celular abre el menú del sistema: ahí elegís "Guardar imagen" o WhatsApp
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: "Cartel " + codigo });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `Cartel-${codigo}.jpg`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    } catch (e) {
+      if (!String(e && e.name) .includes("AbortError")) {
+        setError("No se pudo guardar. Mantené el dedo apretado sobre la imagen de arriba y elegí «Guardar en Fotos».");
+      }
+    }
+    setGuardando(false);
   };
   const copiarLink = async () => {
     try { await navigator.clipboard.writeText(link); alert("¡Link copiado! Ya lo podés pegar en el estado."); }
@@ -1361,7 +1407,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
         </div>
 
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "16px 0 18px" }}>
-          <Paso n={1} t="Fotos" /><Paso n={2} t="Portada" /><Paso n={3} t="Encuadre" /><Paso n={4} t="Listo" />
+          <Paso n={1} t="Fotos" /><Paso n={2} t="Portada" /><Paso n={3} t="Datos" /><Paso n={4} t="Encuadre" /><Paso n={5} t="Listo" />
         </div>
 
         {error && <div style={{ background: "#fdecea", color: "#a4271c", padding: "12px 14px", borderRadius: 12, fontSize: 14, marginBottom: 14 }}>{error}</div>}
@@ -1413,6 +1459,60 @@ function PublicarCartel({ cartel, onClose, onListo }) {
         {!trabajando && paso === 3 && (
           <div>
             <p style={{ fontSize: 15, lineHeight: 1.5 }}>
+              Estos son los datos que va a ver el cliente. <b>Corregí lo que quieras</b> o dejalo como está.
+            </p>
+            <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+              <label className="campo"><span>Nombre del cartel</span>
+                <input value={d.nombre} onChange={(e) => set1("nombre", e.target.value)} placeholder="Ej: Acc. Oeste Km 22,5" /></label>
+              <label className="campo"><span>Dirección</span>
+                <input value={d.ubicacion} onChange={(e) => set1("ubicacion", e.target.value)} placeholder="Ej: Acceso Oeste Km 22,5" /></label>
+              <label className="campo"><span>Localidad o zona</span>
+                <input value={d.zona} onChange={(e) => set1("zona", e.target.value)} placeholder="Ej: Morón" /></label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label className="campo"><span>Medidas</span>
+                  <input value={d.medidas} onChange={(e) => set1("medidas", e.target.value)} placeholder="Ej: 16 × 8 m" /></label>
+                <label className="campo"><span>Tipo</span>
+                  <select value={d.tipo} onChange={(e) => set1("tipo", e.target.value)}>
+                    <option value="">Sin especificar</option>
+                    <option>Cartel</option><option>Columna</option><option>Medianera</option>
+                    <option>Vallado</option><option>Pantalla LED</option>
+                  </select></label>
+              </div>
+              <label className="campo"><span>Impactos por semana (cuánta gente lo ve)</span>
+                <input type="number" inputMode="numeric" value={d.impactos}
+                  onChange={(e) => set1("impactos", e.target.value)} placeholder="Ej: 559553" /></label>
+              <label className="campo"><span>Precio por mes</span>
+                <input type="number" inputMode="numeric" value={d.precio}
+                  onChange={(e) => set1("precio", e.target.value)} placeholder="Ej: 7000000" /></label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label className="campo"><span>Estado</span>
+                  <select value={d.estado} onChange={(e) => set1("estado", e.target.value)}>
+                    <option>Disponible</option><option>Ocupado</option><option>Reservado</option>
+                  </select></label>
+                <label className="campo"><span>Se libera el</span>
+                  <input type="date" value={d.disponible_desde} onChange={(e) => set1("disponible_desde", e.target.value)} /></label>
+              </div>
+            </div>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, fontSize: 15 }}>
+              <input type="checkbox" checked={d.iluminado} onChange={(e) => set1("iluminado", e.target.checked)} style={{ width: 20, height: 20 }} />
+              El cartel es iluminado
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, fontSize: 15 }}>
+              <input type="checkbox" checked={mostrarPrecio} onChange={(e) => setMostrarPrecio(e.target.checked)} style={{ width: 20, height: 20 }} />
+              Mostrar el precio en la ficha
+            </label>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button className="btn btn-ghost" onClick={() => setPaso(2)}>Volver</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setPaso(4)}>Continuar</button>
+            </div>
+          </div>
+        )}
+
+        {!trabajando && paso === 4 && (
+          <div>
+            <p style={{ fontSize: 15, lineHeight: 1.5 }}>
               Movés la foto hasta que <b>el cartel se vea bien</b>. Lo que quede sobre la franja negra no se tapa.
             </p>
             <div style={{ display: "flex", justifyContent: "center", margin: "14px 0" }}>
@@ -1423,13 +1523,8 @@ function PublicarCartel({ cartel, onClose, onListo }) {
             <label style={{ fontSize: 13, fontWeight: 700 }}>Acercar o alejar</label>
             <input type="range" min="1" max="2.4" step="0.05" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: "100%" }} />
 
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, fontSize: 15 }}>
-              <input type="checkbox" checked={mostrarPrecio} onChange={(e) => setMostrarPrecio(e.target.checked)} style={{ width: 20, height: 20 }} />
-              Mostrar el precio en la ficha
-            </label>
-
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button className="btn btn-ghost" onClick={() => setPaso(2)}>Volver</button>
+              <button className="btn btn-ghost" onClick={() => setPaso(3)}>Volver</button>
               <button className="btn btn-primary" style={{ flex: 1, padding: "15px", fontSize: 16 }} onClick={publicar}>
                 <ShieldCheck size={19} /> Publicar
               </button>
@@ -1437,7 +1532,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
           </div>
         )}
 
-        {!trabajando && paso === 4 && (
+        {!trabajando && paso === 5 && (
           <div>
             <div style={{ textAlign: "center", padding: "6px 0 14px" }}>
               <CheckCircle2 size={44} color="#12a150" />
@@ -1450,14 +1545,19 @@ function PublicarCartel({ cartel, onClose, onListo }) {
             </div>}
 
             <div style={{ background: "#f4f1ea", borderRadius: 14, padding: "14px 16px", fontSize: 14.5, lineHeight: 1.6 }}>
-              <b>1.</b> Bajá la imagen y guardala.<br />
+              <b>1.</b> Guardá la imagen en tus fotos.<br />
               <b>2.</b> Abrí WhatsApp → <b>Estados</b> → elegí esa imagen.<br />
               <b>3.</b> Antes de publicar, <b>pegá el link</b> en el texto.
             </div>
 
-            <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "15px", fontSize: 16 }} onClick={bajarPlaca}>
-              <Download size={19} /> Bajar la imagen
+            <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "15px", fontSize: 16 }}
+              onClick={bajarPlaca} disabled={guardando}>
+              <Download size={19} /> {guardando ? "Guardando…" : "Guardar la imagen en el teléfono"}
             </button>
+            <div className="cell-sub" style={{ marginTop: 8, textAlign: "center", lineHeight: 1.5 }}>
+              Se abre el menú del teléfono: elegí <b>«Guardar imagen»</b> y queda en tus fotos.<br />
+              Si no aparece, mantené el dedo apretado sobre la imagen de arriba.
+            </div>
             <button className="btn btn-ghost" style={{ width: "100%", marginTop: 10, padding: "14px", fontSize: 15 }} onClick={copiarLink}>
               <ExternalLink size={18} /> Copiar el link
             </button>
@@ -1467,6 +1567,59 @@ function PublicarCartel({ cartel, onClose, onListo }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PublicarSeccion({ data }) {
+  const [busq, setBusq] = useState("");
+  const [elegido, setElegido] = useState(null);
+  const lista = (data.billboards || []).filter((b) => {
+    if (!busq.trim()) return true;
+    const t = `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase();
+    return t.includes(busq.trim().toLowerCase());
+  });
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 17, marginBottom: 6 }}>¿Cómo funciona?</h3>
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--muted)" }}>
+          Elegí un cartel de la lista. Te va a pedir las fotos, vas a poder revisar los datos, y te arma
+          <b> la imagen para el estado</b> y <b>el link</b> con toda la información para el cliente.
+        </div>
+      </div>
+
+      <div className="toolbar" style={{ marginBottom: 14 }}>
+        <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar un cartel por nombre, dirección o código…"
+            value={busq} onChange={(e) => setBusq(e.target.value)} /></div>
+      </div>
+
+      {lista.map((b) => (
+        <button key={b.id} className="pub-item" onClick={() => setElegido(b)}>
+          <span className="pub-thumb" style={fotoDe(b) ? { backgroundImage: `url(${fotoDe(b)})` } : {}}>
+            {!fotoDe(b) && <LayoutPanelTop size={22} />}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 700, fontSize: 15.5 }}>{b.nombre}</span>
+            <span style={{ display: "block", fontSize: 13, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {b.ubicacion || "Sin dirección"}
+            </span>
+            <span className={"chip " + bbChip(b.estado)} style={{ marginTop: 5 }}>{b.estado}</span>
+          </span>
+          <ChevronRight size={20} color="#9aa7ba" />
+        </button>
+      ))}
+
+      {!lista.length && (
+        <div className="empty"><LayoutPanelTop size={40} />
+          <div>No hay carteles para mostrar.</div>
+          <div className="cell-sub" style={{ marginTop: 6 }}>Cargalos primero en la sección «Carteles».</div>
+        </div>
+      )}
+
+      {elegido && <PublicarCartel cartel={elegido} onClose={() => setElegido(null)} />}
     </div>
   );
 }
@@ -1485,7 +1638,6 @@ function Inventario({ data, update }) {
   const [excelMsg, setExcelMsg] = useState("");
   const [borrarDesap, setBorrarDesap] = useState(false);
   const [verFoto, setVerFoto] = useState(null);
-  const [publicar, setPublicar] = useState(null);
 
   const disp = billboards.filter((b) => b.estado === "Disponible").length;
   const ocup = billboards.filter((b) => b.estado === "Ocupado").length;
@@ -1791,12 +1943,7 @@ function Inventario({ data, update }) {
                   <button className="btn btn-icon ico-edit" onClick={() => setEdit(b)}><Pencil size={17} /></button>
                   <button className="btn btn-icon ico-edit" onClick={() => remove(b.id)}><Trash2 size={17} /></button>
                 </div>
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <button className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: 15 }}
-                  onClick={() => setPublicar(b)}>
-                  <Sparkles size={18} /> Publicar para WhatsApp
-                </button>
+
               </div>
             </div>
           </div>
@@ -1805,8 +1952,6 @@ function Inventario({ data, update }) {
       </div>
 
       {edit && <BBForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
-
-      {publicar && <PublicarCartel cartel={publicar} onClose={() => setPublicar(null)} />}
 
       {/* Foto ampliada */}
       {verFoto && (
@@ -2477,7 +2622,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v14",
+        dateStr: fmtDate(today()) + " · v15",
         fotos,
         chs,
         impactosDe,
