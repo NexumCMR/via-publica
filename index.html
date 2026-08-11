@@ -630,7 +630,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 10</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 13</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1107,6 +1107,368 @@ function Seguimiento({ data, update }) {
 }
 
 /* ====================== INVENTARIO ====================== */
+/* ====================== PUBLICAR: ficha + placa para WhatsApp ====================== */
+const PUB_BASE = "https://via-publica-delta.vercel.app";
+
+function pubLink(codigo) { return PUB_BASE + "/cartel/" + codigo; }
+
+// Achica una foto antes de subirla (para que no tarde una eternidad)
+function achicarFoto(file, maxLado) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        const M = maxLado || 1600;
+        let w = im.naturalWidth, h = im.naturalHeight;
+        if (Math.max(w, h) > M) { const r = M / Math.max(w, h); w = Math.round(w * r); h = Math.round(h * r); }
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        const cx = c.getContext("2d");
+        cx.imageSmoothingQuality = "high";
+        cx.drawImage(im, 0, 0, w, h);
+        resolve({ dataUrl: c.toDataURL("image/jpeg", 0.86), w, h });
+      };
+      im.onerror = () => reject(new Error("No se pudo leer la foto"));
+      im.src = fr.result;
+    };
+    fr.onerror = () => reject(new Error("No se pudo abrir el archivo"));
+    fr.readAsDataURL(file);
+  });
+}
+
+// Dibuja la placa vertical (1080x1920) con la foto encuadrada por ella
+function armarPlaca(img, encuadre, cartel) {
+  const W = 1080, H = 1920, FOTO_H = 1180;
+  const NEGRO = "#0b0b0d", ORO = "#e8a93c", ORO_L = "#f6d48c", BLANCO = "#ffffff", MUT = "#b2b5bd";
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = NEGRO; x.fillRect(0, 0, W, H);
+
+  // --- foto, con el zoom y el desplazamiento que eligió ella ---
+  x.save(); x.beginPath(); x.rect(0, 0, W, FOTO_H); x.clip();
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const escBase = Math.max(W / iw, FOTO_H / ih);
+  const esc = escBase * (encuadre.zoom || 1);
+  const dw = iw * esc, dh = ih * esc;
+  const dx = (W - dw) / 2, dy = (FOTO_H - dh) / 2 + (encuadre.y || 0);
+  x.drawImage(img, dx, dy, dw, dh);
+  // velos para que se lean los textos
+  let g = x.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, "rgba(11,11,13,.58)"); g.addColorStop(1, "rgba(11,11,13,0)");
+  x.fillStyle = g; x.fillRect(0, 0, W, 300);
+  g = x.createLinearGradient(0, FOTO_H - 260, 0, FOTO_H); g.addColorStop(0, "rgba(11,11,13,0)"); g.addColorStop(1, NEGRO);
+  x.fillStyle = g; x.fillRect(0, FOTO_H - 260, W, 260);
+  x.restore();
+
+  const F = (peso, tam, fam) => `${peso} ${tam}px ${fam || "'Bricolage Grotesque', Arial, sans-serif"}`;
+  const espaciado = (txt, px, py, gap) => { let cx = px; for (const ch of txt) { x.fillText(ch, cx, py); cx += x.measureText(ch).width + gap; } };
+  const redonda = (px, py, pw, ph, r) => { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + pw, py, px + pw, py + ph, r); x.arcTo(px + pw, py + ph, px, py + ph, r); x.arcTo(px, py + ph, px, py, r); x.arcTo(px, py, px + pw, py, r); x.closePath(); };
+
+  // --- marca ---
+  x.fillStyle = ORO; redonda(56, 64, 60, 60, 17); x.fill();
+  x.fillStyle = NEGRO; redonda(70, 82, 32, 20, 4); x.fill(); x.fillRect(83, 102, 6, 10);
+  x.fillStyle = BLANCO; x.font = F(800, 36); x.textBaseline = "top";
+  x.fillText("MASA IDEAS", 132, 70);
+  x.fillStyle = ORO; x.font = F(700, 22, "'Space Mono', monospace");
+  espaciado("ESPECTACULARES", 132, 108, 4);
+
+  // --- cartelito de disponibilidad ---
+  const aviso = cartel.avisoPlaca || "";
+  if (aviso) {
+    x.font = F(700, 28, "'Space Mono', monospace");
+    let anchoA = 0; for (const ch of aviso) anchoA += x.measureText(ch).width + 2;
+    const wch = anchoA + 40;
+    x.strokeStyle = ORO; x.lineWidth = 2; redonda(W - 56 - wch, 74, wch, 50, 25); x.stroke();
+    x.fillStyle = ORO_L; espaciado(aviso, W - 56 - wch + 20, 88, 2);
+  }
+
+  // --- textos de abajo ---
+  const px = 64; let py = 1240;
+  x.fillStyle = MUT; x.font = F(700, 30, "'Space Mono', monospace");
+  espaciado((cartel.epigrafe || "").toUpperCase(), px, py, 5); py += 52;
+
+  x.fillStyle = BLANCO; x.font = F(800, 64);
+  const titulo = cartel.titulo || "";
+  const cortar = (txt, maxW) => { const ws = txt.split(" "); const ls = []; let l = "";
+    for (const w of ws) { const t = l ? l + " " + w : w; if (x.measureText(t).width > maxW && l) { ls.push(l); l = w; } else l = t; }
+    if (l) ls.push(l); return ls; };
+  cortar(titulo, W - 128).slice(0, 2).forEach((l) => { x.fillText(l, px, py); py += 74; });
+  py += 12;
+
+  if (cartel.numero) {
+    x.fillStyle = ORO; x.font = F(800, 86);
+    x.fillText(cartel.numero, px, py);
+    const anchoN = x.measureText(cartel.numero).width;
+    x.fillStyle = BLANCO; x.font = F(700, 36, "'Plus Jakarta Sans', Arial, sans-serif");
+    x.fillText(cartel.numeroTxt || "", px + anchoN + 20, py + 40);
+    py += 118;
+  }
+
+  x.fillStyle = MUT; x.font = F(500, 28, "'Plus Jakarta Sans', Arial, sans-serif");
+  x.fillText(cartel.detalle || "", px, py); py += 56;
+  x.fillStyle = ORO_L; x.font = F(500, 32, "'Plus Jakarta Sans', Arial, sans-serif");
+  x.fillText("Todas las fotos y el precio, en el link de abajo", px, py); py += 62;
+
+  // --- botón ---
+  const txtBtn = "Respondé a este estado";
+  x.font = F(700, 42, "'Plus Jakarta Sans', Arial, sans-serif");
+  const wBtn = x.measureText(txtBtn).width + 150;
+  x.fillStyle = ORO; redonda(px, py, wBtn, 100, 50); x.fill();
+  x.fillStyle = "#1a1104"; x.fillText(txtBtn, px + 52, py + 30);
+  const ax = px + 52 + x.measureText(txtBtn).width + 32, ay = py + 50;
+  x.beginPath(); x.moveTo(ax, ay - 16); x.lineTo(ax, ay + 16); x.lineTo(ax + 26, ay); x.closePath(); x.fill();
+
+  return c.toDataURL("image/jpeg", 0.93);
+}
+
+function PublicarCartel({ cartel, onClose, onListo }) {
+  const [paso, setPaso] = useState(1);
+  const [fotos, setFotos] = useState([]);          // {dataUrl, w, h, nombre}
+  const [principal, setPrincipal] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [desp, setDesp] = useState(0);
+  const [mostrarPrecio, setMostrarPrecio] = useState(true);
+  const [trabajando, setTrabajando] = useState(false);
+  const [avance, setAvance] = useState("");
+  const [error, setError] = useState("");
+  const [placa, setPlaca] = useState("");
+  const [link, setLink] = useState("");
+  const inputRef = useRef(null);
+  const previaRef = useRef(null);
+  const imgRef = useRef(null);
+
+  const codigo = cartel.codigo || "";
+  const impactos = impactosDe(cartel);
+
+  const datosPlaca = {
+    epigrafe: (cartel.zona || cartel.ubicacion || "").split(",")[0] || "Vía pública",
+    titulo: cartel.nombre || ("Cartel " + codigo),
+    numero: impactos ? Math.round(impactos / 7).toLocaleString("es-AR") : "",
+    numeroTxt: impactos ? "personas por día" : "",
+    detalle: [cartel.medidas, cartel.tipo, impactos ? impactos.toLocaleString("es-AR") + " impactos/semana" : ""].filter(Boolean).join(" · "),
+    avisoPlaca: cartel.estado === "Disponible" ? "DISPONIBLE" : "",
+  };
+
+  // dibuja la previa cada vez que cambia el encuadre
+  useEffect(() => {
+    if (paso !== 3 || !fotos[principal]) return;
+    const im = new Image();
+    im.onload = () => {
+      imgRef.current = im;
+      try {
+        const url = armarPlaca(im, { zoom, y: desp }, datosPlaca);
+        if (previaRef.current) previaRef.current.src = url;
+        setPlaca(url);
+      } catch (e) { setError("No se pudo armar la imagen."); }
+    };
+    im.src = fotos[principal].dataUrl;
+  }, [paso, principal, zoom, desp, fotos]);
+
+  const elegirFotos = async (ev) => {
+    const files = Array.from(ev.target.files || []);
+    if (!files.length) return;
+    setError(""); setTrabajando(true); setAvance("Preparando las fotos…");
+    try {
+      const nuevas = [];
+      for (let i = 0; i < files.length; i++) {
+        setAvance(`Preparando foto ${i + 1} de ${files.length}…`);
+        const r = await achicarFoto(files[i], 1600);
+        nuevas.push({ ...r, nombre: files[i].name });
+      }
+      setFotos((f) => [...f, ...nuevas]);
+      setPaso(2);
+    } catch (e) { setError("Hubo un problema al abrir las fotos. Probá de nuevo."); }
+    setTrabajando(false); setAvance("");
+  };
+
+  const publicar = async () => {
+    setError(""); setTrabajando(true);
+    try {
+      const subidas = [];
+      for (let i = 0; i < fotos.length; i++) {
+        setAvance(`Subiendo foto ${i + 1} de ${fotos.length}…`);
+        const r = await fetch("/api/masa?accion=foto", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigo, nombre: "foto" + (i + 1), base64: fotos[i].dataUrl, tipo: "image/jpeg" }),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "No se pudo subir una foto");
+        subidas.push({ url: j.url, orden: i, portada: i === principal, epigrafe: null });
+      }
+      setAvance("Publicando la ficha…");
+      const cuerpo = {
+        cartel: {
+          codigo,
+          nombre: cartel.nombre || null,
+          direccion: cartel.ubicacion || null,
+          localidad: cartel.zona || null,
+          zona: cartel.zona || null,
+          tipo: cartel.tipo || null,
+          medidas: cartel.medidas || null,
+          iluminado: /si|sí/i.test(String(cartel.luz || "")) || !!cartel.iluminado,
+          impactos: impactos || null,
+          precio: Number(cartel.precio) || null,
+          mostrar_precio: mostrarPrecio,
+          estado: cartel.estado || null,
+          cliente: cartel.cliente || null,
+          publicado: true,
+        },
+        fotos: subidas,
+      };
+      const r2 = await fetch("/api/masa?accion=publicar", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo),
+      });
+      const j2 = await r2.json();
+      if (!r2.ok) throw new Error(j2.error || "No se pudo publicar");
+      setLink(pubLink(codigo));
+      setPaso(4);
+      if (onListo) onListo(pubLink(codigo));
+    } catch (e) {
+      setError(String((e && e.message) || e) + ". Fijate que tengas internet y probá de nuevo.");
+    }
+    setTrabajando(false); setAvance("");
+  };
+
+  const bajarPlaca = () => {
+    if (!placa) return;
+    const a = document.createElement("a");
+    a.href = placa; a.download = `Cartel-${codigo}-para-WhatsApp.jpg`; a.click();
+  };
+  const copiarLink = async () => {
+    try { await navigator.clipboard.writeText(link); alert("¡Link copiado! Ya lo podés pegar en el estado."); }
+    catch (e) { prompt("Copiá este link:", link); }
+  };
+
+  const Paso = ({ n, t }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, opacity: paso >= n ? 1 : .35 }}>
+      <span style={{ width: 26, height: 26, borderRadius: "50%", display: "grid", placeItems: "center",
+        background: paso > n ? "#12a150" : (paso === n ? "#e8590c" : "#d9d5cc"), color: "#fff", fontWeight: 800, fontSize: 13 }}>
+        {paso > n ? "✓" : n}
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 700 }}>{t}</span>
+    </div>
+  );
+
+  return (
+    <div className="modal-bg" onClick={(e) => { if (e.target === e.currentTarget && !trabajando) onClose(); }}>
+      <div className="modal" style={{ maxWidth: 520, width: "94vw" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div>
+            <h2 style={{ fontSize: 20 }}>Publicar este cartel</h2>
+            <div className="cell-sub">{cartel.nombre} · COD {codigo}</div>
+          </div>
+          {!trabajando && <button className="btn btn-icon" onClick={onClose}><X size={20} /></button>}
+        </div>
+
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "16px 0 18px" }}>
+          <Paso n={1} t="Fotos" /><Paso n={2} t="Portada" /><Paso n={3} t="Encuadre" /><Paso n={4} t="Listo" />
+        </div>
+
+        {error && <div style={{ background: "#fdecea", color: "#a4271c", padding: "12px 14px", borderRadius: 12, fontSize: 14, marginBottom: 14 }}>{error}</div>}
+
+        {trabajando && (
+          <div style={{ textAlign: "center", padding: "26px 0" }}>
+            <div className="spinner" style={{ margin: "0 auto 14px" }} />
+            <div style={{ fontWeight: 700 }}>{avance || "Un momento…"}</div>
+            <div className="cell-sub" style={{ marginTop: 6 }}>No cierres la app hasta que termine.</div>
+          </div>
+        )}
+
+        {!trabajando && paso === 1 && (
+          <div>
+            <p style={{ fontSize: 15, lineHeight: 1.5 }}>
+              Elegí las fotos de este cartel. <b>Lo ideal son 3 o 4</b>, tomadas de lejos y de cerca,
+              donde se vean los autos y la avenida.
+            </p>
+            <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={elegirFotos} />
+            <button className="btn btn-primary" style={{ width: "100%", marginTop: 18, padding: "16px", fontSize: 16 }}
+              onClick={() => inputRef.current && inputRef.current.click()}>
+              <Upload size={20} /> Elegir fotos del teléfono
+            </button>
+          </div>
+        )}
+
+        {!trabajando && paso === 2 && (
+          <div>
+            <p style={{ fontSize: 15, lineHeight: 1.5 }}>Tocá <b>la foto que más te guste</b>. Va a ser la principal.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(96px,1fr))", gap: 10, marginTop: 14 }}>
+              {fotos.map((f, i) => (
+                <button key={i} onClick={() => setPrincipal(i)}
+                  style={{ padding: 0, border: principal === i ? "3px solid #e8590c" : "1px solid #e6e1d6",
+                    borderRadius: 12, overflow: "hidden", height: 96, background: "#eee", cursor: "pointer", position: "relative" }}>
+                  <img src={f.dataUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  {principal === i && <span style={{ position: "absolute", top: 6, right: 6, background: "#e8590c", color: "#fff",
+                    fontSize: 11, fontWeight: 800, padding: "3px 7px", borderRadius: 20 }}>Principal</span>}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button className="btn btn-ghost" onClick={() => inputRef.current && inputRef.current.click()}>Agregar más</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setPaso(3)}>Continuar</button>
+            </div>
+          </div>
+        )}
+
+        {!trabajando && paso === 3 && (
+          <div>
+            <p style={{ fontSize: 15, lineHeight: 1.5 }}>
+              Movés la foto hasta que <b>el cartel se vea bien</b>. Lo que quede sobre la franja negra no se tapa.
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", margin: "14px 0" }}>
+              <img ref={previaRef} alt="Vista previa" style={{ width: 208, borderRadius: 12, border: "1px solid #e6e1d6", background: "#0b0b0d" }} />
+            </div>
+            <label style={{ fontSize: 13, fontWeight: 700 }}>Subir o bajar la foto</label>
+            <input type="range" min="-500" max="500" step="10" value={desp} onChange={(e) => setDesp(Number(e.target.value))} style={{ width: "100%" }} />
+            <label style={{ fontSize: 13, fontWeight: 700 }}>Acercar o alejar</label>
+            <input type="range" min="1" max="2.4" step="0.05" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ width: "100%" }} />
+
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16, fontSize: 15 }}>
+              <input type="checkbox" checked={mostrarPrecio} onChange={(e) => setMostrarPrecio(e.target.checked)} style={{ width: 20, height: 20 }} />
+              Mostrar el precio en la ficha
+            </label>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button className="btn btn-ghost" onClick={() => setPaso(2)}>Volver</button>
+              <button className="btn btn-primary" style={{ flex: 1, padding: "15px", fontSize: 16 }} onClick={publicar}>
+                <ShieldCheck size={19} /> Publicar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!trabajando && paso === 4 && (
+          <div>
+            <div style={{ textAlign: "center", padding: "6px 0 14px" }}>
+              <CheckCircle2 size={44} color="#12a150" />
+              <h3 style={{ fontSize: 19, marginTop: 8 }}>¡Listo! Ya está publicado</h3>
+              <div className="cell-sub" style={{ marginTop: 4 }}>Ahora subilo a tu estado de WhatsApp.</div>
+            </div>
+
+            {placa && <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <img src={placa} alt="Imagen para WhatsApp" style={{ width: 176, borderRadius: 12, border: "1px solid #e6e1d6" }} />
+            </div>}
+
+            <div style={{ background: "#f4f1ea", borderRadius: 14, padding: "14px 16px", fontSize: 14.5, lineHeight: 1.6 }}>
+              <b>1.</b> Bajá la imagen y guardala.<br />
+              <b>2.</b> Abrí WhatsApp → <b>Estados</b> → elegí esa imagen.<br />
+              <b>3.</b> Antes de publicar, <b>pegá el link</b> en el texto.
+            </div>
+
+            <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "15px", fontSize: 16 }} onClick={bajarPlaca}>
+              <Download size={19} /> Bajar la imagen
+            </button>
+            <button className="btn btn-ghost" style={{ width: "100%", marginTop: 10, padding: "14px", fontSize: 15 }} onClick={copiarLink}>
+              <ExternalLink size={18} /> Copiar el link
+            </button>
+            <a className="btn btn-ghost" style={{ width: "100%", marginTop: 10, padding: "14px", fontSize: 15, justifyContent: "center" }}
+              href={link} target="_blank" rel="noopener">Ver cómo quedó la ficha</a>
+            <button className="btn btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={onClose}>Cerrar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Inventario({ data, update }) {
   const { billboards } = data;
   const setBB = (b) => update({ billboards: b });
@@ -1121,6 +1483,7 @@ function Inventario({ data, update }) {
   const [excelMsg, setExcelMsg] = useState("");
   const [borrarDesap, setBorrarDesap] = useState(false);
   const [verFoto, setVerFoto] = useState(null);
+  const [publicar, setPublicar] = useState(null);
 
   const disp = billboards.filter((b) => b.estado === "Disponible").length;
   const ocup = billboards.filter((b) => b.estado === "Ocupado").length;
@@ -1427,6 +1790,13 @@ function Inventario({ data, update }) {
                   <button className="btn btn-icon ico-edit" onClick={() => remove(b.id)}><Trash2 size={17} /></button>
                 </div>
               </div>
+              <div style={{ marginTop: 10 }}>
+                <button className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: 15 }}
+                  onClick={() => setPublicar(b)} disabled={!b.codigo}
+                  title={b.codigo ? "" : "Este cartel no tiene código"}>
+                  <Sparkles size={18} /> Publicar para WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -1434,6 +1804,8 @@ function Inventario({ data, update }) {
       </div>
 
       {edit && <BBForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
+
+      {publicar && <PublicarCartel cartel={publicar} onClose={() => setPublicar(null)} />}
 
       {/* Foto ampliada */}
       {verFoto && (
@@ -1907,7 +2279,29 @@ function loadImg(src) {
     im.src = src;
   });
 }
-// Recorta cada foto al tamaño exacto del cuadro (modo "cover", centrada) → llena todo sin bordes
+// Detecta y recorta bordes/franjas negras de una foto → devuelve el rectángulo con contenido real
+function contentRect(im) {
+  const IW = im.naturalWidth || im.width, IH = im.naturalHeight || im.height;
+  try {
+    const scale = Math.min(1, 240 / Math.max(IW, IH));
+    const w = Math.max(1, Math.round(IW * scale)), h = Math.max(1, Math.round(IH * scale));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const cx = c.getContext("2d"); cx.drawImage(im, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h).data;
+    const dark = (x, y) => { const i = (y * w + x) * 4; return (d[i] + d[i + 1] + d[i + 2]) / 3 < 30; };
+    const rowDark = (y) => { let n = 0; for (let x = 0; x < w; x++) if (dark(x, y)) n++; return n / w > 0.94; };
+    const colDark = (x) => { let n = 0; for (let y = 0; y < h; y++) if (dark(x, y)) n++; return n / h > 0.94; };
+    let top = 0, bot = h - 1, left = 0, right = w - 1;
+    while (top < bot && rowDark(top)) top++;
+    while (bot > top && rowDark(bot)) bot--;
+    while (left < right && colDark(left)) left++;
+    while (right > left && colDark(right)) right--;
+    const sx = left / scale, sy = top / scale, sw = (right - left + 1) / scale, sh = (bot - top + 1) / scale;
+    if (sw > IW * 0.35 && sh > IH * 0.35) return { sx, sy, sw, sh };
+  } catch (e) { /* CORS u otro: sin recorte */ }
+  return { sx: 0, sy: 0, sw: IW, sh: IH };
+}
+// Recorta cada foto al cuadro lateral (modo "cover", centrada, sin franjas negras) → llena sin bordes
 async function fotosToJpeg(carteles, fotoDe, chs) {
   const PHOTOW = 210, map = {};
   await Promise.all((carteles || []).map(async (b, i) => {
@@ -1916,23 +2310,23 @@ async function fotosToJpeg(carteles, fotoDe, chs) {
     const im = await loadImg(src);
     if (!im) return;
     try {
-      const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
+      const cr = contentRect(im);
+      const iw = cr.sw, ih = cr.sh;
       const bw = PHOTOW, bh = Math.max(1, (chs && chs[i] ? chs[i] : 150)), sc = 2;
       const cv = document.createElement("canvas"); cv.width = Math.round(bw * sc); cv.height = Math.round(bh * sc);
       const ctx = cv.getContext("2d");
       ctx.fillStyle = "#eef2f7"; ctx.fillRect(0, 0, cv.width, cv.height);
-      // cover: escala para cubrir todo el cuadro y recorta lo que sobra, centrado
       const ir = iw / ih, br = cv.width / cv.height;
       let sw, sh, sx, sy;
-      if (ir > br) { sh = ih; sw = ih * br; sx = (iw - sw) / 2; sy = 0; }
-      else { sw = iw; sh = iw / br; sx = 0; sy = (ih - sh) / 2; }
+      if (ir > br) { sh = ih; sw = ih * br; sx = cr.sx + (iw - sw) / 2; sy = cr.sy; }
+      else { sw = iw; sh = iw / br; sx = cr.sx; sy = cr.sy + (ih - sh) / 2; }
       ctx.drawImage(im, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
       map[b.id] = cv.toDataURL("image/jpeg", 0.85);
-    } catch (e) { /* foto con CORS u otro problema: queda recuadro azul */ }
+    } catch (e) { /* CORS u otro: queda gris claro */ }
   }));
   return map;
 }
-// Calcula la altura de cada tarjeta (igual que el armador) para recortar las fotos a medida
+// Altura de cada tarjeta (foto al costado + contenido a la derecha)
 function computeCardHeights(md, cs, inc, impactosDe) {
   const CW = 794 - 80 - 210 - 40;
   return (cs || []).map((b) => {
@@ -2082,12 +2476,13 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v10",
+        dateStr: fmtDate(today()) + " · v13",
         fotos,
         chs,
         impactosDe,
       });
-      doc.save("Propuesta" + (cliente ? " - " + cliente.empresa : (cfg.empresa ? " - " + cfg.empresa : "")) + ".pdf");
+      const sello = new Date().toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(/[/:, ]+/g, "-");
+      doc.save("Propuesta" + (cliente ? " - " + cliente.empresa : (cfg.empresa ? " - " + cfg.empresa : "")) + " (" + sello + ").pdf");
     } catch (e) {
       alert("No pude generar el PDF automáticamente. Reviso que tengas internet y, si no, abro la opción de imprimir.");
       window.print();
@@ -2260,9 +2655,9 @@ function Propuestas({ data, update }) {
           {seleccionados.map((b) => {
             const f = fotoDe(b);
             return (
-              <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", borderRadius: 14, overflow: "hidden", marginBottom: 14, breakInside: "avoid" }}>
+              <div key={b.id} style={{ display: "grid", gridTemplateColumns: "200px 1fr", border: "1px solid #e6e1d6", overflow: "hidden", marginBottom: 14, breakInside: "avoid" }}>
                 <div style={{ position: "relative", minHeight: 150, background: "#eef2f7", overflow: "hidden", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                  {f && <img src={f} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+                  {f ? <img src={f} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#9aa7ba", fontSize: 12 }}>Sin foto</span>}
                   {b.codigo && <span style={{ position: "absolute", left: 14, bottom: 14, fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, color: "#0d1b2a", background: "#ffb347", padding: "5px 11px", borderRadius: 20, WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>COD {b.codigo}</span>}
                 </div>
                 <div style={{ padding: "18px 20px" }}>
