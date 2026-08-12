@@ -642,7 +642,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 18</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 19</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1133,6 +1133,16 @@ async function traerPublicados() {
 
 function pubLink(codigo) { return PUB_BASE + "/cartel/" + codigo; }
 
+// Los nombres traen código, paréntesis y notas ("luz 18 a 1 am"): dejamos algo corto y legible.
+function tituloCorto(n) {
+  let t = String(n || "").trim();
+  t = t.replace(/^\s*\d+\s*[—–-]\s*/, "");
+  t = t.replace(/\(([^)]*)\)/g, " ");
+  t = t.replace(/luz\s+[^,;]*/i, " ");
+  t = t.replace(/\s{2,}/g, " ").replace(/[\s,;.\-–—]+$/, "").trim();
+  return t || String(n || "");
+}
+
 // Achica una foto antes de subirla (para que no tarde una eternidad)
 function achicarFoto(file, maxLado) {
   return new Promise((resolve, reject) => {
@@ -1271,7 +1281,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const [desp, setDesp] = useState(0);
   const [mostrarPrecio, setMostrarPrecio] = useState(true);
   const [d, setD] = useState({
-    nombre: cartel.nombre || "",
+    nombre: tituloCorto(cartel.nombre) || "",
     ubicacion: cartel.ubicacion || "",
     zona: cartel.zona || "",
     tipo: cartel.tipo || "",
@@ -1291,6 +1301,13 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const inputRef = useRef(null);
   const previaRef = useRef(null);
   const imgRef = useRef(null);
+
+  // Mientras está abierto, el fondo no se mueve
+  useEffect(() => {
+    const antes = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = antes; };
+  }, []);
 
   const [cod, setCod] = useState(String(cartel.codigo || "").trim() || ("c" + String(cartel.id || Date.now()).replace(/[^a-zA-Z0-9]/g, "").slice(-6)));
   const codigo = (cod || "").trim() || "sin-codigo";
@@ -1439,7 +1456,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
     </div>
   );
 
-  return (
+  const contenido = (
     <div className="overlay" onClick={(e) => { if (e.target === e.currentTarget && !trabajando) onClose(); }}>
       <div className="modal" style={{ maxWidth: 520, width: "100%", padding: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -1615,6 +1632,7 @@ function PublicarCartel({ cartel, onClose, onListo }) {
       </div>
     </div>
   );
+  return typeof document !== "undefined" ? createPortal(contenido, document.body) : contenido;
 }
 
 function PublicarSeccion({ data }) {
@@ -2723,7 +2741,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v18",
+        dateStr: fmtDate(today()) + " · v19",
         fotos,
         chs,
         impactosDe,

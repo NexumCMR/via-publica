@@ -38,17 +38,18 @@
   .logo b{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:-.01em;display:block;line-height:1}
   .logo s{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
 
-  .hero{position:relative;height:100svh;min-height:600px;display:flex;align-items:flex-end;overflow:hidden;background:var(--negro)}
+  .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;background:var(--negro)}
   .hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;will-change:transform}
   .hero::after{content:"";position:absolute;inset:0;background:
     linear-gradient(180deg,rgba(10,10,12,.55) 0%,rgba(10,10,12,0) 26%,rgba(10,10,12,0) 44%,rgba(10,10,12,.86) 72%,var(--negro) 96%)}
-  .hero-in{position:relative;z-index:2;width:100%;max-width:640px;margin:0 auto;padding:0 24px 40px;color:#fff}
+  .hero-in{position:relative;z-index:2;width:100%;max-width:640px;margin:0 auto;padding:78px 24px 40px;color:#fff;
+         max-height:100%;overflow:hidden}
   .kick{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;
         background:var(--oro);color:#1B1206;padding:8px 13px;border-radius:999px;letter-spacing:.14em}
-  .hero h1{font-family:var(--disp);font-weight:800;font-size:clamp(50px,16vw,86px);line-height:.86;
-           letter-spacing:-.04em;margin-top:18px;text-transform:uppercase}
+  .hero h1{font-family:var(--disp);font-weight:800;line-height:.9;letter-spacing:-.035em;margin-top:16px;
+           text-transform:uppercase;overflow-wrap:anywhere;hyphens:auto}
   .hero h1 span{color:var(--oro)}
-  .hero .dir{margin-top:16px;font-size:16px;color:#D6D8DE;max-width:32ch}
+  .hero .dir{margin-top:14px;font-size:15.5px;color:#D6D8DE;max-width:36ch;line-height:1.45}
   .hero-datos{display:flex;gap:24px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2)}
   .hero-datos div{flex:1}
   .hero-datos dt{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--gris-cl)}
@@ -199,6 +200,26 @@
   function fecha(d){ if(!d) return ""; var p=String(d).split("-");
     var mm=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
     return Number(p[2])+" de "+mm[Number(p[1])-1]; }
+  // Los nombres vienen con código, paréntesis y notas ("luz 18 a 1 am").
+  // Dejamos un título corto y el resto pasa a la línea de abajo.
+  function limpiarTitulo(n){
+    var t=String(n||"").trim(), extras=[];
+    t=t.replace(/^\s*\d+\s*[—–\-]\s*/,"");
+    t=t.replace(/\(([^)]*)\)/g,function(_,x){ if(x.trim()) extras.push(x.trim()); return " "; });
+    var m=t.match(/luz\s+[^,;]*/i);
+    if(m){ extras.push(m[0].trim().replace(/^l/,"L")); t=t.replace(m[0]," "); }
+    t=t.replace(/\s{2,}/g," ").replace(/[\s,;.\-–—]+$/,"").trim();
+    return { titulo: t || String(n||""), extras: extras };
+  }
+  function medidaTitulo(t){
+    var L=(t||"").length;
+    if(L>52) return "clamp(23px,6.4vw,32px)";
+    if(L>38) return "clamp(27px,7.6vw,38px)";
+    if(L>26) return "clamp(33px,9.6vw,48px)";
+    if(L>15) return "clamp(42px,12.5vw,64px)";
+    return "clamp(50px,16vw,86px)";
+  }
+
   function pedir(r){ return fetch(API+r,{headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
     .then(function(x){ if(!x.ok) throw new Error(); return x.json(); }); }
 
@@ -234,6 +255,9 @@
     var vecesEstadio=imp?Math.round(imp/ESTADIO*10)/10:0;
     var porAnio=imp?Math.round(imp*52/100000)/10:0;
 
+    var tit=limpiarTitulo(c.nombre||("Cartel "+c.codigo));
+    var bajoTitulo=[c.localidad].concat(tit.extras).filter(Boolean).join(" · ");
+
     var msg="Hola! Me interesa el cartel COD "+c.codigo+(c.nombre?" — "+c.nombre:"")+". ¿Me pasás más información?";
     var wa="https://wa.me/"+TEL+"?text="+encodeURIComponent(msg);
 
@@ -246,8 +270,8 @@
       '<div class="hero-in">'+
       (!libre&&c.disponible_desde?'<span class="kick">◆ Se libera el '+esc(fecha(c.disponible_desde))+'</span>':
        (libre?'<span class="kick">◆ Disponible ahora</span>':''))+
-      '<h1>'+esc(c.nombre||("Cartel "+c.codigo))+'</h1>'+
-      (c.direccion||c.localidad?'<p class="dir">'+esc([c.localidad,c.direccion].filter(Boolean).join(" · "))+'</p>':'')+
+      '<h1 style="font-size:'+medidaTitulo(tit.titulo)+'">'+esc(tit.titulo)+'</h1>'+
+      (bajoTitulo?'<p class="dir">'+esc(bajoTitulo)+'</p>':'')+
       '<dl class="hero-datos">'+
         (c.medidas?'<div><dt>Tamaño</dt><dd>'+esc(c.medidas)+'</dd></div>':'')+
         '<div><dt>Luz</dt><dd>'+(c.iluminado?"Sí":"No")+'</dd></div>'+
