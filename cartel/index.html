@@ -251,7 +251,6 @@
     var imp=Number(c.impactos)||0;
     var impMes=Math.round(imp*4.345);
     var porDia=Math.round(imp/7);
-    var costo=(imp&&c.precio)?(Number(c.precio)/impMes):0;
     var vecesEstadio=imp?Math.round(imp/ESTADIO*10)/10:0;
     var porAnio=imp?Math.round(imp*52/100000)/10:0;
 
@@ -296,15 +295,15 @@
       '</div></section>';
     }
 
-    // ---- costo por persona ----
-    if(costo>0){
-      h+='<section class="precio-x"><div class="wrap">'+
-        '<p class="cap">'+capN()+' · Lo que cuesta</p>'+
-        '<div class="n">$'+ (costo<10 ? costo.toFixed(2).replace(".",",") : num(Math.round(costo))) +'<small> por persona</small></div>'+
-        '<p>Eso es lo que te sale que alguien vea tu marca en este cartel.</p>'+
-        '<p class="fine">No es un clic que se olvida: es tu marca en la calle, todos los días, a la misma hora que tu cliente vuelve a su casa.</p>'+
-      '</div></section>';
-    }
+    // ---- tiempo al aire ----
+    var horasDia = c.iluminado ? 24 : 12;
+    var horasMes = horasDia * 30;
+    h+='<section class="precio-x"><div class="wrap">'+
+      '<p class="cap">'+capN()+' · El tiempo que estás</p>'+
+      '<div class="n">'+num(horasMes)+'<small> horas por mes</small></div>'+
+      '<p>Tu marca ahí arriba '+(c.iluminado?"las 24 horas, de día y de noche":"todos los días, de sol a sol")+'.</p>'+
+      '<p class="fine">No se saltea, no se cierra, no se bloquea. Está cuando tu cliente va a trabajar y cuando vuelve a su casa, todos los días del mes.</p>'+
+    '</div></section>';
 
     // ---- galería ----
     if(galeria.length){
