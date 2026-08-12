@@ -642,7 +642,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 20</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 21</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1642,10 +1642,18 @@ function PublicarSeccion({ data }) {
   const [borrando, setBorrando] = useState("");
 
   const [visitas, setVisitas] = useState({});
+  const [personas, setPersonas] = useState({});
+  const [soyEquipo, setSoyEquipo] = useState(() => {
+    try { return localStorage.getItem("masa_interno") === "1"; } catch (e) { return false; }
+  });
+  const marcarEquipo = (v) => {
+    try { v ? localStorage.setItem("masa_interno", "1") : localStorage.removeItem("masa_interno"); } catch (e) {}
+    setSoyEquipo(v);
+  };
   const cargar = () => {
     traerPublicados().then(setPubs).catch(() => setPubs([]));
     fetch("/api/masa?accion=visitas", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
-      .then((r) => r.json()).then((j) => setVisitas(j.visitas || {})).catch(() => {});
+      .then((r) => r.json()).then((j) => { setVisitas(j.visitas || {}); setPersonas(j.personas || {}); }).catch(() => {});
   };
   useEffect(() => { cargar(); }, []);
 
@@ -1686,6 +1694,15 @@ function PublicarSeccion({ data }) {
         <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "14px", fontSize: 15.5 }} onClick={nuevoVacio}>
           <Plus size={19} /> Crear uno nuevo a mano
         </button>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 14, fontSize: 14, lineHeight: 1.45, cursor: "pointer" }}>
+          <input type="checkbox" checked={soyEquipo} onChange={(e) => marcarEquipo(e.target.checked)}
+            style={{ width: 20, height: 20, marginTop: 1, flex: "0 0 20px" }} />
+          <span>Este teléfono es mío: <b>no contar mis visitas</b>
+            <span style={{ display: "block", color: "var(--muted)", fontSize: 12.5, marginTop: 2 }}>
+              Así los números muestran sólo a los clientes, no las veces que lo abrís vos.
+            </span>
+          </span>
+        </label>
       </div>
 
       {pubs === null && <div className="cell-sub" style={{ padding: "6px 2px 14px" }}>Buscando lo que ya publicaste…</div>}
@@ -1696,7 +1713,7 @@ function PublicarSeccion({ data }) {
             <h3 style={{ fontSize: 16 }}>Ya publicados ({pubs.length})</h3>
             {Object.keys(visitas).length > 0 && (
               <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>
-                {Object.values(visitas).reduce((a, b) => a + b, 0)} visitas en total
+                {Object.values(personas).reduce((a, b) => a + b, 0)} personas en total
               </span>
             )}
           </div>
@@ -1711,8 +1728,8 @@ function PublicarSeccion({ data }) {
                   fontSize: 12.5, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
                   background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
                   color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790" }}>
-                  {(visitas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie"
-                    : (visitas[p.codigo] === 1 ? "1 persona abrió el link" : `${visitas[p.codigo]} veces abrieron el link`)}
+                  {(personas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie"
+                    : `${personas[p.codigo]} ${personas[p.codigo] === 1 ? "persona lo abrió" : "personas lo abrieron"} · ${visitas[p.codigo]} ${visitas[p.codigo] === 1 ? "vez" : "veces"}`}
                 </span>
               </span>
               <span style={{ display: "flex", gap: 6 }}>
@@ -2760,7 +2777,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v20",
+        dateStr: fmtDate(today()) + " · v21",
         fotos,
         chs,
         impactosDe,

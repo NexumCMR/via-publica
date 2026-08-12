@@ -114,12 +114,18 @@ export default async function handler(req, res) {
 
     // -------- Cuántas visitas tuvo cada ficha --------
     if (accion === "visitas") {
-      const r = await sb("/rest/v1/masa_visitas?select=codigo", { method: "GET" });
+      const r = await sb("/rest/v1/masa_visitas?select=codigo,visitante,interno&interno=is.false", { method: "GET" });
       if (!r.ok) return res.status(502).json({ error: "No se pudieron leer las visitas" });
       const filas = await r.json();
-      const conteo = {};
-      for (const f of filas) conteo[f.codigo] = (conteo[f.codigo] || 0) + 1;
-      return res.status(200).json({ visitas: conteo });
+      const conteo = {}, unicos = {};
+      for (const f of filas) {
+        conteo[f.codigo] = (conteo[f.codigo] || 0) + 1;
+        if (!unicos[f.codigo]) unicos[f.codigo] = new Set();
+        unicos[f.codigo].add(f.visitante || "sin-id");
+      }
+      const personas = {};
+      for (const k of Object.keys(unicos)) personas[k] = unicos[k].size;
+      return res.status(200).json({ visitas: conteo, personas });
     }
 
     return res.status(400).json({ error: "Acción desconocida" });

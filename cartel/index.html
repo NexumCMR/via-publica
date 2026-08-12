@@ -245,6 +245,31 @@
 
   if(!COD){ app.innerHTML='<div class="cargando">No se indicó ningún cartel.</div>'; return; }
 
+  // Marca este teléfono como "del equipo" para no contar sus visitas: /cartel/1297?interno=1
+  try{
+    var qp=new URLSearchParams(location.search);
+    if(qp.get("interno")==="1") localStorage.setItem("masa_interno","1");
+    if(qp.get("interno")==="0") localStorage.removeItem("masa_interno");
+  }catch(e){}
+
+  // Identificador anónimo del dispositivo: sirve para contar personas distintas,
+  // no guarda nada que permita saber quién es.
+  function idVisitante(){
+    try{
+      var v=localStorage.getItem("masa_visitante");
+      if(!v){ v=(Date.now().toString(36)+Math.random().toString(36).slice(2,10)); localStorage.setItem("masa_visitante",v); }
+      return v;
+    }catch(e){ return null; }
+  }
+  function registrar(){
+    var interno=false;
+    try{ interno = localStorage.getItem("masa_interno")==="1"; }catch(e){}
+    fetch(API+"/masa_visitas",{method:"POST",
+      headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE,"Content-Type":"application/json"},
+      body:JSON.stringify({codigo:COD,origen:document.referrer||null,visitante:idVisitante(),interno:interno})
+    }).catch(function(){});
+  }
+
   Promise.all([
     pedir("/masa_carteles?codigo=eq."+encodeURIComponent(COD)+"&select=*"),
     pedir("/masa_fotos?codigo=eq."+encodeURIComponent(COD)+"&select=*&order=orden.asc")
@@ -252,9 +277,7 @@
     var c=res[0][0], fotos=res[1]||[];
     if(!c){ app.innerHTML='<div class="cargando">Este cartel todavía no está publicado.</div>'; return; }
     dibujar(c,fotos); prender(c);
-    fetch(API+"/masa_visitas",{method:"POST",
-      headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE,"Content-Type":"application/json"},
-      body:JSON.stringify({codigo:COD,origen:document.referrer||null})}).catch(function(){});
+    registrar();
   }).catch(function(){
     app.innerHTML='<div class="cargando">No se pudo cargar la ficha. Probá de nuevo en un momento.</div>';
   });
