@@ -642,7 +642,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 19</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 20</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1641,7 +1641,12 @@ function PublicarSeccion({ data }) {
   const [pubs, setPubs] = useState(null);
   const [borrando, setBorrando] = useState("");
 
-  const cargar = () => { traerPublicados().then(setPubs).catch(() => setPubs([])); };
+  const [visitas, setVisitas] = useState({});
+  const cargar = () => {
+    traerPublicados().then(setPubs).catch(() => setPubs([]));
+    fetch("/api/masa?accion=visitas", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then((r) => r.json()).then((j) => setVisitas(j.visitas || {})).catch(() => {});
+  };
   useEffect(() => { cargar(); }, []);
 
   const lista = (data.billboards || []).filter((b) => {
@@ -1687,13 +1692,27 @@ function PublicarSeccion({ data }) {
 
       {pubs && pubs.length > 0 && (
         <div style={{ marginBottom: 22 }}>
-          <h3 style={{ fontSize: 16, marginBottom: 10 }}>Ya publicados ({pubs.length})</h3>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+            <h3 style={{ fontSize: 16 }}>Ya publicados ({pubs.length})</h3>
+            {Object.keys(visitas).length > 0 && (
+              <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>
+                {Object.values(visitas).reduce((a, b) => a + b, 0)} visitas en total
+              </span>
+            )}
+          </div>
           {pubs.map((p) => (
             <div key={p.codigo} className="pub-item" style={{ cursor: "default", flexWrap: "wrap" }}>
               <span style={{ flex: "1 1 160px", minWidth: 0 }}>
                 <span style={{ display: "block", fontWeight: 700, fontSize: 15 }}>{p.nombre || p.codigo}</span>
                 <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)" }}>
                   {p.localidad || "—"} · {PUB_BASE.replace("https://", "")}/cartel/{p.codigo}
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6,
+                  fontSize: 12.5, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
+                  background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
+                  color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790" }}>
+                  {(visitas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie"
+                    : (visitas[p.codigo] === 1 ? "1 persona abrió el link" : `${visitas[p.codigo]} veces abrieron el link`)}
                 </span>
               </span>
               <span style={{ display: "flex", gap: 6 }}>
@@ -2741,7 +2760,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v19",
+        dateStr: fmtDate(today()) + " · v20",
         fotos,
         chs,
         impactosDe,

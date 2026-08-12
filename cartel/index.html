@@ -99,6 +99,26 @@
   .gal em{position:absolute;top:13px;left:13px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
     font-style:normal;background:rgba(10,10,12,.6);backdrop-filter:blur(4px);color:#fff;padding:5px 10px;border-radius:999px}
 
+  .gal figure{cursor:zoom-in}
+  .lupa{position:absolute;top:13px;right:13px;width:32px;height:32px;border-radius:50%;
+    background:rgba(10,10,12,.6);backdrop-filter:blur(4px);display:grid;place-items:center;color:#fff}
+  .lupa svg{width:16px;height:16px}
+  .visor{position:fixed;inset:0;z-index:60;background:rgba(6,6,8,.97);display:none;
+    align-items:center;justify-content:center;padding:0;touch-action:pan-y}
+  .visor.abierto{display:flex}
+  .visor img{max-width:100%;max-height:86svh;object-fit:contain;display:block;
+    animation:aparece .22s ease both}
+  @keyframes aparece{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .visor-x{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:44px;height:44px;
+    border-radius:50%;background:rgba(255,255,255,.14);border:0;color:#fff;font-size:24px;cursor:pointer;
+    display:grid;place-items:center;line-height:1}
+  .visor-pie{position:absolute;left:0;right:0;bottom:calc(20px + env(safe-area-inset-bottom));
+    text-align:center;color:#fff;font-size:14px;padding:0 24px}
+  .visor-pie b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--oro);margin-bottom:6px}
+  .visor-f{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;
+    background:rgba(255,255,255,.14);border:0;color:#fff;font-size:22px;cursor:pointer;display:grid;place-items:center}
+  .visor-f.izq{left:12px} .visor-f.der{right:12px}
+
   /* ---------- marcas que estuvieron ---------- */
   .marcas{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
   .marca{border-radius:18px;overflow:hidden;position:relative;aspect-ratio:1;background:var(--negro2)}
@@ -315,6 +335,7 @@
         galeria.map(function(f,i){
           return '<figure><img src="'+esc(f.url)+'" alt="'+esc(f.epigrafe||"")+'" loading="'+(i<2?"eager":"lazy")+'">'+
                  '<em>'+(i+1)+"/"+galeria.length+'</em>'+
+                 '<span class="lupa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"/></svg></span>'+
                  (f.epigrafe?'<figcaption>'+esc(f.epigrafe)+'</figcaption>':'')+'</figure>';
         }).join("")+'</div></div>';
     }
@@ -362,6 +383,13 @@
       'Hablar por WhatsApp</a><br>'+
       '<button class="compartir" id="compartir">Pasarle esta ficha a alguien</button></div></section>';
 
+    h+='<div class="visor" id="visor" role="dialog" aria-label="Foto ampliada">'+
+      '<button class="visor-x" id="visorX" aria-label="Cerrar">×</button>'+
+      '<button class="visor-f izq" id="visorIzq" aria-label="Anterior">‹</button>'+
+      '<img id="visorImg" alt="">'+
+      '<button class="visor-f der" id="visorDer" aria-label="Siguiente">›</button>'+
+      '<div class="visor-pie"><b id="visorN"></b><span id="visorTxt"></span></div></div>';
+
     h+='<div class="cta"><a href="'+wa+'" target="_blank" rel="noopener">'+
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2z"/></svg>'+
       'Consultar por WhatsApp</a></div>';
@@ -401,6 +429,43 @@
       if(cont){ var io2=new IntersectionObserver(function(es){es.forEach(function(x){if(x.isIntersecting){contar();subirBarras();io2.disconnect();}});},{threshold:.35});
         io2.observe(cont); }
     } else { subirBarras(); document.querySelectorAll(".rev").forEach(function(el){el.classList.add("in");}); }
+
+    // ---- ampliar fotos ----
+    var visor=document.getElementById("visor");
+    if(visor){
+      var vImg=document.getElementById("visorImg"), vTxt=document.getElementById("visorTxt"),
+          vN=document.getElementById("visorN"), figs=document.querySelectorAll(".gal figure"), act=0;
+      var fuentes=[]; figs.forEach(function(f){ var im=f.querySelector("img");
+        fuentes.push({src:im.getAttribute("src"), txt:(f.querySelector("figcaption")||{}).textContent||""}); });
+
+      function mostrar(i){
+        if(!fuentes.length) return;
+        act=(i+fuentes.length)%fuentes.length;
+        vImg.src=fuentes[act].src; vTxt.textContent=fuentes[act].txt;
+        vN.textContent="Foto "+(act+1)+" de "+fuentes.length;
+      }
+      function abrir(i){ mostrar(i); visor.classList.add("abierto"); document.body.style.overflow="hidden"; }
+      function cerrar(){ visor.classList.remove("abierto"); document.body.style.overflow=""; }
+
+      figs.forEach(function(f,i){ f.addEventListener("click",function(){ abrir(i); }); });
+      document.getElementById("visorX").addEventListener("click",cerrar);
+      document.getElementById("visorIzq").addEventListener("click",function(e){ e.stopPropagation(); mostrar(act-1); });
+      document.getElementById("visorDer").addEventListener("click",function(e){ e.stopPropagation(); mostrar(act+1); });
+      visor.addEventListener("click",function(e){ if(e.target===visor||e.target===vImg) cerrar(); });
+      document.addEventListener("keydown",function(e){
+        if(!visor.classList.contains("abierto")) return;
+        if(e.key==="Escape") cerrar();
+        if(e.key==="ArrowRight") mostrar(act+1);
+        if(e.key==="ArrowLeft") mostrar(act-1);
+      });
+      var x0=null;
+      visor.addEventListener("touchstart",function(e){ x0=e.touches[0].clientX; },{passive:true});
+      visor.addEventListener("touchend",function(e){
+        if(x0===null) return; var dx=e.changedTouches[0].clientX-x0;
+        if(Math.abs(dx)>50) mostrar(dx<0?act+1:act-1);
+        x0=null;
+      },{passive:true});
+    }
 
     var bc=document.getElementById("compartir");
     if(bc) bc.addEventListener("click",function(){
