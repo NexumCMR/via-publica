@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mónica · Masa Ideas — Publicidad en vía pública</title>
+<meta name="description" content="Espacios de publicidad en vía pública en CABA y Gran Buenos Aires. Mirá los carteles disponibles y consultá por WhatsApp.">
+<meta name="theme-color" content="#0A0A0C">
+<meta property="og:title" content="Mónica · Masa Ideas">
+<meta property="og:description" content="Publicidad en vía pública — mirá los espacios disponibles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --negro:#0A0A0C; --negro2:#141419; --papel:#F2F0EB; --blanco:#fff;
+    --oro:#E8A93C; --oro-cl:#F7D89A; --verde:#12A150;
+    --gris:#6F7178; --gris-cl:#A9ABB2; --linea:rgba(10,10,12,.10); --linea-o:rgba(242,240,235,.15);
+    --disp:'Bricolage Grotesque',system-ui,sans-serif;
+    --sans:'Plus Jakarta Sans',system-ui,sans-serif;
+    --mono:'Space Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{background:var(--papel);color:var(--negro);font-family:var(--sans);line-height:1.5;padding-bottom:100px}
+  .wrap{max-width:640px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em}
+
+  /* ---- tarjeta ---- */
+  .tarjeta{background:var(--negro);color:#fff;padding:44px 0 40px;position:relative;overflow:hidden}
+  .tarjeta::before{content:"";position:absolute;top:-120px;right:-90px;width:280px;height:280px;
+    border-radius:50%;background:radial-gradient(circle,rgba(232,169,60,.22),transparent 68%)}
+  .marca{display:flex;align-items:center;gap:11px;position:relative}
+  .marca i{width:34px;height:34px;border-radius:10px;background:var(--oro);display:grid;place-items:center;flex:0 0 34px}
+  .marca i::before{content:"";width:17px;height:11px;background:var(--negro);border-radius:2px;box-shadow:0 8px 0 -3px var(--negro)}
+  .marca b{font-family:var(--disp);font-weight:800;font-size:15.5px;letter-spacing:-.01em;display:block;line-height:1}
+  .marca s{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
+
+  .nombre{font-family:var(--disp);font-weight:800;font-size:clamp(42px,13vw,64px);line-height:.92;
+          letter-spacing:-.04em;margin-top:30px;position:relative}
+  .rol{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;color:var(--oro);margin-top:14px;position:relative}
+  .pitch{margin-top:18px;font-size:16.5px;color:#D3D5DB;max-width:34ch;line-height:1.55;position:relative}
+
+  .acciones{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap;position:relative}
+  .bt{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:15px 22px;border-radius:999px;
+      text-decoration:none;font-size:15.5px;font-weight:700;border:0;cursor:pointer;font-family:inherit}
+  .bt-oro{background:var(--oro);color:#1B1206;flex:1 1 auto}
+  .bt-linea{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3)}
+  .bt svg{width:19px;height:19px;flex:0 0 19px}
+
+  .zonas{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px;position:relative}
+  .zonas span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--gris-cl);
+    border:1px solid var(--linea-o);padding:6px 11px;border-radius:999px}
+
+  /* ---- catálogo ---- */
+  .sec{padding-top:52px}
+  .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--oro)}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(28px,7.6vw,40px);line-height:1.02;letter-spacing:-.03em;margin-top:11px}
+  .bajada{margin-top:12px;font-size:15.5px;color:var(--gris);line-height:1.6;max-width:42ch}
+
+  .filtros{display:flex;gap:8px;overflow-x:auto;padding:20px 24px 4px;margin:0 -24px;scrollbar-width:none}
+  .filtros::-webkit-scrollbar{display:none}
+  .filtro{flex:0 0 auto;background:var(--blanco);border:1px solid var(--linea);border-radius:999px;
+    padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--negro);white-space:nowrap}
+  .filtro[aria-pressed="true"]{background:var(--negro);color:#fff;border-color:var(--negro)}
+
+  .grilla{display:grid;gap:14px;margin-top:18px}
+  .item{display:block;text-decoration:none;color:inherit;border-radius:20px;overflow:hidden;
+    background:var(--blanco);border:1px solid var(--linea);transition:transform .18s ease,box-shadow .18s ease}
+  .item:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(10,10,12,.12)}
+  .item-foto{position:relative;aspect-ratio:16/10;background:var(--negro2)}
+  .item-foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .item-foto b{position:absolute;left:12px;top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    background:var(--oro);color:#1B1206;padding:5px 10px;border-radius:999px}
+  .item-txt{padding:16px 18px 18px}
+  .item-txt h3{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.12}
+  .item-txt p{font-size:13.5px;color:var(--gris);margin-top:5px}
+  .item-datos{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .item-datos span{font-size:12px;font-weight:700;padding:5px 10px;border-radius:8px;background:#F0EEE9;color:var(--negro)}
+  .item-datos .verde{background:#E6F6EC;color:#0F7A3D}
+  .ver{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:14px;font-weight:800;color:var(--negro)}
+  .ver i{color:var(--oro);font-style:normal}
+
+  .cargando,.vacio{text-align:center;padding:44px 20px;color:var(--gris);font-size:15px}
+
+  footer{margin-top:56px;padding:34px 0;border-top:1px solid var(--linea);font-size:13.5px;color:var(--gris);text-align:center}
+  footer b{color:var(--negro)}
+
+  .cta{position:fixed;left:0;right:0;bottom:0;z-index:9;padding:14px 24px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(242,240,235,0),rgba(242,240,235,.97) 34%)}
+  .cta a{display:flex;align-items:center;justify-content:center;gap:11px;max-width:592px;margin:0 auto;
+    background:var(--negro);color:#fff;text-decoration:none;padding:18px;border-radius:16px;
+    font-size:16.5px;font-weight:800;box-shadow:0 12px 30px rgba(10,10,12,.26)}
+  .cta svg{width:21px;height:21px}
+  :focus-visible{outline:2px solid var(--oro);outline-offset:3px}
+  @media (min-width:620px){.grilla{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="tarjeta">
+  <div class="wrap">
+    <div class="marca"><i></i><div><b>Masa Ideas</b><s>Publicidad exterior</s></div></div>
+    <h1 class="nombre">Mónica</h1>
+    <p class="rol">Asesora comercial</p>
+    <p class="pitch">Te ayudo a poner tu marca en la calle: carteles, medianeras y pantallas en CABA y Gran Buenos Aires.</p>
+    <div class="acciones">
+      <a class="bt bt-oro" id="wa" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2z"/></svg>
+        Escribime por WhatsApp
+      </a>
+      <button class="bt bt-linea" id="guardar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+        Guardar contacto
+      </button>
+    </div>
+    <div class="zonas" id="zonasTop"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="sec">
+    <p class="cap">El catálogo</p>
+    <h2>Espacios disponibles</h2>
+    <p class="bajada">Tocá cualquiera para ver las fotos, las medidas y desde cuándo está libre.</p>
+  </section>
+  <div class="filtros" id="filtros"></div>
+  <div id="grilla" class="grilla"><div class="cargando">Cargando los espacios…</div></div>
+
+  <footer>
+    <b>Mónica</b> · Masa Ideas — Publicidad en vía pública<br>
+    Consultas y reservas por WhatsApp.
+  </footer>
+</main>
+
+<div class="cta">
+  <a id="wa2" href="#" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2z"/></svg>
+    Consultar por WhatsApp
+  </a>
+</div>
+
+<script>
+(function(){
+  var API="https://vdxkgywwcxluklvhzmor.supabase.co/rest/v1";
+  var LLAVE="sb_publishable_Pde178b3hSbn8bjirUR9Lw_PsaJiUC_";
+  var TEL="5491161112938";
+  var NOMBRE="Mónica";
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function num(n){ return Number(n||0).toLocaleString("es-AR",{maximumFractionDigits:0}); }
+  function limpiarTitulo(n){
+    var t=String(n||"").trim();
+    t=t.replace(/^\s*\d+\s*[—–\-]\s*/,"").replace(/\(([^)]*)\)/g," ").replace(/luz\s+[^,;]*/i," ");
+    return t.replace(/\s{2,}/g," ").replace(/[\s,;.\-–—]+$/,"").trim() || String(n||"");
+  }
+  function fecha(d){ if(!d) return ""; var p=String(d).split("-");
+    var mm=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+    return Number(p[2])+" de "+mm[Number(p[1])-1]; }
+
+  var msg="Hola Mónica! Vi tu catálogo de espacios y quería consultarte.";
+  var wa="https://wa.me/"+TEL+"?text="+encodeURIComponent(msg);
+  document.getElementById("wa").href=wa;
+  document.getElementById("wa2").href=wa;
+
+  // ---- guardar contacto (archivo de contacto del teléfono) ----
+  document.getElementById("guardar").addEventListener("click",function(){
+    var v=["BEGIN:VCARD","VERSION:3.0","N:;"+NOMBRE+";;;","FN:"+NOMBRE+" (Masa Ideas)",
+      "ORG:Masa Ideas","TITLE:Asesora comercial","TEL;TYPE=CELL:+"+TEL,
+      "URL:"+location.origin+location.pathname,
+      "NOTE:Publicidad en vía pública — carteles, medianeras y pantallas.","END:VCARD"].join("\r\n");
+    var blob=new Blob([v],{type:"text/vcard;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a"); a.href=url; a.download="Monica-MasaIdeas.vcf";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+  });
+
+  // ---- catálogo ----
+  var grilla=document.getElementById("grilla"), filtros=document.getElementById("filtros");
+  var todos=[], fotos={}, zonaActiva="Todas";
+
+  fetch(API+"/masa_carteles?select=*&publicado=eq.true&destacado=eq.true&order=actualizado.desc",
+    {headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+  .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
+  .then(function(cs){
+    todos=cs||[];
+    if(!todos.length){ grilla.innerHTML='<div class="vacio">Por ahora no hay espacios publicados. Escribime por WhatsApp y te paso lo que tengo disponible.</div>'; return; }
+    var cods=todos.map(function(c){ return '"'+c.codigo+'"'; }).join(",");
+    return fetch(API+"/masa_fotos?select=codigo,url,portada,orden&codigo=in.("+encodeURIComponent(cods)+")",
+      {headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(fs){
+        (fs||[]).forEach(function(f){
+          if(!fotos[f.codigo] || f.portada) fotos[f.codigo]=f.url;
+        });
+        pintarZonas(); pintar();
+      });
+  })
+  .catch(function(){
+    grilla.innerHTML='<div class="vacio">No se pudo cargar el catálogo. Probá de nuevo en un momento.</div>';
+  });
+
+  function pintarZonas(){
+    var zs=["Todas"];
+    todos.forEach(function(c){ var z=c.localidad||c.zona; if(z && zs.indexOf(z)<0) zs.push(z); });
+    if(zs.length<=2){ filtros.style.display="none"; }
+    filtros.innerHTML=zs.map(function(z){
+      return '<button class="filtro" aria-pressed="'+(z===zonaActiva)+'" data-z="'+esc(z)+'">'+esc(z)+'</button>';
+    }).join("");
+    filtros.querySelectorAll(".filtro").forEach(function(b){
+      b.addEventListener("click",function(){ zonaActiva=b.getAttribute("data-z");
+        filtros.querySelectorAll(".filtro").forEach(function(o){ o.setAttribute("aria-pressed", o===b); });
+        pintar(); });
+    });
+    // zonas también arriba, en la tarjeta
+    var top=document.getElementById("zonasTop");
+    top.innerHTML=zs.filter(function(z){return z!=="Todas";}).slice(0,5)
+      .map(function(z){ return "<span>"+esc(z)+"</span>"; }).join("");
+  }
+
+  function pintar(){
+    var lista=todos.filter(function(c){
+      return zonaActiva==="Todas" || (c.localidad||c.zona)===zonaActiva;
+    });
+    if(!lista.length){ grilla.innerHTML='<div class="vacio">No hay espacios en esa zona.</div>'; return; }
+    grilla.innerHTML=lista.map(function(c){
+      var libre=c.estado!=="Ocupado";
+      var f=fotos[c.codigo]||"";
+      var etiqueta=libre?"Disponible":(c.disponible_desde?"Libre el "+fecha(c.disponible_desde):"Ocupado");
+      return '<a class="item" href="/cartel/'+encodeURIComponent(c.codigo)+'">'+
+        '<div class="item-foto">'+(f?'<img src="'+esc(f)+'" alt="'+esc(c.nombre||"")+'" loading="lazy">':'')+
+          '<b>'+esc(etiqueta)+'</b></div>'+
+        '<div class="item-txt"><h3>'+esc(limpiarTitulo(c.nombre||("Cartel "+c.codigo)))+'</h3>'+
+        (c.localidad?'<p>'+esc(c.localidad)+'</p>':'')+
+        '<div class="item-datos">'+
+          (c.medidas?'<span>'+esc(c.medidas)+'</span>':'')+
+          (c.iluminado?'<span>Iluminado</span>':'')+
+          (c.impactos?'<span class="verde">'+num(c.impactos)+' por semana</span>':'')+
+        '</div><div class="ver">Ver el espacio <i>→</i></div></div></a>';
+    }).join("");
+  }
+})();
+</script>
+</body>
+</html>

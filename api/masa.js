@@ -102,6 +102,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, link: `/cartel/${cartel.codigo}` });
     }
 
+    // -------- Mostrar u ocultar del catálogo --------
+    if (accion === "catalogo") {
+      const { codigo, destacado } = body;
+      if (!codigo) return res.status(400).json({ error: "Falta el código" });
+      const r = await sb(`/rest/v1/masa_carteles?codigo=eq.${encodeURIComponent(codigo)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destacado: !!destacado }),
+      });
+      if (!r.ok) return res.status(502).json({ error: "No se pudo actualizar" });
+      return res.status(200).json({ ok: true });
+    }
+
     // -------- Borrar una ficha publicada --------
     if (accion === "borrar") {
       const { codigo } = body;

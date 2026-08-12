@@ -1,19 +1,36 @@
 {
-  "functions": { "api/*.js": { "maxDuration": 60 } },
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/cartel/:codigo", "destination": "/cartel/index.html" }
+    {
+      "source": "/cartel/:codigo",
+      "destination": "/cartel/index.html"
+    },
+    {
+      "source": "/moni",
+      "destination": "/moni/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        }
       ]
     },
     {
       "source": "/cartel/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=60, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=60, must-revalidate"
+        }
       ]
     }
   ]
