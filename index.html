@@ -665,7 +665,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 23</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 24</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1260,16 +1260,18 @@ function armarPlaca(img, encuadre, cartel) {
   x.fillStyle = MUT; x.font = F(500, 28, "'Plus Jakarta Sans', Arial, sans-serif");
   x.fillText(cartel.detalle || "", px, py); py += 56;
   x.fillStyle = ORO_L; x.font = F(500, 32, "'Plus Jakarta Sans', Arial, sans-serif");
-  x.fillText("Todas las fotos y el precio, en el link de abajo", px, py); py += 62;
+  py += 8;
 
-  // --- botón ---
-  const txtBtn = "Respondé a este estado";
-  x.font = F(700, 42, "'Plus Jakarta Sans', Arial, sans-serif");
-  const wBtn = x.measureText(txtBtn).width + 150;
-  x.fillStyle = ORO; redonda(px, py, wBtn, 100, 50); x.fill();
-  x.fillStyle = "#1a1104"; x.fillText(txtBtn, px + 52, py + 30);
-  const ax = px + 52 + x.measureText(txtBtn).width + 32, ay = py + 50;
-  x.beginPath(); x.moveTo(ax, ay - 16); x.lineTo(ax, ay + 16); x.lineTo(ax + 26, ay); x.closePath(); x.fill();
+  // --- llamada al link (grande, en el botón dorado) ---
+  const txtBtn = "Mirá todas las fotos en el link";
+  x.font = F(800, 50, "'Plus Jakarta Sans', Arial, sans-serif");
+  const wTxt = x.measureText(txtBtn).width;
+  const wBtn = wTxt + 158;
+  x.fillStyle = ORO; redonda(px, py, wBtn, 116, 58); x.fill();
+  x.fillStyle = "#1a1104"; x.fillText(txtBtn, px + 56, py + 33);
+  // flecha hacia abajo, apuntando al link del estado
+  const ax = px + 56 + wTxt + 40, ay = py + 58;
+  x.beginPath(); x.moveTo(ax - 16, ay - 12); x.lineTo(ax + 16, ay - 12); x.lineTo(ax, ay + 16); x.closePath(); x.fill();
 
   return c.toDataURL("image/jpeg", 0.93);
 }
@@ -2837,7 +2839,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v23",
+        dateStr: fmtDate(today()) + " · v24",
         fotos,
         chs,
         impactosDe,
