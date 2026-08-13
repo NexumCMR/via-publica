@@ -665,7 +665,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 24</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 25</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -1225,14 +1225,24 @@ function armarPlaca(img, encuadre, cartel) {
   x.fillStyle = ORO; x.font = F(700, 22, "'Space Mono', monospace");
   espaciado("ESPECTACULARES", 132, 108, 4);
 
-  // --- cartelito de disponibilidad ---
+  // --- cartelito de disponibilidad (texto centrado de verdad) ---
   const aviso = cartel.avisoPlaca || "";
   if (aviso) {
-    x.font = F(700, 28, "'Space Mono', monospace");
-    let anchoA = 0; for (const ch of aviso) anchoA += x.measureText(ch).width + 2;
-    const wch = anchoA + 40;
-    x.strokeStyle = ORO; x.lineWidth = 2; redonda(W - 56 - wch, 74, wch, 50, 25); x.stroke();
-    x.fillStyle = ORO_L; espaciado(aviso, W - 56 - wch + 20, 88, 2);
+    const fs = 28, ls = 2, chipY = 72, chipH = 54;
+    x.font = F(700, fs, "'Space Mono', monospace");
+    // ancho real del texto (el espaciado va ENTRE letras, no después de la última)
+    let anchoTxt = 0;
+    for (let i = 0; i < aviso.length; i++) anchoTxt += x.measureText(aviso[i]).width + (i < aviso.length - 1 ? ls : 0);
+    const wch = anchoTxt + 44;
+    const chipX = W - 56 - wch;
+    x.strokeStyle = ORO; x.lineWidth = 2;
+    redonda(chipX, chipY, wch, chipH, chipH / 2); x.stroke();
+    // centrado vertical con la métrica real de la fuente
+    const antes = x.textBaseline;
+    x.textBaseline = "middle";
+    x.fillStyle = ORO_L;
+    espaciado(aviso, chipX + (wch - anchoTxt) / 2, chipY + chipH / 2, ls);
+    x.textBaseline = antes;
   }
 
   // --- textos de abajo ---
@@ -1248,19 +1258,16 @@ function armarPlaca(img, encuadre, cartel) {
   cortar(titulo, W - 128).slice(0, 2).forEach((l) => { x.fillText(l, px, py); py += 74; });
   py += 12;
 
-  if (cartel.numero) {
-    x.fillStyle = ORO; x.font = F(800, 86);
-    x.fillText(cartel.numero, px, py);
-    const anchoN = x.measureText(cartel.numero).width;
-    x.fillStyle = BLANCO; x.font = F(700, 36, "'Plus Jakarta Sans', Arial, sans-serif");
-    x.fillText(cartel.numeroTxt || "", px + anchoN + 20, py + 40);
-    py += 118;
-  }
+  // medidas · tipo · iluminación
+  x.fillStyle = MUT; x.font = F(500, 30, "'Plus Jakarta Sans', Arial, sans-serif");
+  x.fillText(cartel.detalle || "", px, py); py += 58;
 
-  x.fillStyle = MUT; x.font = F(500, 28, "'Plus Jakarta Sans', Arial, sans-serif");
-  x.fillText(cartel.detalle || "", px, py); py += 56;
-  x.fillStyle = ORO_L; x.font = F(500, 32, "'Plus Jakarta Sans', Arial, sans-serif");
-  py += 8;
+  // impactos por semana, destacado
+  if (cartel.impactosTxt) {
+    x.fillStyle = ORO; x.font = F(800, 52, "'Plus Jakarta Sans', Arial, sans-serif");
+    x.fillText(cartel.impactosTxt, px, py); py += 76;
+  }
+  py += 10;
 
   // --- llamada al link (grande, en el botón dorado) ---
   const txtBtn = "Mirá todas las fotos en el link";
@@ -1341,9 +1348,8 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   const datosPlaca = {
     epigrafe: (d.zona || d.ubicacion || "").split(",")[0] || "Vía pública",
     titulo: d.nombre || ("Cartel " + codigo),
-    numero: impactos ? Math.round(impactos / 7).toLocaleString("es-AR") : "",
-    numeroTxt: impactos ? "personas por día" : "",
-    detalle: [d.medidas, d.tipo, d.iluminado ? "Iluminado" : "", impactos ? impactos.toLocaleString("es-AR") + " impactos/semana" : ""].filter(Boolean).join(" · "),
+    detalle: [d.medidas, d.tipo, d.iluminado ? "Iluminado" : ""].filter(Boolean).join(" · "),
+    impactosTxt: impactos ? impactos.toLocaleString("es-AR") + " impactos por semana" : "",
     avisoPlaca: d.estado === "Disponible" ? "DISPONIBLE" : "",
   };
 
@@ -2839,7 +2845,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v24",
+        dateStr: fmtDate(today()) + " · v25",
         fotos,
         chs,
         impactosDe,
