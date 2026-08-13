@@ -381,24 +381,36 @@ async function fetchEmpresas({ rubro, zona = "", cerca = "", exclude = [], canti
   const lugar = cerca
     ? `ubicadas lo más cerca posible de "${cerca}" (Argentina)`
     : `ubicadas en ${zona || "CABA y Provincia de Buenos Aires"}, Argentina`;
-  const prompt = `Buscá en la web la MAYOR cantidad posible de empresas REALES y ACTUALES del rubro "${rubro}" ${lugar}, que sean buenos candidatos para contratar publicidad en vía pública (carteles, pantallas LED, medianeras).
-LO MÁS IMPORTANTE: para cada empresa, conseguir el EMAIL DE CONTACTO y el TELÉFONO. Son los datos más valiosos. Esforzate muchísimo en esto.
-Dónde buscar el email y el teléfono (revisá varias fuentes):
-- La página oficial de la empresa: secciones "Contacto", "Contactanos", "Quiénes somos" y el pie de página (footer).
-- La biografía de Instagram y Facebook, y la página de LinkedIn de la empresa.
-- Google Maps / perfil de Google de la empresa, y directorios argentinos (Páginas Amarillas, guías del rubro).
-- Priorizá el email del área de MARKETING, prensa o comunicación; si no, el general (info@, contacto@, ventas@, marketing@).
-REGLAS IMPORTANTES SOBRE EL EMAIL:
-- NUNCA devuelvas "email protected", "[email protected]" ni direcciones ocultas/ofuscadas. Si solo encontrás eso, tratá el email como vacío ("").
-- Si encontrás el SITIO WEB pero no un email publicado, ofrecé las direcciones más probables para ese dominio (por ejemplo info@dominio, contacto@dominio) y aclaralo en "nota" con "(email probable, a confirmar)".
-REGLAS GENERALES:
-- SOLO empresas con sede en ARGENTINA. Nunca de otros países.
-- Apuntá a al menos ${cantidad} empresas DISTINTAS. Dale prioridad a las que SÍ tengan email y/o teléfono reales.
-- Incluí también, si están, el sitio web y las redes (Instagram o LinkedIn), pero el foco es email y teléfono.
-- Datos públicos y verificables. No inventes datos (salvo los "email probable" del propio dominio, bien aclarados).${excludeTxt}
-Respondé EXCLUSIVAMENTE con un array JSON válido (sin markdown ni texto extra), con esta forma exacta:
-[{"nombre":"","web":"","telefono":"","email":"","redes":"","nota":""}]
-En "nota" poné una frase corta de por qué le puede servir publicidad en vía pública (y aclaraciones del email si corresponde).`;
+  const prompt = `Buscá empresas REALES y ACTUALES del rubro "${rubro}" ${lugar}, que puedan contratar publicidad en vía pública.
+
+QUIÉN SIRVE Y QUIÉN NO (muy importante):
+- PRIORIZÁ empresas LOCALES, REGIONALES y PyMEs medianas/grandes de la zona: son las que atienden el teléfono y deciden rápido.
+- EVITÁ multinacionales y grandes marcas masivas (Coca-Cola, Unilever, bancos nacionales, etc.): compran vía centrales de medios y sus contactos publicados no sirven.
+- Si igual incluís una marca grande, marcá "calidad":"agencia" y aclaralo en la nota.
+
+DATOS DE CONTACTO — buscá en este orden de preferencia:
+1) PERSONA que decide, con nombre y cargo (dueño/a, gerente comercial, de marketing o socio). Buscala en LinkedIn, en "Quiénes somos"/"Equipo" del sitio, o en notas de prensa.
+2) WHATSAPP publicado (bio de Instagram, botón del sitio, Google Maps). En empresas locales suele ser el canal que MÁS responde.
+3) INSTAGRAM de la empresa (el @). Para comercios y PyMEs, el mensaje directo por Instagram funciona muy bien.
+4) EMAIL: preferí marketing@, comercial@, prensa@ o el de la persona. El info@ genérico va último.
+5) TELÉFONO directo del local o la sucursal, NO un 0800 ni conmutador.
+
+CLASIFICÁ la calidad del contacto en el campo "calidad":
+- "directo": tenés nombre y cargo de quien decide, o un WhatsApp/celular directo.
+- "bueno": email de área (marketing@/comercial@) o teléfono del local, sin nombre.
+- "generico": sólo info@ o un 0800. (Poné pocos de estos, y siempre al final.)
+- "agencia": marca grande que compra por central de medios.
+
+REGLAS:
+- SOLO empresas con sede en ARGENTINA.
+- NUNCA devuelvas "email protected" ni direcciones ofuscadas: si sólo ves eso, dejá el email vacío ("").
+- Si tenés el dominio pero ningún email publicado, proponé el más probable y aclaralo en la nota como "(probable, a confirmar)".
+- No inventes personas, teléfonos ni emails. Si no lo encontrás, dejalo vacío.
+- Apuntá a ${cantidad} empresas DISTINTAS, priorizando las de calidad "directo" y "bueno".${excludeTxt}
+
+Respondé EXCLUSIVAMENTE con un array JSON válido (sin markdown ni texto extra):
+[{"nombre":"","web":"","telefono":"","whatsapp":"","email":"","contacto":"","cargo":"","instagram":"","calidad":"","nota":""}]
+En "nota": una frase corta de por qué a esa empresa le sirve la vía pública (ej. que está creciendo, que abrió sucursal, que hace campañas).`;
   const res = await fetch("/api/anthropic", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -411,6 +423,16 @@ En "nota" poné una frase corta de por qué le puede servir publicidad en vía p
   const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
   return parseLooseJson(text).filter((x) => x && x.nombre);
 }
+const ORDEN_CALIDAD = { directo: 0, bueno: 1, generico: 2, agencia: 3 };
+const CALIDAD_ETIQUETA = {
+  directo:  ["Contacto directo", "s-green"],
+  bueno:    ["Buen contacto", "s-blue"],
+  generico: ["Contacto general", "s-gray"],
+  agencia:  ["Compra por agencia", "s-amber"],
+};
+const ordenarPorCalidad = (arr) => [...arr].sort(
+  (a, b) => (ORDEN_CALIDAD[a.calidad] ?? 2) - (ORDEN_CALIDAD[b.calidad] ?? 2));
+
 const dedupeEmpresas = (arr) => {
   const seen = new Set(); const out = [];
   for (const e of arr) { const k = (e.nombre || "").trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); out.push(e); } }
@@ -484,18 +506,19 @@ const ZONAS_CARD = ["Todas", "CABA", "Norte", "Oeste", "Sur", "Otras"];
 const bbColor = (e) => ({ "Disponible": "var(--green)", "Reservado": "var(--amber)", "Ocupado": "var(--red)", "Próximo a liberarse": "var(--blue)" }[e] || "var(--muted)");
 const bbChip = (e) => ({ "Disponible": "s-green", "Reservado": "s-amber", "Ocupado": "s-red", "Próximo a liberarse": "s-blue" }[e] || "s-gray");
 
-const RUBROS = [
-  "Constructoras", "Desarrolladoras inmobiliarias", "Inmobiliarias", "Concesionarias de autos",
-  "Clínicas y centros médicos", "Odontología y estética", "Prepagas y obras sociales",
-  "Laboratorios y farmacias", "Bancos y financieras", "Aseguradoras",
-  "Universidades e institutos", "Restaurantes y gastronomía", "Supermercados y mayoristas",
-  "Shoppings y retail", "Indumentaria y calzado", "Gimnasios y wellness",
-  "Agencias de marketing y publicidad", "Estudios jurídicos", "Turismo y hoteles",
-  "Telecomunicaciones e internet", "Electrodomésticos y tecnología", "Casinos y entretenimiento",
-  "Empresas de eventos", "Logística y transporte", "Mutuales y cooperativas",
-  "Franquicias", "Bodegas y bebidas", "Repuestos y automotores",
-  "Educación y cursos", "Veterinarias y pet shops"
+const RUBROS_GRUPOS = [
+  ["Construcción e inmuebles", ["Desarrolladoras inmobiliarias","Constructoras","Inmobiliarias","Corralones y materiales","Amoblamientos y cocinas","Pinturerías","Aberturas y vidrios","Piletas y decks","Barrios cerrados y countries"]],
+  ["Autos y vehículos", ["Concesionarias de autos","Concesionarias de motos","Agencias de usados","Repuestos y autopartes","Talleres y service","Neumáticos","Lavaderos y detailing","Alquiler de autos","Camiones y maquinaria"]],
+  ["Salud y estética", ["Clínicas y sanatorios","Centros médicos y diagnóstico","Odontología","Estética y dermatología","Cirugía plástica","Oftalmología","Kinesiología y rehabilitación","Prepagas y obras sociales","Farmacias y laboratorios","Ópticas","Geriátricos"]],
+  ["Comercio y consumo", ["Supermercados y mayoristas","Shoppings y retail","Indumentaria y calzado","Deportes","Electrodomésticos y tecnología","Muebles y hogar","Jugueterías","Perfumerías","Joyerías y relojerías","Bazar y regalería"]],
+  ["Gastronomía", ["Restaurantes","Cadenas de comida rápida","Cafeterías y panaderías","Heladerías","Cervecerías y bares","Delivery y apps","Catering y eventos","Bodegas y bebidas"]],
+  ["Servicios y finanzas", ["Bancos y financieras","Billeteras y fintech","Aseguradoras","Estudios contables","Estudios jurídicos","Agencias de marketing y publicidad","Consultoras y RRHH","Seguridad e higiene","Servicios fúnebres"]],
+  ["Educación", ["Universidades","Institutos y terciarios","Colegios privados","Cursos y capacitaciones","Idiomas","Autoescuelas"]],
+  ["Ocio y turismo", ["Gimnasios y wellness","Turismo y agencias de viaje","Hoteles","Casinos y bingos","Cines y teatros","Productoras de espectáculos","Clubes deportivos","Salones de fiestas"]],
+  ["Industria y logística", ["Logística y transporte","Empresas de mudanzas","Industria y fábricas","Agro y maquinaria","Energía y combustibles","Estaciones de servicio","Mayoristas y distribuidoras"]],
+  ["Otros", ["Telecomunicaciones e internet","Inmobiliarias comerciales","Veterinarias y pet shops","Mutuales y cooperativas","Franquicias","Cámaras y asociaciones","Municipios y organismos","Partidos y campañas","ONGs y fundaciones"]],
 ];
+const RUBROS = RUBROS_GRUPOS.flatMap(([, rs]) => rs);
 
 /* ====================== SEED DATA (solo ejemplos, borrables) ====================== */
 const SEED = {
@@ -642,7 +665,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 22</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 23</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -2546,7 +2569,7 @@ function Mapa({ data, update, go, addUsage }) {
           <div style={{ marginTop: 12, fontWeight: 700, fontSize: 15 }}>Buscar empresas cerca de este cartel para ofrecerles publicidad</div>
           <div className="toolbar" style={{ margin: "10px 0 0" }}>
             <select className="select" value={rubroCerca} onChange={(e) => setRubroCerca(e.target.value)}>
-              <option value="">Elegí un rubro…</option>{RUBROS.map((r) => <option key={r}>{r}</option>)}</select>
+              <option value="">Elegí un rubro…</option>{RUBROS_GRUPOS.map(([g, rs]) => <optgroup key={g} label={g}>{rs.map((r) => <option key={r}>{r}</option>)}</optgroup>)}</select>
             <button className="btn btn-primary" onClick={buscarCerca} disabled={loadingCerca}>
               {loadingCerca ? <><span className="spinner sm" /> Buscando…</> : <><Search size={18} /> Buscar cerca</>}</button>
           </div>
@@ -2556,7 +2579,7 @@ function Mapa({ data, update, go, addUsage }) {
           {empresasCerca.length > 0 && (
             <div className="grid cols-2" style={{ marginTop: 14 }}>
               {empresasCerca.map((e, i) => {
-                const tel = onlyDigits(e.telefono);
+                const tel = onlyDigits(e.whatsapp || e.telefono);
                 return (
                   <div className="card" key={i} style={{ display: "flex", flexDirection: "column", gap: 6, boxShadow: "none", background: "#faf8f3" }}>
                     <div style={{ fontWeight: 800, fontSize: 16 }}>{e.nombre}</div>
@@ -2814,7 +2837,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v22",
+        dateStr: fmtDate(today()) + " · v23",
         fotos,
         chs,
         impactosDe,
@@ -3081,7 +3104,7 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
     if (!rubro) { setError("Elegí un rubro primero."); return; }
     setLoading(true); setError(""); setResultados([]); setSaved({});
     try {
-      const arr = dedupeEmpresas(await fetchEmpresas({ rubro, zona, cantidad: 12 }));
+      const arr = ordenarPorCalidad(dedupeEmpresas(await fetchEmpresas({ rubro, zona, cantidad: 12 })));
       addUsage && addUsage(COSTO_BUSQUEDA);
       if (!arr.length) setError("No encontré resultados claros. Probá con otra zona o rubro.");
       setResultados(arr);
@@ -3096,7 +3119,7 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
     try {
       const nuevos = await fetchEmpresas({ rubro, zona, cantidad: 10, exclude: resultados.map((r) => r.nombre) });
       addUsage && addUsage(COSTO_BUSQUEDA);
-      const todos = dedupeEmpresas([...resultados, ...nuevos]);
+      const todos = ordenarPorCalidad(dedupeEmpresas([...resultados, ...nuevos]));
       if (todos.length === resultados.length) setError("No encontré más empresas distintas por ahora.");
       setResultados(todos);
     } catch (e) {
@@ -3106,11 +3129,11 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
   };
 
   const guardar = (e) => {
-    const nota = [e.web && `Web: ${e.web}`, e.redes && `Redes: ${e.redes}`, e.nota].filter(Boolean).join(" · ");
+    const nota = [e.web && `Web: ${e.web}`, (e.instagram || e.redes) && `Redes: ${e.instagram || e.redes}`, e.nota].filter(Boolean).join(" · ");
     update({
       clients: [{
-        id: uid(), empresa: e.nombre, contacto: "", cargo: "", telefono: e.telefono || "",
-        whatsapp: e.telefono || "", email: e.email || "", rubro, estado: "Prospecto", ultimoContacto: "",
+        id: uid(), empresa: e.nombre, contacto: e.contacto || "", cargo: e.cargo || "", telefono: e.telefono || "",
+        whatsapp: e.whatsapp || e.telefono || "", email: e.email || "", rubro, estado: "Prospecto", ultimoContacto: "",
         historial: nota ? [{ fecha: today(), tipo: "Nota", nota }] : []
       }, ...clients]
     });
@@ -3139,7 +3162,7 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
         <div className="cell-sub" style={{ marginBottom: 14 }}>Elegí un rubro y una zona. La IA busca en la web y trae empresas reales con sus datos de contacto públicos.</div>
         <div className="toolbar" style={{ marginBottom: 8 }}>
           <select className="select" value={rubro} onChange={(e) => setRubro(e.target.value)}>
-            <option value="">Elegí un rubro…</option>{RUBROS.map((r) => <option key={r}>{r}</option>)}</select>
+            <option value="">Elegí un rubro…</option>{RUBROS_GRUPOS.map(([g, rs]) => <optgroup key={g} label={g}>{rs.map((r) => <option key={r}>{r}</option>)}</optgroup>)}</select>
           <div className="searchbox"><MapPin size={18} color="#6b7790" />
             <input placeholder="Zona (ej: CABA, Zona Norte, La Plata)" value={zona} onChange={(e) => setZona(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && buscarIA()} /></div>
@@ -3148,6 +3171,18 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
         </div>
         {error && <div className="alert a" style={{ marginTop: 6 }}><AlertTriangle size={18} /> {error}</div>}
         <div className="cell-sub" style={{ marginTop: 6 }}>Los datos provienen de fuentes públicas en la web. Verificá siempre antes de contactar.</div>
+        <div style={{ marginTop: 12, background: "var(--panel2, #f4f1ea)", borderRadius: 12, padding: "13px 15px", fontSize: 13.5, lineHeight: 1.6 }}>
+          <b>Cómo leer los resultados</b>
+          <div style={{ marginTop: 7, display: "flex", flexDirection: "column", gap: 5 }}>
+            <div><span className="chip s-green">Contacto directo</span> Hay nombre de quien decide o un WhatsApp. <b>Empezá por estos.</b></div>
+            <div><span className="chip s-blue">Buen contacto</span> Mail del área o teléfono del local.</div>
+            <div><span className="chip s-gray">Contacto general</span> Sólo un info@ o un 0800: cuesta que respondan.</div>
+            <div><span className="chip s-amber">Compra por agencia</span> Marca grande: no compra directo.</div>
+          </div>
+          <div style={{ marginTop: 9, color: "var(--muted)" }}>
+            Las empresas de la zona responden mucho más que las marcas nacionales. Si podés, escribí por WhatsApp o Instagram antes que por mail.
+          </div>
+        </div>
         {(() => {
           const restante = Math.max(0, (data.budget || 0) - (data.usage?.gasto || 0));
           const nBusq = Math.floor(restante / COSTO_BUSQUEDA);
@@ -3190,15 +3225,31 @@ function Prospectar({ data, update, go, addUsage, setBudget }) {
               const tel = onlyDigits(e.telefono);
               return (
                 <div className="card" key={i} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ fontWeight: 800, fontSize: 17 }}>{e.nombre}</div>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ fontWeight: 800, fontSize: 17 }}>{e.nombre}</div>
+                    {CALIDAD_ETIQUETA[e.calidad] && (
+                      <span className={"chip " + CALIDAD_ETIQUETA[e.calidad][1]} style={{ flex: "0 0 auto" }}>
+                        {CALIDAD_ETIQUETA[e.calidad][0]}
+                      </span>)}
+                  </div>
+                  {(e.contacto || e.cargo) && (
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--green)" }}>
+                      {e.contacto}{e.cargo ? " · " + e.cargo : ""}
+                    </div>)}
                   {e.nota && <div className="cell-sub">{e.nota}</div>}
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14, margin: "4px 0" }}>
+                    {e.whatsapp && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.whatsapp} <b style={{ color: "var(--green)" }}>· WhatsApp</b></div>}
                     {e.telefono && <div><Phone size={13} style={{ verticalAlign: "-2px" }} /> {e.telefono}</div>}
                     {e.email && <div><Mail size={13} style={{ verticalAlign: "-2px" }} /> {e.email}</div>}
+                    {e.instagram && <div><Star size={13} style={{ verticalAlign: "-2px" }} /> <a href={"https://instagram.com/" + String(e.instagram).replace(/^@|.*instagram\.com\//, "")} target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>{e.instagram}</a></div>}
                     {e.web && <div><ExternalLink size={13} style={{ verticalAlign: "-2px" }} /> <a href={e.web.startsWith("http") ? e.web : "https://" + e.web} target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>{e.web}</a></div>}
-                    {e.redes && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.redes}</div>}
-                    {!e.telefono && !e.email && !e.web && <div className="cell-sub">Sin datos de contacto públicos encontrados.</div>}
+                    {e.redes && !e.instagram && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {e.redes}</div>}
+                    {!e.telefono && !e.email && !e.web && !e.whatsapp && <div className="cell-sub">Sin datos de contacto públicos encontrados.</div>}
                   </div>
+                  {e.calidad === "agencia" && (
+                    <div style={{ fontSize: 13, background: "#fff8e6", color: "#8a6100", padding: "9px 11px", borderRadius: 10, lineHeight: 1.45 }}>
+                      Marca grande: la vía pública la compran por una central de medios, no directo. Difícil que respondan.
+                    </div>)}
                   <button className="btn btn-ghost btn-sm" onClick={() => buscarContacto(i)} disabled={buscandoC[i]} style={{ alignSelf: "flex-start" }}>
                     {buscandoC[i] ? <><span className="spinner sm" /> Buscando contacto…</> : <><Sparkles size={15} /> Buscar mail y teléfono</>}
                   </button>
