@@ -504,6 +504,40 @@ function zonaCardinal(b){
 }
 const ZONAS_CARD = ["Todas", "CABA", "Norte", "Oeste", "Sur", "Otras"];
 const bbColor = (e) => ({ "Disponible": "var(--green)", "Reservado": "var(--amber)", "Ocupado": "var(--red)", "Próximo a liberarse": "var(--blue)" }[e] || "var(--muted)");
+// Entiende frases como "libres en Morón", "iluminados en CABA", "menos de 5 millones".
+// Funciona igual escrito o dictado con el micrófono del teclado.
+function entenderBusqueda(txt) {
+  let t = " " + String(txt || "").toLowerCase().trim() + " ";
+  const f = { estado: null, iluminado: null, tipo: null, precioMax: null, precioMin: null, texto: "" };
+  const sacar = (re) => { const m = t.match(re); if (m) { t = t.replace(m[0], " "); return m; } return null; };
+
+  if (sacar(/\b(libres?|disponibles?|vac[ií]os?|sin ocupar)\b/)) f.estado = "Disponible";
+  else if (sacar(/\b(ocupados?|vendidos?|tomados?)\b/)) f.estado = "Ocupado";
+  else if (sacar(/\b(reservados?)\b/)) f.estado = "Reservado";
+
+  if (sacar(/\b(iluminad[oa]s?|con luz)\b/)) f.iluminado = true;
+  else if (sacar(/\bsin luz\b/)) f.iluminado = false;
+
+  const tp = sacar(/\b(pantallas? led|medianeras?|columnas?|top wall|vallados?|murales?|carteles?)\b/);
+  if (tp) f.tipo = tp[1];
+
+  const num = (x, unidad) => {
+    let v = parseFloat(String(x).replace(",", "."));
+    if (/mill/.test(unidad || "")) v *= 1e6;
+    else if (/mil\b/.test(unidad || "")) v *= 1e3;
+    else if (v < 1000) v *= 1e6; // "5" = 5 millones
+    return v;
+  };
+  let m = sacar(/\b(menos de|hasta|por debajo de)\s*\$?\s*([\d.,]+)\s*(millones?|mill|mil)?/);
+  if (m) f.precioMax = num(m[2], m[3]);
+  m = sacar(/\b(m[áa]s de|desde|arriba de)\s*\$?\s*([\d.,]+)\s*(millones?|mill|mil)?/);
+  if (m) f.precioMin = num(m[2], m[3]);
+
+  t = t.replace(/\b(mostrame|mostr[áa]|busc[áa]|buscame|dame|quiero|ver|los|las|el|la|de|en|con|que|est[eé]n|est[áa]n|carteles?|espacios?)\b/g, " ");
+  f.texto = t.replace(/\s{2,}/g, " ").trim();
+  return f;
+}
+
 const bbChip = (e) => ({ "Disponible": "s-green", "Reservado": "s-amber", "Ocupado": "s-red", "Próximo a liberarse": "s-blue" }[e] || "s-gray");
 
 const RUBROS_GRUPOS = [
@@ -598,6 +632,9 @@ function App() {
     { id: "seguimiento", label: "Seguimiento", icon: BellRing },
     { id: "inventario", label: "Carteles", icon: LayoutPanelTop },
     { id: "publicar", label: "Publicar en WhatsApp", icon: MessageCircle },
+    { id: "mensajes", label: "Mensajes listos", icon: Mail },
+    { id: "simular", label: "Simular marca", icon: Sparkles },
+    { id: "detectar", label: "¿Qué marca es?", icon: Search },
     { id: "mapa", label: "Mapa", icon: MapPin },
     { id: "propuestas", label: "Propuestas", icon: FileText },
     { id: "prospectar", label: "Buscar empresas", icon: Search },
@@ -609,6 +646,9 @@ function App() {
     clientes: ["Clientes", "Tu cartera de contactos"],
     seguimiento: ["Seguimiento comercial", "No pierdas ningún cliente"],
     publicar: ["Publicar en WhatsApp", "Armá la imagen y el link de un cartel"],
+    mensajes: ["Mensajes listos", "Escribile a un cliente en dos toques"],
+    simular: ["Simular marca", "Mostrale al cliente su marca en el cartel"],
+    detectar: ["¿Qué marca es?", "Sacale una foto a un cartel y encontrá al anunciante"],
     inventario: ["Inventario de carteles", "Tus espacios publicitarios"],
     mapa: ["Mapa de ubicaciones", "Dónde está cada cartel"],
     propuestas: ["Propuestas comerciales", "Armá y exportá propuestas"],
@@ -665,7 +705,7 @@ function App() {
                 <div className="sub">{titles[tab][1]}</div>
               </div>
               <div style={{ flex: 1 }} />
-              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 25</span>
+              <span style={{ background: "#137a3e", color: "#fff", fontWeight: 800, fontSize: 13, padding: "5px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>✓ Versión 36</span>
             </div>
             <div className="content" key={tab}>
               {tab === "dashboard" && <Dashboard data={data} update={update} go={setTab} />}
@@ -673,6 +713,9 @@ function App() {
               {tab === "seguimiento" && <Seguimiento data={data} update={update} />}
               {tab === "inventario" && <Inventario data={data} update={update} />}
               {tab === "publicar" && <PublicarSeccion data={data} />}
+              {tab === "mensajes" && <MensajesSeccion data={data} />}
+              {tab === "simular" && <SimuladorSeccion data={data} />}
+              {tab === "detectar" && <DetectarSeccion data={data} update={update} />}
               {tab === "mapa" && <Mapa data={data} update={update} go={setTab} addUsage={addUsage} />}
               {tab === "propuestas" && <Propuestas data={data} update={update} />}
               {tab === "prospectar" && <Prospectar data={data} update={update} go={setTab} addUsage={addUsage} setBudget={(v) => update({ budget: v })} />}
@@ -772,6 +815,10 @@ function Dashboard({ data, update, go }) {
   const saludo = hora < 13 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const fechaLarga = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
+  const diasCopia = data.ultimaCopia
+    ? Math.max(0, Math.floor((new Date(today()) - new Date(data.ultimaCopia)) / 86400000))
+    : null;
+
   const hacerBackup = () => {
     try {
       const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
@@ -780,6 +827,7 @@ function Dashboard({ data, update, go }) {
       a.href = url; a.download = `respaldo-via-publica-${today()}.json`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      update({ ultimaCopia: today() });
     } catch { alert("No se pudo crear la copia."); }
   };
   const restaurar = (file) => {
@@ -805,6 +853,22 @@ function Dashboard({ data, update, go }) {
           <div className="greeting-date">{fechaLarga}</div>
         </div>
       </div>
+
+      {(diasCopia === null || diasCopia > 15) && ((data.billboards || []).length > 3 || (data.clients || []).length > 3) && (
+        <div className="alert a" style={{ marginTop: 14, alignItems: "flex-start" }}>
+          <ShieldCheck size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <b>{diasCopia === null ? "Nunca hiciste una copia de seguridad" : `Hace ${diasCopia} días que no hacés una copia`}</b>
+            <div style={{ fontSize: 13.5, lineHeight: 1.5, marginTop: 3 }}>
+              Si se rompe o cambiás el teléfono, perdés tus {(data.billboards || []).length} carteles y {(data.clients || []).length} clientes.
+              Son 10 segundos.
+            </div>
+            <button className="btn btn-primary" style={{ marginTop: 10 }} onClick={hacerBackup}>
+              <Download size={17} /> Hacer la copia ahora
+            </button>
+          </div>
+        </div>
+      )}
 
       {hasExamples && (
         <div className="example-banner">
@@ -898,8 +962,24 @@ function Dashboard({ data, update, go }) {
         <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--green-bg)", color: "var(--green)", display: "grid", placeItems: "center", flexShrink: 0 }}><ShieldCheck size={22} /></span>
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>Copia de seguridad</div>
-          <div style={{ color: "var(--ink2)", fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-            Guardá un archivo con todos tus datos por las dudas. Si cambiás de teléfono o se borran los datos, lo restaurás y vuelve todo. Recomendado: hacela cada tanto.
+          <div style={{ color: "var(--ink2)", fontSize: 14, lineHeight: 1.55, marginBottom: 10 }}>
+            Tus {(data.billboards || []).length} carteles y {(data.clients || []).length} clientes están guardados
+            <b> sólo en este teléfono</b>. No están en internet.
+            <br /><br />
+            Eso quiere decir que si cambiás de celular, si se rompe, o si el teléfono se queda sin espacio,
+            <b> se pierde todo y no hay forma de recuperarlo</b>.
+            <br /><br />
+            Tocando el botón se baja <b>un archivo</b> con toda tu información. Guardalo donde quieras
+            (mandátelo por mail a vos misma, ponelo en Drive, lo que te resulte más fácil).
+            El día que pase algo, tocás «Restaurar» y vuelve todo como estaba.
+          </div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12,
+            color: diasCopia === null || diasCopia > 15 ? "#a4271c" : "var(--green)" }}>
+            {diasCopia === null ? "⚠️ Todavía no hiciste ninguna copia."
+              : diasCopia === 0 ? "✅ Hiciste una copia hoy."
+              : diasCopia === 1 ? "✅ Última copia: ayer."
+              : diasCopia > 15 ? `⚠️ Última copia: hace ${diasCopia} días. Conviene hacer una nueva.`
+              : `✅ Última copia: hace ${diasCopia} días.`}
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button className="btn btn-primary" onClick={hacerBackup}><Download size={18} /> Hacer copia de seguridad</button>
@@ -916,6 +996,100 @@ function Dashboard({ data, update, go }) {
 }
 
 /* ====================== CLIENTES ====================== */
+function ResumenCliente({ client, data }) {
+  const carteles = (data && data.billboards) || [];
+  const nombre = (client.empresa || "").trim().toLowerCase();
+  if (!nombre) return null;
+
+  const suyos = carteles.filter((b) => (b.cliente || "").trim().toLowerCase() === nombre);
+  const mensual = suyos.reduce((a, b) => a + (Number(b.precio) || 0), 0);
+
+  const dias = (f) => (f ? Math.ceil((new Date(f) - new Date()) / 86400000) : null);
+  const porVencer = suyos
+    .map((b) => ({ b, d: dias(b.disponibleDesde) }))
+    .filter((x) => x.d !== null && x.d >= 0 && x.d <= 90)
+    .sort((a, b) => a.d - b.d);
+
+  // Le puede interesar: libres, en las mismas zonas o del mismo tipo que ya compró
+  const zonas = new Set(suyos.map((b) => (b.zona || "").toLowerCase()).filter(Boolean));
+  const tipos = new Set(suyos.map((b) => (b.tipo || "").toLowerCase()).filter(Boolean));
+  const sugeridos = carteles
+    .filter((b) => b.estado === "Disponible" && (b.cliente || "").trim().toLowerCase() !== nombre)
+    .filter((b) => zonas.has((b.zona || "").toLowerCase()) || tipos.has((b.tipo || "").toLowerCase()))
+    .sort((a, b) => (Number(b.precio) || 0) - (Number(a.precio) || 0))
+    .slice(0, 4);
+
+  if (!suyos.length && !sugeridos.length) return null;
+
+  return (
+    <div className="card" style={{ marginBottom: 18, boxShadow: "none", background: "#fff", border: "1px solid var(--line)" }}>
+      <div style={{ fontWeight: 700, marginBottom: 12 }}>Resumen comercial</div>
+
+      {suyos.length > 0 ? (
+        <>
+          <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+            <div style={{ flex: 1, background: "#faf8f3", borderRadius: 12, padding: "12px 13px" }}>
+              <div className="cell-sub">Carteles contratados</div>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{suyos.length}</div>
+            </div>
+            <div style={{ flex: 1.4, background: "#faf8f3", borderRadius: 12, padding: "12px 13px" }}>
+              <div className="cell-sub">Factura por mes</div>
+              <div style={{ fontSize: 22, fontWeight: 800 }}>{money(mensual)}</div>
+            </div>
+          </div>
+
+          {suyos.map((b) => (
+            <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="cell-strong" style={{ fontSize: 14.5 }}>{b.codigo ? b.codigo + " · " : ""}{b.nombre}</div>
+                <div className="cell-sub">{b.zona || b.ubicacion}</div>
+              </div>
+              <b style={{ whiteSpace: "nowrap", fontSize: 14 }}>{money(b.precio)}</b>
+            </div>
+          ))}
+
+          {porVencer.length > 0 && (
+            <div style={{ marginTop: 14, background: "#fff8e6", borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: "#8a6100", marginBottom: 6 }}>
+                ⏳ Se le vence{porVencer.length > 1 ? "n" : ""} pronto
+              </div>
+              {porVencer.map(({ b, d }) => (
+                <div key={b.id} style={{ fontSize: 14, color: "#8a6100", lineHeight: 1.6 }}>
+                  {b.codigo ? b.codigo + " · " : ""}{b.nombre} — <b>{d === 0 ? "hoy" : "en " + d + " días"}</b>
+                </div>
+              ))}
+              <div className="cell-sub" style={{ marginTop: 7 }}>Es el momento de ofrecerle la renovación.</div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="cell-sub" style={{ marginBottom: 12 }}>
+          Todavía no tiene carteles asignados. Para que aparezcan acá, poné el nombre de la empresa
+          en el campo «Cliente» del cartel.
+        </div>
+      )}
+
+      {sugeridos.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 8 }}>
+            💡 Le puede interesar
+            <span className="cell-sub" style={{ fontWeight: 400 }}> · libres, parecidos a lo que ya tiene</span>
+          </div>
+          {sugeridos.map((b) => (
+            <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid var(--line)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="cell-strong" style={{ fontSize: 14.5 }}>{b.codigo ? b.codigo + " · " : ""}{b.nombre}</div>
+                <div className="cell-sub">{[b.zona, b.tipo].filter(Boolean).join(" · ")}</div>
+              </div>
+              <b style={{ whiteSpace: "nowrap", fontSize: 14 }}>{money(b.precio)}</b>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Clientes({ data, update }) {
   const { clients } = data;
   const [q, setQ] = useState("");
@@ -991,7 +1165,7 @@ function Clientes({ data, update }) {
       </div>
 
       {edit && <ClientForm initial={edit} onClose={() => setEdit(null)} onSave={save} />}
-      {hist && <HistoryModal client={hist} onClose={() => setHist(null)}
+      {hist && <HistoryModal client={hist} data={data} onClose={() => setHist(null)}
         onAdd={(reg) => {
           const upd = { ...hist, ultimoContacto: reg.fecha, historial: [reg, ...(hist.historial || [])] };
           setClients(clients.map((x) => x.id === hist.id ? upd : x)); setHist(upd);
@@ -1030,7 +1204,7 @@ function ClientForm({ initial, onClose, onSave }) {
   );
 }
 
-function HistoryModal({ client, onClose, onAdd }) {
+function HistoryModal({ client, onClose, onAdd, data }) {
   const [tipo, setTipo] = useState("Llamada"); const [nota, setNota] = useState("");
   const add = () => { onAdd({ fecha: today(), tipo, nota: nota || `Contacto vía ${tipo}` }); setNota(""); };
   const wa = onlyDigits(client.whatsapp || client.telefono);
@@ -1062,6 +1236,8 @@ function HistoryModal({ client, onClose, onAdd }) {
               <ContactBtns c={client} />
             </div>
           </div>
+
+          <ResumenCliente client={client} data={data} />
 
           <div className="card" style={{ marginBottom: 18, boxShadow: "none", background: "#fff", border: "1px solid var(--line)" }}>
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Registrar nuevo contacto</div>
@@ -1191,27 +1367,38 @@ function achicarFoto(file, maxLado) {
 }
 
 // Dibuja la placa vertical (1080x1920) con la foto encuadrada por ella
-function armarPlaca(img, encuadre, cartel) {
+function armarPlaca(img, encuadre, cartel, opciones) {
+  const o = opciones || {};
+  const capa = o.capa || "todo";           // "todo" | "fondo" | "encima"
+  const zoomExtra = o.zoomExtra || 1;      // para animar el video
   const W = 1080, H = 1920, FOTO_H = 1180;
   const NEGRO = "#0b0b0d", ORO = "#e8a93c", ORO_L = "#f6d48c", BLANCO = "#ffffff", MUT = "#b2b5bd";
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const c = o.lienzo || document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d");
-  x.fillStyle = NEGRO; x.fillRect(0, 0, W, H);
+  x.clearRect(0, 0, W, H);
 
-  // --- foto, con el zoom y el desplazamiento que eligió ella ---
+  if (capa !== "encima") {
+    x.fillStyle = NEGRO; x.fillRect(0, 0, W, H);
+    // --- foto, con el zoom y el desplazamiento que eligió ella ---
+    x.save(); x.beginPath(); x.rect(0, 0, W, FOTO_H); x.clip();
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const escBase = Math.max(W / iw, FOTO_H / ih);
+    const esc = escBase * (encuadre.zoom || 1) * zoomExtra;
+    const dw = iw * esc, dh = ih * esc;
+    const dx = (W - dw) / 2, dy = (FOTO_H - dh) / 2 + (encuadre.y || 0);
+    x.drawImage(img, dx, dy, dw, dh);
+    x.restore();
+  }
+  if (capa === "fondo") return c;
+
+  // --- velos y panel negro (van encima de la foto) ---
   x.save(); x.beginPath(); x.rect(0, 0, W, FOTO_H); x.clip();
-  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-  const escBase = Math.max(W / iw, FOTO_H / ih);
-  const esc = escBase * (encuadre.zoom || 1);
-  const dw = iw * esc, dh = ih * esc;
-  const dx = (W - dw) / 2, dy = (FOTO_H - dh) / 2 + (encuadre.y || 0);
-  x.drawImage(img, dx, dy, dw, dh);
-  // velos para que se lean los textos
   let g = x.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, "rgba(11,11,13,.58)"); g.addColorStop(1, "rgba(11,11,13,0)");
   x.fillStyle = g; x.fillRect(0, 0, W, 300);
   g = x.createLinearGradient(0, FOTO_H - 260, 0, FOTO_H); g.addColorStop(0, "rgba(11,11,13,0)"); g.addColorStop(1, NEGRO);
   x.fillStyle = g; x.fillRect(0, FOTO_H - 260, W, 260);
   x.restore();
+  x.fillStyle = NEGRO; x.fillRect(0, FOTO_H, W, H - FOTO_H);
 
   const F = (peso, tam, fam) => `${peso} ${tam}px ${fam || "'Bricolage Grotesque', Arial, sans-serif"}`;
   const espaciado = (txt, px, py, gap) => { let cx = px; for (const ch of txt) { x.fillText(ch, cx, py); cx += x.measureText(ch).width + gap; } };
@@ -1280,7 +1467,7 @@ function armarPlaca(img, encuadre, cartel) {
   const ax = px + 56 + wTxt + 40, ay = py + 58;
   x.beginPath(); x.moveTo(ax - 16, ay - 12); x.lineTo(ax + 16, ay - 12); x.lineTo(ax, ay + 16); x.closePath(); x.fill();
 
-  return c.toDataURL("image/jpeg", 0.93);
+  return o.lienzo ? c : c.toDataURL("image/jpeg", 0.93);
 }
 
 // Arma la portada de la ficha: misma foto y mismo encuadre que la placa,
@@ -1303,6 +1490,65 @@ function armarPortada(img, encuadre) {
   x.fillStyle = g; x.fillRect(0, FOTO_H - 300, W, 300);
   x.restore();
   return c.toDataURL("image/jpeg", 0.88);
+}
+
+// --- Video corto para el estado (6 segundos, la foto se acerca de a poco) ---
+function formatoVideoSoportado() {
+  if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) return null;
+  const opciones = [
+    "video/mp4;codecs=avc1.42E01E",   // el que entiende iPhone
+    "video/mp4",
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+  return opciones.find((t) => MediaRecorder.isTypeSupported(t)) || null;
+}
+
+function armarVideoPlaca(img, encuadre, cartel, onAvance) {
+  return new Promise((resolve, reject) => {
+    const tipo = formatoVideoSoportado();
+    if (!tipo) return reject(new Error("sin-soporte"));
+    const W = 1080, H = 1920, SEG = 6, FPS = 30;
+    const fondo = document.createElement("canvas"); fondo.width = W; fondo.height = H;
+    const salida = document.createElement("canvas"); salida.width = W; salida.height = H;
+    const ctx = salida.getContext("2d");
+
+    // la capa de textos se dibuja una sola vez
+    const encima = document.createElement("canvas");
+    armarPlaca(img, encuadre, cartel, { capa: "encima", lienzo: encima });
+
+    let stream;
+    try { stream = salida.captureStream(FPS); }
+    catch (e) { return reject(new Error("sin-soporte")); }
+
+    let rec;
+    try { rec = new MediaRecorder(stream, { mimeType: tipo, videoBitsPerSecond: 6000000 }); }
+    catch (e) { return reject(new Error("sin-soporte")); }
+
+    const trozos = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) trozos.push(e.data); };
+    rec.onerror = () => reject(new Error("grabacion"));
+    rec.onstop = () => {
+      const blob = new Blob(trozos, { type: tipo.split(";")[0] });
+      if (!blob.size) return reject(new Error("vacio"));
+      resolve(blob);
+    };
+
+    const t0 = performance.now();
+    const pintar = () => {
+      const t = Math.min(1, (performance.now() - t0) / (SEG * 1000));
+      const suave = 1 - Math.pow(1 - t, 2);
+      armarPlaca(img, encuadre, cartel, { capa: "fondo", lienzo: fondo, zoomExtra: 1 + suave * 0.10 });
+      ctx.drawImage(fondo, 0, 0);
+      ctx.drawImage(encima, 0, 0);
+      if (onAvance) onAvance(Math.round(t * 100));
+      if (t < 1) requestAnimationFrame(pintar);
+      else setTimeout(() => { try { rec.stop(); } catch (e) {} }, 120);
+    };
+    rec.start();
+    requestAnimationFrame(pintar);
+  });
 }
 
 function PublicarCartel({ cartel, onClose, onListo }) {
@@ -1449,6 +1695,35 @@ function PublicarCartel({ cartel, onClose, onListo }) {
   };
 
   const [guardando, setGuardando] = useState(false);
+  const [vidBusy, setVidBusy] = useState(false);
+  const [vidPct, setVidPct] = useState(0);
+  const [vidAviso, setVidAviso] = useState("");
+  const [modo, setModo] = useState("foto");   // foto = como siempre; video = 6 segundos
+
+  const hacerVideo = async () => {
+    if (!imgRef.current) return;
+    setVidBusy(true); setVidPct(0); setVidAviso("");
+    try {
+      const blob = await armarVideoPlaca(imgRef.current, { zoom, y: desp }, datosPlaca, setVidPct);
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      const archivo = new File([blob], `Cartel-${codigo}.${ext}`, { type: blob.type });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: "Cartel " + codigo });
+      } else {
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = u; a.download = archivo.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 6000);
+      }
+      if (ext === "webm") setVidAviso("Ojo: este teléfono generó el video en formato webm. Si WhatsApp no lo acepta, usá la imagen.");
+    } catch (e) {
+      const m = String((e && e.message) || "");
+      setVidAviso(m === "sin-soporte"
+        ? "Este teléfono no puede armar videos desde la app. Usá la imagen, que funciona igual de bien."
+        : "No se pudo armar el video. Probá de nuevo o usá la imagen.");
+    }
+    setVidBusy(false); setVidPct(0);
+  };
   const bajarPlaca = async () => {
     if (!placa) return;
     setGuardando(true);
@@ -1644,14 +1919,32 @@ function PublicarCartel({ cartel, onClose, onListo }) {
               <b>3.</b> Antes de publicar, <b>pegá el link</b> en el texto.
             </div>
 
-            <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: "15px", fontSize: 16 }}
-              onClick={bajarPlaca} disabled={guardando}>
-              <Download size={19} /> {guardando ? "Guardando…" : "Guardar la imagen en el teléfono"}
+            <div style={{ display: "flex", gap: 8, background: "#f4f1ea", padding: 5, borderRadius: 14, marginTop: 14 }}>
+              {[["foto", "📷  Foto"], ["video", "🎬  Video"]].map(([v, t]) => (
+                <button key={v} onClick={() => setModo(v)}
+                  style={{ flex: 1, padding: "12px 8px", borderRadius: 10, border: 0, cursor: "pointer",
+                    fontSize: 15, fontWeight: 700, fontFamily: "inherit",
+                    background: modo === v ? "#fff" : "transparent",
+                    color: modo === v ? "var(--ink)" : "var(--muted)",
+                    boxShadow: modo === v ? "0 1px 4px rgba(0,0,0,.12)" : "none" }}>{t}</button>
+              ))}
+            </div>
+            <div className="cell-sub" style={{ marginTop: 7, textAlign: "center" }}>
+              {modo === "foto" ? "La imagen de siempre." : "6 segundos con la foto acercándose de a poco."}
+            </div>
+
+            <button className="btn btn-primary" style={{ width: "100%", marginTop: 12, padding: "15px", fontSize: 16 }}
+              onClick={modo === "foto" ? bajarPlaca : hacerVideo} disabled={guardando || vidBusy}>
+              <Download size={19} />
+              {modo === "foto"
+                ? (guardando ? "Guardando…" : "Guardar la foto en el teléfono")
+                : (vidBusy ? `Armando el video… ${vidPct}%` : "Guardar el video en el teléfono")}
             </button>
             <div className="cell-sub" style={{ marginTop: 8, textAlign: "center", lineHeight: 1.5 }}>
-              Se abre el menú del teléfono: elegí <b>«Guardar imagen»</b> y queda en tus fotos.<br />
-              Si no aparece, mantené el dedo apretado sobre la imagen de arriba.
+              Se abre el menú del teléfono: elegí <b>«Guardar»</b> y queda en tus fotos.
+              {modo === "foto" && <><br />Si no aparece, mantené el dedo apretado sobre la imagen de arriba.</>}
             </div>
+            {vidAviso && <div className="cell-sub" style={{ marginTop: 8, lineHeight: 1.5 }}>{vidAviso}</div>}
             <button className="btn btn-ghost" style={{ width: "100%", marginTop: 10, padding: "14px", fontSize: 15 }} onClick={copiarLink}>
               <ExternalLink size={18} /> Copiar el link
             </button>
@@ -1664,6 +1957,544 @@ function PublicarCartel({ cartel, onClose, onListo }) {
     </div>
   );
   return typeof document !== "undefined" ? createPortal(contenido, document.body) : contenido;
+}
+
+/* ====================== MENSAJES LISTOS PARA WHATSAPP ====================== */
+const PLANTILLAS = [
+  { id: "presentacion", icono: "👋", titulo: "Primer contacto",
+    ayuda: "Para escribirle por primera vez a alguien que no te conoce.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}, ¿cómo estás? Soy Mónica, de Masa Ideas — trabajamos publicidad en vía pública.\n\nTe escribo porque manejo espacios en ${v.zona || "CABA y Gran Buenos Aires"} y me pareció que puede encajar con ${v.empresa || "lo que hacen ustedes"}.\n\nLa idea es simple: un cartel bien ubicado le habla a la gente del barrio todos los días, sin que tengan que hacer nada. No es un aviso que se cierra con un clic.\n\n¿Te paso 2 o 3 opciones con fotos, medidas y valores, así ves si te sirve? Sin compromiso, si no es el momento me lo decís tranquilo.` },
+
+  { id: "ficha", icono: "📍", titulo: "Paso un cartel",
+    ayuda: "Le mandás un espacio puntual con el link de la ficha.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}! Estuve mirando espacios y este me parece el más adecuado para ${v.empresa || "ustedes"}:\n\n📍 ${v.cartel || "—"}${v.medidas ? "\n📐 " + v.medidas : ""}${v.impactos ? "\n👀 " + v.impactos + " personas por semana" : ""}\n\n¿Por qué este? Porque está justo sobre el recorrido de la gente que ya es tu cliente o podría serlo, y a esa altura no pasa desapercibido.\n\nAcá tenés todas las fotos, cómo se ve de cerca y de lejos, y la ficha completa:\n${v.link || ""}\n\nMirala con calma y me decís qué te parece. Si preferís otra zona o algo más chico, también tengo.` },
+
+  { id: "seguimiento", icono: "🔄", titulo: "Seguimiento",
+    ayuda: "Cuando le mandaste algo y no te contestó. Sin presionar.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}, ¿cómo va todo?\n\nTe escribo para retomar lo que te había pasado${v.cartel ? " sobre " + v.cartel : ""}. Sé que estas cosas quedan para después cuando el día viene cargado, así que no te preocupes si no llegaste a verlo.\n\nSi te sirve, te puedo armar una opción más ajustada al presupuesto que manejes, o mostrarte otros puntos de la zona.\n\nY si en este momento no es prioridad, me lo decís sin problema y te escribo más adelante. ¡Buen día!` },
+
+  { id: "selibera", icono: "⏳", titulo: "Se libera un cartel",
+    ayuda: "El mejor mensaje que existe: aviso anticipado.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}! Te aviso a vos primero, antes de que salga a la venta:\n\n📍 ${v.cartel || "—"}${v.libre ? "\n🗓️ Queda libre el " + v.libre : ""}${v.medidas ? "\n📐 " + v.medidas : ""}${v.impactos ? "\n👀 " + v.impactos + " personas por semana" : ""}\n\nEs de los puntos que más nos piden, y los que están sobre avenida no suelen quedar libres mucho tiempo. Por eso te lo comento ahora: se puede dejar reservado desde hoy y arrancás apenas se libere.\n\nTe dejo la ficha con las fotos:\n${v.link || ""}\n\n¿Lo vemos?` },
+
+  { id: "disponible", icono: "✅", titulo: "Tengo esto libre en tu zona",
+    ayuda: "Para ofrecer lo que está vacío hoy.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}! Se liberó un espacio en ${v.zona || "la zona"} y me acordé de ${v.empresa || "ustedes"}:\n\n📍 ${v.cartel || "—"}${v.medidas ? "\n📐 " + v.medidas : ""}${v.impactos ? "\n👀 " + v.impactos + " personas por semana" : ""}\n\nEstá disponible para salir enseguida, así que si les interesa lo podemos coordinar rápido: me pasan la gráfica y lo montamos.\n\nAcá está la ficha con las fotos y los datos:\n${v.link || ""}\n\n¿Querés que te lo reserve mientras lo pensás?` },
+
+  { id: "renovacion", icono: "🔁", titulo: "Renovación",
+    ayuda: "Para el cliente que ya tiene un cartel y se le termina.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}, ¿cómo estás?\n\nSe está por terminar el período${v.cartel ? " de " + v.cartel : ""} y quería consultarte si lo seguimos, así te lo dejo reservado y no lo ofrezco a otro cliente.\n\nTe lo digo con tiempo por dos motivos: primero, porque estos puntos se piden mucho; y segundo, porque en vía pública la repetición es lo que hace que la marca se fije. Cortar justo cuando la gente ya te empezó a registrar es lo que menos conviene.\n\nSi querés seguimos igual, o si preferís podemos cambiar la gráfica para renovar el aviso. Avisame y lo dejo listo.` },
+
+  { id: "reserva", icono: "🤝", titulo: "Confirmar reserva",
+    ayuda: "Cuando ya dijo que sí, para dejar todo por escrito.",
+    texto: (v) => `${v.nombre ? "¡Buenísimo " + v.nombre + "!" : "¡Buenísimo!"} Te confirmo lo que quedamos:\n\n📍 ${v.cartel || "—"}${v.medidas ? "\n📐 " + v.medidas : ""}${v.precio ? "\n💵 " + v.precio + " + IVA por mes" : ""}\n\nLos pasos que siguen:\n1️⃣ Me pasás la gráfica (o la diseñamos nosotros).\n2️⃣ Coordinamos producción y fecha de salida.\n3️⃣ Cuando esté montado te mando las fotos del cartel al aire.\n\nCualquier duda que te surja durante el período me escribís directo a mí. ¡Gracias por la confianza!` },
+
+  { id: "alaire", icono: "📸", titulo: "Tu campaña está al aire",
+    ayuda: "Mandale la foto del cartel montado. Ayuda muchísimo a renovar.",
+    texto: (v) => `Hola${v.nombre ? " " + v.nombre : ""}! Te paso las fotos: la campaña ya está al aire${v.cartel ? " en " + v.cartel : ""}. 🎉\n\nQuedó muy bien${v.impactos ? " y desde hoy la están viendo alrededor de " + v.impactos + " personas por semana" : ""}.\n\nSi querés, más adelante te mando una foto de noche para que veas cómo se ve iluminado. Y cualquier cosa que necesiten durante el período, me escriben a mí directamente.\n\n¡Que la disfruten!` },
+];
+
+/* ====================== SIMULADOR: "TU MARCA ACÁ" ====================== */
+// Deforma la gráfica del cliente para que se acueste igual que el cartel.
+// Lo hace en tiras horizontales: cada tira se estira entre los dos bordes del cuadrilátero.
+function pintarMarcaEnCartel(ctx, imgLogo, esq, opacidad) {
+  const TIRAS = 220;
+  const iw = imgLogo.naturalWidth || imgLogo.width, ih = imgLogo.naturalHeight || imgLogo.height;
+  const [TL, TR, BR, BL] = esq;
+  ctx.save();
+  ctx.globalAlpha = opacidad;
+  for (let i = 0; i < TIRAS; i++) {
+    const t0 = i / TIRAS, t1 = (i + 1) / TIRAS;
+    const iz0 = { x: TL.x + (BL.x - TL.x) * t0, y: TL.y + (BL.y - TL.y) * t0 };
+    const de0 = { x: TR.x + (BR.x - TR.x) * t0, y: TR.y + (BR.y - TR.y) * t0 };
+    const iz1 = { x: TL.x + (BL.x - TL.x) * t1, y: TL.y + (BL.y - TL.y) * t1 };
+    const dx = de0.x - iz0.x, dy = de0.y - iz0.y;
+    const ancho = Math.hypot(dx, dy);
+    const ang = Math.atan2(dy, dx);
+    const alto = Math.hypot(iz1.x - iz0.x, iz1.y - iz0.y) + 1.2;
+    ctx.setTransform(1, 0, 0, 1, iz0.x, iz0.y);
+    ctx.rotate(ang);
+    try {
+      ctx.drawImage(imgLogo, 0, Math.floor(ih * t0), iw, Math.max(1, Math.ceil(ih / TIRAS)),
+        0, 0, ancho, alto);
+    } catch (e) { /* nada */ }
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.restore();
+}
+
+/* ====================== DETECTAR MARCAS EN LA CALLE ====================== */
+function DetectarSeccion({ data, update }) {
+  const [foto, setFoto] = useState("");
+  const [trabajando, setTrabajando] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const [marcas, setMarcas] = useState(null);
+  const inputRef = useRef(null);
+
+  const elegir = async (ev) => {
+    const f = (ev.target.files || [])[0]; if (!f) return;
+    setMarcas(null); setAviso("");
+    const r = await achicarFoto(f, 1400);
+    setFoto(r.dataUrl);
+    ev.target.value = "";
+  };
+
+  const analizar = async () => {
+    if (!foto) return;
+    setTrabajando(true); setAviso("Leyendo la foto…"); setMarcas(null);
+    try {
+      const base64 = String(foto).replace(/^data:[^;]+;base64,/, "");
+      const prompt = `En esta foto hay uno o más carteles de publicidad en la vía pública.
+
+1) Identificá QUÉ MARCAS están anunciando. Si no se lee ninguna con claridad, devolvé un array vacío.
+2) Para cada marca, buscá en la web su contacto comercial en ARGENTINA, con estas prioridades:
+   - Persona que decide (gerente de marketing/comercial o dueño) con nombre y cargo.
+   - WhatsApp publicado o teléfono del local/sucursal (NO un 0800).
+   - Instagram de la marca.
+   - Email de marketing@/comercial@ antes que info@.
+3) Si es una multinacional o marca masiva, marcá "calidad":"agencia" (compran por central de medios).
+
+No inventes datos: lo que no encuentres, dejalo vacío ("").
+
+Respondé SOLO con un array JSON, sin markdown:
+[{"marca":"","queAnuncia":"","telefono":"","whatsapp":"","email":"","contacto":"","cargo":"","instagram":"","web":"","calidad":"","nota":""}]
+En "nota": por qué es buen prospecto (ej. "ya invierte en vía pública, se le puede ofrecer otro punto").`;
+
+      const res = await fetch("/api/anthropic", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: AI_MODEL, max_tokens: 3000,
+          messages: [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+            { type: "text", text: prompt },
+          ] }],
+          tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 10 }],
+        }),
+      });
+      const j = await res.json();
+      const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      const arr = parseLooseJson(text).filter((x) => x && x.marca);
+      setMarcas(ordenarPorCalidad(arr));
+      if (!arr.length) setAviso("No se reconoció ninguna marca. Probá con una foto donde el aviso se lea mejor.");
+      else setAviso("");
+    } catch (e) {
+      setAviso("No se pudo analizar. Fijate que tengas internet y probá de nuevo.");
+    }
+    setTrabajando(false);
+  };
+
+  const guardar = (m) => {
+    const nota = [m.queAnuncia && `Vista en la calle: ${m.queAnuncia}`, m.web && `Web: ${m.web}`,
+                  m.instagram && `Redes: ${m.instagram}`, m.nota].filter(Boolean).join(" · ");
+    update({
+      clients: [{
+        id: uid(), empresa: m.marca, contacto: m.contacto || "", cargo: m.cargo || "",
+        telefono: m.telefono || "", whatsapp: m.whatsapp || m.telefono || "", email: m.email || "",
+        rubro: "", estado: "Prospecto", ultimoContacto: "", notas: nota, historial: [],
+      }, ...(data.clients || [])],
+    });
+    alert(`"${m.marca}" quedó guardada en Clientes como prospecto.`);
+  };
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 17, marginBottom: 6 }}>¿Cómo funciona?</h3>
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--muted)" }}>
+          Sacale una foto a cualquier cartel de la calle —aunque sea de otra empresa— y la app te dice
+          <b> qué marca está anunciando</b> y te busca el contacto.
+          <br /><br />
+          <b>Por qué sirve:</b> esa marca ya paga vía pública. No hay que convencerla de nada: sólo ofrecerle otro punto.
+        </div>
+      </div>
+
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={elegir} />
+
+      {!foto && (
+        <button className="btn btn-primary" style={{ width: "100%", padding: 17, fontSize: 16 }}
+          onClick={() => inputRef.current && inputRef.current.click()}>
+          <Upload size={20} /> Sacar o elegir una foto
+        </button>
+      )}
+
+      {foto && (
+        <>
+          <img src={foto} alt="" style={{ width: "100%", borderRadius: 14, border: "1px solid var(--line)" }} />
+          <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+            <button className="btn btn-primary" style={{ flex: "1 1 200px", padding: 15, fontSize: 16 }}
+              onClick={analizar} disabled={trabajando}>
+              <Sparkles size={19} /> {trabajando ? "Buscando…" : "¿Qué marca es?"}
+            </button>
+            <button className="btn btn-ghost" style={{ padding: 15 }}
+              onClick={() => inputRef.current && inputRef.current.click()}>Otra foto</button>
+          </div>
+        </>
+      )}
+
+      {trabajando && (
+        <div style={{ textAlign: "center", padding: "24px 0" }}>
+          <div className="spinner" style={{ margin: "0 auto 12px" }} />
+          <div style={{ fontWeight: 700 }}>{aviso || "Un momento…"}</div>
+          <div className="cell-sub" style={{ marginTop: 5 }}>Puede tardar hasta un minuto.</div>
+        </div>
+      )}
+
+      {!trabajando && aviso && <div className="cell-sub" style={{ marginTop: 14 }}>{aviso}</div>}
+
+      {marcas && marcas.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <h3 style={{ fontSize: 16, marginBottom: 10 }}>Marcas encontradas ({marcas.length})</h3>
+          {marcas.map((m, i) => (
+            <div key={i} className="card" style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 17 }}>{m.marca}</div>
+                {CALIDAD_ETIQUETA[m.calidad] && (
+                  <span className={"chip " + CALIDAD_ETIQUETA[m.calidad][1]} style={{ flex: "0 0 auto" }}>
+                    {CALIDAD_ETIQUETA[m.calidad][0]}
+                  </span>)}
+              </div>
+              {(m.contacto || m.cargo) && (
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--green)" }}>
+                  {m.contacto}{m.cargo ? " · " + m.cargo : ""}
+                </div>)}
+              {m.queAnuncia && <div className="cell-sub">Anuncia: {m.queAnuncia}</div>}
+              {m.nota && <div className="cell-sub">{m.nota}</div>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 14, margin: "6px 0" }}>
+                {m.whatsapp && <div><MessageCircle size={13} style={{ verticalAlign: "-2px" }} /> {m.whatsapp} <b style={{ color: "var(--green)" }}>· WhatsApp</b></div>}
+                {m.telefono && <div><Phone size={13} style={{ verticalAlign: "-2px" }} /> {m.telefono}</div>}
+                {m.email && <div><Mail size={13} style={{ verticalAlign: "-2px" }} /> {m.email}</div>}
+                {m.instagram && <div><Star size={13} style={{ verticalAlign: "-2px" }} /> {m.instagram}</div>}
+              </div>
+              <button className="btn btn-primary" style={{ width: "100%", marginTop: 6 }} onClick={() => guardar(m)}>
+                <Plus size={17} /> Guardar como prospecto
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SimuladorSeccion({ data }) {
+  const [busq, setBusq] = useState("");
+  const [cartel, setCartel] = useState(null);
+  const [fotoBase, setFotoBase] = useState("");
+  const [logo, setLogo] = useState("");
+  const [esq, setEsq] = useState(null);           // 4 esquinas en % del alto/ancho
+  const [opacidad, setOpacidad] = useState(1);
+  const [listo, setListo] = useState("");
+  const [trabajando, setTrabajando] = useState(false);
+  const [arrastrando, setArrastrando] = useState(-1);
+  const cajaRef = useRef(null);
+  const lienzoRef = useRef(null);
+  const inputLogo = useRef(null);
+  const inputFoto = useRef(null);
+
+  const carteles = data.billboards || [];
+  const q = busq.trim().toLowerCase();
+  const lista = q
+    ? carteles.filter((b) => `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase().includes(q))
+    : carteles;
+
+  const elegirCartel = (b) => {
+    const f = fotoDe(b);
+    if (!f) { alert("Este cartel no tiene foto cargada. Elegí otro o subí una foto tuya."); return; }
+    setCartel(b); setFotoBase(f); setListo("");
+    setEsq([{ x: 30, y: 28 }, { x: 70, y: 28 }, { x: 70, y: 52 }, { x: 30, y: 52 }]);
+  };
+
+  const subirFoto = async (ev) => {
+    const f = (ev.target.files || [])[0]; if (!f) return;
+    const r = await achicarFoto(f, 1600);
+    setCartel(null); setFotoBase(r.dataUrl); setListo("");
+    setEsq([{ x: 30, y: 28 }, { x: 70, y: 28 }, { x: 70, y: 52 }, { x: 30, y: 52 }]);
+    ev.target.value = "";
+  };
+
+  const subirLogo = async (ev) => {
+    const f = (ev.target.files || [])[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => { setLogo(fr.result); setListo(""); };
+    fr.readAsDataURL(f);
+    ev.target.value = "";
+  };
+
+  // mover esquinas con el dedo
+  const posRelativa = (e) => {
+    const caja = cajaRef.current; if (!caja) return null;
+    const r = caja.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    return { x: Math.max(0, Math.min(100, ((p.clientX - r.left) / r.width) * 100)),
+             y: Math.max(0, Math.min(100, ((p.clientY - r.top) / r.height) * 100)) };
+  };
+  const alMover = (e) => {
+    if (arrastrando < 0 || !esq) return;
+    const p = posRelativa(e); if (!p) return;
+    e.preventDefault();
+    setEsq((v) => v.map((c, i) => (i === arrastrando ? p : c)));
+  };
+  const soltar = () => setArrastrando(-1);
+
+  const generar = async () => {
+    if (!fotoBase || !logo || !esq) return;
+    setTrabajando(true);
+    try {
+      const base = await loadImg(fotoBase);
+      const marca = await loadImg(logo);
+      if (!base || !marca) throw new Error("No se pudieron leer las imágenes");
+      const W = base.naturalWidth || base.width, H = base.naturalHeight || base.height;
+      const c = lienzoRef.current || document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(base, 0, 0, W, H);
+      pintarMarcaEnCartel(ctx, marca, esq.map((p) => ({ x: (p.x / 100) * W, y: (p.y / 100) * H })), opacidad);
+      setListo(c.toDataURL("image/jpeg", 0.92));
+    } catch (e) { alert("No se pudo generar. Probá con otra imagen."); }
+    setTrabajando(false);
+  };
+
+  const guardar = async () => {
+    if (!listo) return;
+    try {
+      const blob = await (await fetch(listo)).blob();
+      const archivo = new File([blob], `Simulacion-${cartel?.codigo || "cartel"}.jpg`, { type: "image/jpeg" });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: "Así se vería tu marca" });
+      } else {
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = u; a.download = archivo.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 4000);
+      }
+    } catch (e) { /* cancelado */ }
+  };
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 17, marginBottom: 6 }}>¿Cómo funciona?</h3>
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--muted)" }}>
+          Elegí un cartel, subí el logo o el aviso del cliente y movelo hasta que calce en la cara del cartel.
+          Le mandás la imagen y ve <b>su marca ahí arriba</b>. Es lo que más ayuda a cerrar.
+        </div>
+      </div>
+
+      <input ref={inputLogo} type="file" accept="image/*" style={{ display: "none" }} onChange={subirLogo} />
+      <input ref={inputFoto} type="file" accept="image/*" style={{ display: "none" }} onChange={subirFoto} />
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>1 · Elegí el cartel</h3>
+      <div className="toolbar" style={{ marginBottom: 10 }}>
+        <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar por código o nombre…" value={busq} onChange={(e) => setBusq(e.target.value)} />
+          {busq && <button className="btn btn-icon" onClick={() => setBusq("")}><X size={16} /></button>}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, marginBottom: 10 }}>
+        {lista.slice(0, 40).map((b) => (
+          <button key={b.id} onClick={() => elegirCartel(b)}
+            style={{ flex: "0 0 118px", padding: 0, borderRadius: 12, overflow: "hidden", cursor: "pointer",
+              border: cartel && cartel.id === b.id ? "3px solid var(--brand)" : "1px solid var(--line)", background: "#eef2f7" }}>
+            <span style={{ display: "block", height: 78, background: fotoDe(b) ? `url(${fotoDe(b)}) center/cover` : "#eef2f7" }} />
+            <span style={{ display: "block", padding: "6px 7px", fontSize: 11.5, fontWeight: 700, textAlign: "left",
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.codigo || b.nombre}</span>
+          </button>
+        ))}
+      </div>
+      <button className="btn btn-ghost" onClick={() => inputFoto.current && inputFoto.current.click()}>
+        <Upload size={17} /> …o subir una foto mía
+      </button>
+
+      {fotoBase && (
+        <>
+          <h3 style={{ fontSize: 16, margin: "24px 0 10px" }}>2 · Subí el aviso del cliente</h3>
+          <button className="btn btn-primary" style={{ width: "100%", padding: 14, fontSize: 15.5 }}
+            onClick={() => inputLogo.current && inputLogo.current.click()}>
+            <Upload size={19} /> {logo ? "Cambiar la imagen" : "Elegir logo o aviso"}
+          </button>
+          <div className="cell-sub" style={{ marginTop: 7 }}>
+            Puede ser el logo, una placa de Instagram o el aviso ya diseñado. Si tiene fondo transparente (PNG), mejor.
+          </div>
+        </>
+      )}
+
+      {fotoBase && logo && esq && (
+        <>
+          <h3 style={{ fontSize: 16, margin: "24px 0 10px" }}>3 · Acomodalo sobre el cartel</h3>
+          <div className="cell-sub" style={{ marginBottom: 10 }}>
+            Arrastrá los <b>4 puntos naranjas</b> hasta las esquinas de la cara del cartel.
+          </div>
+          <div ref={cajaRef}
+            onMouseMove={alMover} onMouseUp={soltar} onMouseLeave={soltar}
+            onTouchMove={alMover} onTouchEnd={soltar}
+            style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid var(--line)",
+              touchAction: "none", userSelect: "none", background: "#000" }}>
+            <img src={fotoBase} alt="" style={{ width: "100%", display: "block" }} draggable={false} />
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+              <polygon points={esq.map((p) => `${p.x},${p.y}`).join(" ")}
+                fill="rgba(232,89,12,.22)" stroke="#e8590c" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+            {esq.map((p, i) => (
+              <button key={i}
+                onMouseDown={() => setArrastrando(i)} onTouchStart={() => setArrastrando(i)}
+                style={{ position: "absolute", left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%,-50%)",
+                  width: 30, height: 30, borderRadius: "50%", border: "3px solid #fff", background: "#e8590c",
+                  boxShadow: "0 2px 8px rgba(0,0,0,.5)", cursor: "grab", padding: 0, touchAction: "none" }} />
+            ))}
+          </div>
+
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginTop: 16 }}>Transparencia</label>
+          <input type="range" min="0.4" max="1" step="0.05" value={opacidad}
+            onChange={(e) => setOpacidad(Number(e.target.value))} style={{ width: "100%" }} />
+
+          <button className="btn btn-primary" style={{ width: "100%", marginTop: 14, padding: 15, fontSize: 16 }}
+            onClick={generar} disabled={trabajando}>
+            <Sparkles size={19} /> {trabajando ? "Generando…" : "Ver cómo queda"}
+          </button>
+        </>
+      )}
+
+      <canvas ref={lienzoRef} style={{ display: "none" }} />
+
+      {listo && (
+        <div style={{ marginTop: 22 }}>
+          <h3 style={{ fontSize: 16, marginBottom: 10 }}>4 · Listo para mandar</h3>
+          <img src={listo} alt="Simulación" style={{ width: "100%", borderRadius: 14, border: "1px solid var(--line)" }} />
+          <button className="btn btn-primary" style={{ width: "100%", marginTop: 12, padding: 15, fontSize: 16 }} onClick={guardar}>
+            <Download size={19} /> Guardar la imagen
+          </button>
+          <div className="cell-sub" style={{ marginTop: 8, textAlign: "center" }}>
+            Se abre el menú del teléfono: elegí «Guardar imagen» o mandala directo por WhatsApp.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MensajesSeccion({ data }) {
+  const [plantilla, setPlantilla] = useState(PLANTILLAS[0].id);
+  const [clienteId, setClienteId] = useState("");
+  const [cartelId, setCartelId] = useState("");
+  const [busq, setBusq] = useState("");
+  const [texto, setTexto] = useState("");
+  const [editado, setEditado] = useState(false);
+
+  const clientes = data.clients || [];
+  const carteles = data.billboards || [];
+  const cliente = clientes.find((c) => c.id === clienteId);
+  const cartel = carteles.find((b) => b.id === cartelId);
+
+  const q = busq.trim().toLowerCase();
+  const cartelesFiltrados = q
+    ? carteles.filter((b) => `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase().includes(q))
+    : carteles;
+
+  const variables = () => {
+    const imp = cartel ? impactosDe(cartel) : 0;
+    return {
+      nombre: (cliente && (cliente.contacto || "").split(" ")[0]) || "",
+      empresa: (cliente && cliente.empresa) || "",
+      cartel: cartel ? (cartel.nombre || cartel.codigo || "") : "",
+      zona: (cartel && (cartel.zona || cartel.ubicacion)) || (cliente && cliente.zona) || "",
+      medidas: cartel ? [cartel.medidas, cartel.tipo].filter(Boolean).join(" · ") : "",
+      impactos: imp ? imp.toLocaleString("es-AR") : "",
+      precio: cartel && cartel.precio ? money(cartel.precio) : "",
+      libre: cartel && cartel.disponibleDesde ? cartel.disponibleDesde : "",
+      link: cartel && cartel.codigo ? pubLink(cartel.codigo) : "",
+    };
+  };
+
+  const generar = () => {
+    const p = PLANTILLAS.find((x) => x.id === plantilla);
+    return p ? p.texto(variables()) : "";
+  };
+
+  // Cada vez que cambia la plantilla, el cliente o el cartel, el mensaje se rearma con los datos nuevos.
+  useEffect(() => { setTexto(generar()); setEditado(false); }, [plantilla, clienteId, cartelId]);
+
+  const tel = onlyDigits((cliente && (cliente.whatsapp || cliente.telefono)) || "");
+  const enviar = () => {
+    const base = tel ? `https://wa.me/${tel.length <= 10 ? "549" + tel : tel}` : "https://api.whatsapp.com/send";
+    window.open(`${base}?text=${encodeURIComponent(texto)}`, "_blank");
+  };
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(texto); alert("¡Mensaje copiado!"); }
+    catch (e) { prompt("Copiá el mensaje:", texto); }
+  };
+
+  const actual = PLANTILLAS.find((x) => x.id === plantilla);
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 17, marginBottom: 6 }}>¿Cómo funciona?</h3>
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--muted)" }}>
+          Elegí qué querés decir, a quién y de qué cartel. El mensaje se arma solo con los datos correctos.
+          Podés retocarlo antes de mandarlo.
+        </div>
+      </div>
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>1 · ¿Qué querés decir?</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(158px,1fr))", gap: 10, marginBottom: 22 }}>
+        {PLANTILLAS.map((p) => (
+          <button key={p.id} onClick={() => setPlantilla(p.id)}
+            style={{ textAlign: "left", padding: "13px 14px", borderRadius: 14, cursor: "pointer",
+              border: plantilla === p.id ? "2px solid var(--brand)" : "1px solid var(--line)",
+              background: plantilla === p.id ? "#fff6ef" : "var(--panel)" }}>
+            <div style={{ fontSize: 20 }}>{p.icono}</div>
+            <div style={{ fontWeight: 700, fontSize: 14.5, marginTop: 4 }}>{p.titulo}</div>
+          </button>
+        ))}
+      </div>
+      {actual && <div className="cell-sub" style={{ marginTop: -14, marginBottom: 20 }}>{actual.ayuda}</div>}
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>2 · ¿A quién?</h3>
+      <label className="campo" style={{ marginBottom: 14 }}><span>Cliente (opcional)</span>
+        <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setEditado(false); }}>
+          <option value="">Sin cliente — mensaje general</option>
+          {clientes.map((c) => <option key={c.id} value={c.id}>{c.empresa}{c.contacto ? " · " + c.contacto : ""}</option>)}
+        </select></label>
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>3 · ¿De qué cartel?</h3>
+      <div className="toolbar" style={{ marginBottom: 10 }}>
+        <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
+          <input placeholder="Buscar por código o nombre…" value={busq} onChange={(e) => setBusq(e.target.value)} />
+          {busq && <button className="btn btn-icon" onClick={() => setBusq("")}><X size={16} /></button>}
+        </div>
+      </div>
+      <label className="campo" style={{ marginBottom: 22 }}><span>Cartel (opcional)</span>
+        <select value={cartelId} onChange={(e) => { setCartelId(e.target.value); setEditado(false); }}>
+          <option value="">Sin cartel</option>
+          {cartelesFiltrados.map((b) => (
+            <option key={b.id} value={b.id}>{b.codigo ? b.codigo + " · " : ""}{b.nombre}</option>
+          ))}
+        </select></label>
+
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>4 · El mensaje</h3>
+      <textarea value={texto} onChange={(e) => { setTexto(e.target.value); setEditado(true); }}
+        rows={11}
+        style={{ width: "100%", padding: 15, borderRadius: 14, border: "1px solid var(--line)",
+          fontSize: 15.5, fontFamily: "inherit", lineHeight: 1.6, background: "#fff", color: "var(--ink)", resize: "vertical" }} />
+
+      {editado && (
+        <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => { setTexto(generar()); setEditado(false); }}>
+          Volver al texto original
+        </button>)}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+        <button className="btn btn-primary" style={{ flex: "1 1 200px", padding: 15, fontSize: 16 }} onClick={enviar}>
+          <MessageCircle size={19} /> {tel ? "Enviar por WhatsApp" : "Abrir WhatsApp y elegir contacto"}
+        </button>
+        <button className="btn btn-ghost" style={{ padding: 15 }} onClick={copiar}>Copiar</button>
+      </div>
+      {!tel && clienteId && (
+        <div className="cell-sub" style={{ marginTop: 10 }}>
+          Este cliente no tiene teléfono cargado, así que vas a elegir el contacto en WhatsApp.
+        </div>)}
+    </div>
+  );
 }
 
 function PublicarSeccion({ data }) {
@@ -1688,11 +2519,20 @@ function PublicarSeccion({ data }) {
   };
   useEffect(() => { cargar(); }, []);
 
-  const lista = (data.billboards || []).filter((b) => {
-    if (!busq.trim()) return true;
-    const t = `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase();
-    return t.includes(busq.trim().toLowerCase());
-  });
+  const q = busq.trim().toLowerCase();
+  const todos = data.billboards || [];
+  const encontrados = q
+    ? todos
+        .filter((b) => `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase().includes(q))
+        // primero los que coinciden por código: si escribe "1297" quiere ESE cartel
+        .sort((a, b) => {
+          const ca = String(a.codigo || "").toLowerCase(), cb = String(b.codigo || "").toLowerCase();
+          const pa = ca === q ? 0 : ca.startsWith(q) ? 1 : 2;
+          const pb = cb === q ? 0 : cb.startsWith(q) ? 1 : 2;
+          return pa - pb;
+        })
+    : todos;
+  const lista = encontrados;
 
   const borrar = async (codigo, nombre) => {
     if (!confirm(`¿Seguro que querés borrar la publicación de "${nombre || codigo}"?\n\nEl link va a dejar de funcionar. Podés volver a publicarlo cuando quieras.`)) return;
@@ -1812,11 +2652,18 @@ function PublicarSeccion({ data }) {
         </div>
       )}
 
-      <h3 style={{ fontSize: 16, marginBottom: 10 }}>Tus carteles</h3>
-      <div className="toolbar" style={{ marginBottom: 14 }}>
+      <h3 style={{ fontSize: 16, marginBottom: 10 }}>Tus carteles ({todos.length})</h3>
+      <div className="toolbar" style={{ marginBottom: 8, position: "sticky", top: 0, zIndex: 3,
+        background: "var(--bg)", paddingTop: 6, paddingBottom: 6 }}>
         <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
-          <input placeholder="Buscar por nombre, dirección o código…"
-            value={busq} onChange={(e) => setBusq(e.target.value)} /></div>
+          <input placeholder="Escribí el código (ej. 1297) o el nombre…"
+            value={busq} onChange={(e) => setBusq(e.target.value)} />
+          {busq && <button className="btn btn-icon" onClick={() => setBusq("")} title="Borrar"><X size={16} /></button>}
+        </div>
+      </div>
+      <div className="cell-sub" style={{ marginBottom: 12 }}>
+        {q ? `${encontrados.length} resultado${encontrados.length === 1 ? "" : "s"} para "${busq.trim()}"`
+           : "Podés bajar y elegir, o escribir arriba el código o el nombre para encontrarlo al toque."}
       </div>
 
       {lista.map((b) => (
@@ -1825,7 +2672,11 @@ function PublicarSeccion({ data }) {
             {!fotoDe(b) && <LayoutPanelTop size={22} />}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 700, fontSize: 15.5 }}>{b.nombre}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              {b.codigo && <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, fontWeight: 700,
+                background: "#f4f1ea", color: "#15233b", padding: "2px 8px", borderRadius: 6, flex: "0 0 auto" }}>{b.codigo}</span>}
+              <span style={{ fontWeight: 700, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.nombre}</span>
+            </span>
             <span style={{ display: "block", fontSize: 13, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {b.ubicacion || "Sin dirección"}
             </span>
@@ -1844,6 +2695,28 @@ function PublicarSeccion({ data }) {
 
       {elegido && <PublicarCartel cartel={elegido} onClose={() => { setElegido(null); cargar(); }} onListo={cargar} />}
     </div>
+  );
+}
+
+function BotonVoz({ onTexto }) {
+  const [oyendo, setOyendo] = useState(false);
+  const Rec = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  if (!Rec) return null;   // en iPhone no existe: se usa el micrófono del teclado
+  const hablar = () => {
+    try {
+      const r = new Rec();
+      r.lang = "es-AR"; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = (e) => { const t = e.results[0][0].transcript; onTexto(t); };
+      r.onend = () => setOyendo(false);
+      r.onerror = () => setOyendo(false);
+      setOyendo(true); r.start();
+    } catch (e) { setOyendo(false); }
+  };
+  return (
+    <button className="btn btn-icon" onClick={hablar} title="Buscar hablando"
+      style={{ color: oyendo ? "#e8590c" : "#6b7790" }}>
+      {oyendo ? <span className="dot" style={{ background: "#e8590c", width: 12, height: 12 }} /> : <MessageCircle size={17} />}
+    </button>
   );
 }
 
@@ -1867,12 +2740,25 @@ function Inventario({ data, update }) {
   const res = billboards.filter((b) => b.estado === "Reservado").length;
   const premium = [...billboards].filter((b) => b.premium).sort((a, b) => b.precio - a.precio);
 
+  const inter = entenderBusqueda(busq);
   const list = billboards.filter((b) => {
     if (fEstado !== "Todos" && b.estado !== fEstado) return false;
     if (fZona !== "Todas" && zonaCardinal(b) !== fZona) return false;
-    if (busq.trim()) {
-      const t = (`${b.nombre} ${b.ubicacion || ""} ${b.codigo || ""}`).toLowerCase();
-      if (!t.includes(busq.trim().toLowerCase())) return false;
+    if (inter.estado && b.estado !== inter.estado) return false;
+    if (inter.iluminado !== null) {
+      const ilum = /si|sí/i.test(String(b.luz || "")) || !!b.iluminado;
+      if (ilum !== inter.iluminado) return false;
+    }
+    if (inter.tipo) {
+      const tp = `${b.tipo || ""}`.toLowerCase();
+      const busca = inter.tipo.replace(/e?s$/, "");
+      if (!tp.includes(busca.slice(0, 6))) return false;
+    }
+    if (inter.precioMax !== null && !(Number(b.precio) > 0 && Number(b.precio) <= inter.precioMax)) return false;
+    if (inter.precioMin !== null && !(Number(b.precio) >= inter.precioMin)) return false;
+    if (inter.texto) {
+      const t = (`${b.nombre} ${b.ubicacion || ""} ${b.codigo || ""} ${b.zona || ""}`).toLowerCase();
+      if (!inter.texto.split(/\s+/).every((p) => t.includes(p))) return false;
     }
     return true;
   });
@@ -2119,7 +3005,10 @@ function Inventario({ data, update }) {
 
       <div className="toolbar" style={{ marginTop: 18 }}>
         <div className="searchbox" style={{ flex: "1 1 220px" }}><Search size={18} color="#6b7790" />
-          <input placeholder="Buscar por nombre, dirección o código…" value={busq} onChange={(e) => setBusq(e.target.value)} /></div>
+          <input placeholder='Ej: "libres en Morón" o el código' value={busq} onChange={(e) => setBusq(e.target.value)} />
+          {busq && <button className="btn btn-icon" onClick={() => setBusq("")}><X size={16} /></button>}
+          <BotonVoz onTexto={setBusq} />
+        </div>
         <select className="select" value={fZona} onChange={(e) => setFZona(e.target.value)}>
           {ZONAS_CARD.map((z) => <option key={z} value={z}>{z === "Todas" ? "Todas las zonas" : "Zona " + z}</option>)}</select>
         <select className="select" value={fEstado} onChange={(e) => setFEstado(e.target.value)}>
@@ -2265,7 +3154,7 @@ function Inventario({ data, update }) {
 }
 
 function BBForm({ initial, onClose, onSave }) {
-  const [b, setB] = useState({ nombre: "", ubicacion: "", tipo: "Cartel", medidas: "", foto: "", estado: "Disponible", precio: "", produccion: "", colocacion: "", codigo: "", premium: false, obs: "", lat: -34.6037, lng: -58.3816, ...initial });
+  const [b, setB] = useState({ nombre: "", ubicacion: "", tipo: "Cartel", medidas: "", foto: "", estado: "Disponible", precio: "", produccion: "", colocacion: "", codigo: "", premium: false, cliente: "", obs: "", lat: -34.6037, lng: -58.3816, ...initial });
   const f = (k) => (e) => setB({ ...b, [k]: e.target.value });
   const onPhoto = (file) => {
     if (!file) return;
@@ -2316,6 +3205,8 @@ function BBForm({ initial, onClose, onSave }) {
             </div>
             {!fotoSubida && <input style={{ marginTop: 8 }} value={b.foto} onChange={f("foto")} placeholder="…o pegá un link de imagen (opcional)" />}
           </div>
+          <div className="field"><label>Cliente que lo tiene contratado</label>
+            <input value={b.cliente || ""} onChange={f("cliente")} placeholder="Escribí el nombre tal cual figura en Clientes" /></div>
           <div className="field"><label>Observaciones</label><textarea value={b.obs} onChange={f("obs")} /></div>
           <label style={{ display: "flex", gap: 10, alignItems: "center", fontWeight: 700, cursor: "pointer" }}>
             <input type="checkbox" style={{ width: 20, height: 20, accentColor: "var(--accent)" }} checked={b.premium} onChange={(e) => setB({ ...b, premium: e.target.checked })} />
@@ -2845,7 +3736,7 @@ function Propuestas({ data, update }) {
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v25",
+        dateStr: fmtDate(today()) + " · v36",
         fotos,
         chs,
         impactosDe,
@@ -3582,5 +4473,9 @@ const root = createRoot(document.getElementById("root"));
 root.render(React.createElement(App));
 
 </script>
-<script>const obs=new MutationObserver(()=>{if(document.querySelector('#root').children.length){const b=document.getElementById('boot');if(b)b.remove();obs.disconnect();}});obs.observe(document.getElementById('root'),{childList:true});</script>
+<script>
+const obs=new MutationObserver(()=>{if(document.querySelector('#root').children.length){const b=document.getElementById('boot');if(b)b.remove();obs.disconnect();}});
+obs.observe(document.getElementById('root'),{childList:true});
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{});});}
+</script>
 </body></html>
