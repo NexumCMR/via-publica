@@ -12,9 +12,30 @@
     {
       "source": "/moni",
       "destination": "/moni/index.html"
+    },
+    {
+      "source": "/disponibles",
+      "destination": "/disponibles/index.html"
+    },
+    {
+      "source": "/actualizar",
+      "destination": "/actualizar/index.html"
+    },
+    {
+      "source": "/campana/:slug",
+      "destination": "/campana/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/actualizar",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
     {
       "source": "/sw.js",
       "headers": [

@@ -933,6 +933,10 @@ function App() {
     label: "¿Qué marca es?",
     icon: Search
   }, {
+    id: "comprobante",
+    label: "Comprobante de campaña",
+    icon: ShieldCheck
+  }, {
     id: "mapa",
     label: "Mapa",
     icon: MapPin
@@ -961,6 +965,7 @@ function App() {
     mensajes: ["Mensajes listos", "Escribile a un cliente en dos toques"],
     simular: ["Simular marca", "Mostrale al cliente su marca en el cartel"],
     detectar: ["¿Qué marca es?", "Sacale una foto a un cartel y encontrá al anunciante"],
+    comprobante: ["Comprobante de campaña", "Mandale al cliente la prueba de que estuvo al aire"],
     inventario: ["Inventario de carteles", "Tus espacios publicitarios"],
     mapa: ["Mapa de ubicaciones", "Dónde está cada cartel"],
     propuestas: ["Propuestas comerciales", "Armá y exportá propuestas"],
@@ -1047,7 +1052,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 37")), React.createElement("div", {
+  }, "✓ Versión 39")), React.createElement("div", {
     className: "content",
     key: tab
   }, tab === "dashboard" && React.createElement(Dashboard, {
@@ -1072,6 +1077,8 @@ function App() {
   }), tab === "detectar" && React.createElement(DetectarSeccion, {
     data: data,
     update: update
+  }), tab === "comprobante" && React.createElement(ComprobanteSeccion, {
+    data: data
   }), tab === "mapa" && React.createElement(Mapa, {
     data: data,
     update: update,
@@ -3751,7 +3758,6 @@ En "nota": por qué es buen prospecto (ej. "ya invierte en vía pública, se le 
     ref: inputRef,
     type: "file",
     accept: "image/*",
-    capture: "environment",
     style: {
       display: "none"
     },
@@ -3766,7 +3772,7 @@ En "nota": por qué es buen prospecto (ej. "ya invierte en vía pública, se le 
     onClick: () => inputRef.current && inputRef.current.click()
   }, React.createElement(Upload, {
     size: 20
-  }), " Sacar o elegir una foto"), foto && React.createElement(React.Fragment, null, React.createElement("img", {
+  }), " Elegir una foto o sacar una"), foto && React.createElement(React.Fragment, null, React.createElement("img", {
     src: foto,
     alt: "",
     style: {
@@ -4309,6 +4315,579 @@ function SimuladorSeccion({
       textAlign: "center"
     }
   }, "Se abre el menú del teléfono: elegí «Guardar imagen» o mandala directo por WhatsApp.")));
+}
+function slugMarca(t) {
+  return String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 28) || "campana";
+}
+function ComprobanteSeccion({
+  data
+}) {
+  const [marca, setMarca] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const [nota, setNota] = useState("");
+  const [elegidos, setElegidos] = useState([]);
+  const [busq, setBusq] = useState("");
+  const [fotos, setFotos] = useState([]);
+  const [trabajando, setTrabajando] = useState(false);
+  const [avance, setAvance] = useState("");
+  const [error, setError] = useState("");
+  const [link, setLink] = useState("");
+  const [previos, setPrevios] = useState(null);
+  const inputRef = useRef(null);
+  const clientes = data.clients || [];
+  const carteles = data.billboards || [];
+  const q = busq.trim().toLowerCase();
+  const lista = q ? carteles.filter(b => `${b.nombre || ""} ${b.ubicacion || ""} ${b.codigo || ""}`.toLowerCase().includes(q)) : [];
+  const cargar = () => {
+    fetch(PUB_SB + "/masa_campanas?select=slug,marca,desde,hasta,creado&publicado=eq.true&order=creado.desc", {
+      headers: {
+        apikey: PUB_KEY,
+        Authorization: "Bearer " + PUB_KEY
+      }
+    }).then(r => r.ok ? r.json() : []).then(setPrevios).catch(() => setPrevios([]));
+  };
+  useEffect(() => {
+    cargar();
+  }, []);
+  const elegirCliente = id => {
+    setClienteId(id);
+    const c = clientes.find(x => x.id === id);
+    if (c && !marca) setMarca(c.empresa || "");
+  };
+  const sumarCartel = b => {
+    if (elegidos.some(e => e.id === b.id)) return;
+    setElegidos([...elegidos, b]);
+    setBusq("");
+  };
+  const quitarCartel = id => setElegidos(elegidos.filter(e => e.id !== id));
+  const subirFotos = async ev => {
+    const files = Array.from(ev.target.files || []);
+    if (!files.length) return;
+    setTrabajando(true);
+    setAvance("Preparando las fotos…");
+    setError("");
+    try {
+      const nuevas = [];
+      for (let i = 0; i < files.length; i++) {
+        setAvance(`Preparando foto ${i + 1} de ${files.length}…`);
+        const r = await achicarFoto(files[i], 1500);
+        nuevas.push({
+          dataUrl: r.dataUrl,
+          momento: "dia"
+        });
+      }
+      setFotos(f => [...f, ...nuevas]);
+    } catch (e) {
+      setError("No se pudieron abrir las fotos.");
+    }
+    setTrabajando(false);
+    setAvance("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+  const cambiarMomento = (i, m) => setFotos(fotos.map((f, k) => k === i ? {
+    ...f,
+    momento: m
+  } : f));
+  const quitarFoto = i => setFotos(fotos.filter((_, k) => k !== i));
+  const publicar = async () => {
+    if (!marca.trim()) {
+      setError("Poné el nombre de la marca.");
+      return;
+    }
+    if (!fotos.length) {
+      setError("Subí al menos una foto del cartel al aire.");
+      return;
+    }
+    setTrabajando(true);
+    setError("");
+    const slug = slugMarca(marca) + "-" + String(Date.now()).slice(-5);
+    try {
+      const subidas = [];
+      for (let i = 0; i < fotos.length; i++) {
+        setAvance(`Subiendo foto ${i + 1} de ${fotos.length}…`);
+        const r = await fetch("/api/masa?accion=foto", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            codigo: "camp-" + slug,
+            nombre: "f" + (i + 1),
+            base64: fotos[i].dataUrl,
+            tipo: "image/jpeg"
+          })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "No se pudo subir una foto");
+        subidas.push({
+          url: j.url,
+          momento: fotos[i].momento,
+          orden: i
+        });
+      }
+      setAvance("Publicando el comprobante…");
+      const cli = clientes.find(c => c.id === clienteId);
+      const cuerpo = {
+        campana: {
+          slug,
+          marca: marca.trim(),
+          cliente: cli && cli.empresa || null,
+          desde: desde || null,
+          hasta: hasta || null,
+          nota: nota.trim() || null,
+          espacios: elegidos.map(b => ({
+            codigo: b.codigo || "",
+            nombre: b.nombre || "",
+            zona: b.zona || b.ubicacion || "",
+            medidas: b.medidas || "",
+            impactos: impactosDe(b) || null
+          }))
+        },
+        fotos: subidas
+      };
+      const r2 = await fetch("/api/masa?accion=campana", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(cuerpo)
+      });
+      const j2 = await r2.json();
+      if (!r2.ok) throw new Error(j2.error || "No se pudo publicar");
+      setLink(PUB_BASE + "/campana/" + slug);
+      cargar();
+    } catch (e) {
+      setError(String(e && e.message || e) + ". Fijate que tengas internet y probá de nuevo.");
+    }
+    setTrabajando(false);
+    setAvance("");
+  };
+  const nuevo = () => {
+    setLink("");
+    setMarca("");
+    setClienteId("");
+    setDesde("");
+    setHasta("");
+    setNota("");
+    setElegidos([]);
+    setFotos([]);
+    setError("");
+  };
+  const compartir = () => {
+    const cli = clientes.find(c => c.id === clienteId);
+    const tel = onlyDigits(cli && (cli.whatsapp || cli.telefono) || "");
+    const msg = `Hola${cli && cli.contacto ? " " + cli.contacto.split(" ")[0] : ""}! Te paso el comprobante de la campaña de ${marca}: acá están las fotos del cartel al aire y el detalle de los espacios.\n\n${link}`;
+    const base = tel ? `https://wa.me/${tel.length <= 10 ? "549" + tel : tel}` : "https://api.whatsapp.com/send";
+    window.open(`${base}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+  const borrar = async (slug, m) => {
+    if (!confirm(`¿Borrar el comprobante de "${m || slug}"?\n\nEl link va a dejar de funcionar.`)) return;
+    try {
+      const r = await fetch("/api/masa?accion=borrar-campana", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          slug
+        })
+      });
+      if (!r.ok) throw new Error();
+      setPrevios(p => (p || []).filter(x => x.slug !== slug));
+    } catch (e) {
+      alert("No se pudo borrar. Probá de nuevo.");
+    }
+  };
+  if (link) {
+    return React.createElement("div", null, React.createElement("div", {
+      className: "card",
+      style: {
+        textAlign: "center",
+        padding: "28px 22px"
+      }
+    }, React.createElement(CheckCircle2, {
+      size: 44,
+      color: "var(--green)"
+    }), React.createElement("h3", {
+      style: {
+        fontSize: 20,
+        marginTop: 10
+      }
+    }, "¡Comprobante listo!"), React.createElement("div", {
+      className: "cell-sub",
+      style: {
+        marginTop: 6,
+        lineHeight: 1.55
+      }
+    }, "Mandáselo al cliente. Ve las fotos de su cartel al aire, dónde estuvo y por cuánto tiempo."), React.createElement("div", {
+      style: {
+        fontFamily: "'Space Mono',monospace",
+        fontSize: 13,
+        background: "#f4f1ea",
+        padding: "11px 13px",
+        borderRadius: 10,
+        marginTop: 16,
+        wordBreak: "break-all"
+      }
+    }, link), React.createElement("button", {
+      className: "btn btn-primary",
+      style: {
+        width: "100%",
+        marginTop: 14,
+        padding: 15,
+        fontSize: 16
+      },
+      onClick: compartir
+    }, React.createElement(MessageCircle, {
+      size: 19
+    }), " Enviar por WhatsApp"), React.createElement("a", {
+      className: "btn btn-ghost",
+      style: {
+        width: "100%",
+        marginTop: 10,
+        padding: 14,
+        justifyContent: "center"
+      },
+      href: link,
+      target: "_blank",
+      rel: "noopener"
+    }, "Ver cómo quedó"), React.createElement("button", {
+      className: "btn btn-ghost",
+      style: {
+        width: "100%",
+        marginTop: 10
+      },
+      onClick: nuevo
+    }, "Hacer otro")));
+  }
+  return React.createElement("div", null, React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 17,
+      marginBottom: 6
+    }
+  }, "¿Para qué sirve?"), React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      lineHeight: 1.65,
+      color: "var(--muted)"
+    }
+  }, "El cliente paga por un cartel que casi nunca ve. Con esto le mandás ", React.createElement("b", null, "la prueba con fotos"), " de que su campaña estuvo al aire, dónde y por cuánto tiempo.", React.createElement("br", null), React.createElement("br", null), "Es lo que más ayuda a que renueven: ven lo que pagaron.")), error && React.createElement("div", {
+    style: {
+      background: "#fdecea",
+      color: "#a4271c",
+      padding: "12px 14px",
+      borderRadius: 12,
+      fontSize: 14,
+      marginBottom: 14
+    }
+  }, error), trabajando && React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "22px 0"
+    }
+  }, React.createElement("div", {
+    className: "spinner",
+    style: {
+      margin: "0 auto 12px"
+    }
+  }), React.createElement("div", {
+    style: {
+      fontWeight: 700
+    }
+  }, avance || "Un momento…"), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginTop: 5
+    }
+  }, "No cierres la app.")), !trabajando && React.createElement(React.Fragment, null, React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 10
+    }
+  }, "1 · De quién es la campaña"), React.createElement("label", {
+    className: "campo",
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("span", null, "Cliente (opcional)"), React.createElement("select", {
+    value: clienteId,
+    onChange: e => elegirCliente(e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "Sin cliente"), clientes.map(c => React.createElement("option", {
+    key: c.id,
+    value: c.id
+  }, c.empresa)))), React.createElement("label", {
+    className: "campo",
+    style: {
+      marginBottom: 12
+    }
+  }, React.createElement("span", null, "Marca que aparece en el cartel"), React.createElement("input", {
+    value: marca,
+    onChange: e => setMarca(e.target.value),
+    placeholder: "Ej: Sanatorio del Oeste"
+  })), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 22
+    }
+  }, React.createElement("label", {
+    className: "campo"
+  }, React.createElement("span", null, "Desde"), React.createElement("input", {
+    type: "date",
+    value: desde,
+    onChange: e => setDesde(e.target.value)
+  })), React.createElement("label", {
+    className: "campo"
+  }, React.createElement("span", null, "Hasta"), React.createElement("input", {
+    type: "date",
+    value: hasta,
+    onChange: e => setHasta(e.target.value)
+  }))), React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 10
+    }
+  }, "2 · En qué carteles estuvo"), elegidos.map(b => React.createElement("div", {
+    key: b.id,
+    className: "pub-item",
+    style: {
+      cursor: "default"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, b.codigo ? b.codigo + " · " : "", b.nombre), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      color: "var(--muted)"
+    }
+  }, b.zona || b.ubicacion)), React.createElement("button", {
+    className: "btn btn-icon ico-edit",
+    onClick: () => quitarCartel(b.id)
+  }, React.createElement(X, {
+    size: 16
+  })))), React.createElement("div", {
+    className: "toolbar",
+    style: {
+      marginBottom: 10
+    }
+  }, React.createElement("div", {
+    className: "searchbox",
+    style: {
+      flex: "1 1 220px"
+    }
+  }, React.createElement(Search, {
+    size: 18,
+    color: "#6b7790"
+  }), React.createElement("input", {
+    placeholder: "Buscar el cartel por código o nombre…",
+    value: busq,
+    onChange: e => setBusq(e.target.value)
+  }))), lista.slice(0, 8).map(b => React.createElement("button", {
+    key: b.id,
+    className: "pub-item",
+    onClick: () => sumarCartel(b)
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, b.codigo ? b.codigo + " · " : "", b.nombre), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 13,
+      color: "var(--muted)"
+    }
+  }, b.zona || b.ubicacion)), React.createElement(Plus, {
+    size: 18,
+    color: "#9aa7ba"
+  }))), React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      margin: "24px 0 10px"
+    }
+  }, "3 · Las fotos del cartel al aire"), React.createElement("input", {
+    ref: inputRef,
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    style: {
+      display: "none"
+    },
+    onChange: subirFotos
+  }), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      width: "100%",
+      padding: 14,
+      fontSize: 15.5
+    },
+    onClick: () => inputRef.current && inputRef.current.click()
+  }, React.createElement(Upload, {
+    size: 19
+  }), " ", fotos.length ? "Agregar más fotos" : "Elegir las fotos"), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginTop: 7
+    }
+  }, "Lo ideal: una de día y una de noche. La de noche es la que más impresiona."), fotos.length > 0 && React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
+      gap: 12,
+      marginTop: 14
+    }
+  }, fotos.map((f, i) => React.createElement("div", {
+    key: i,
+    style: {
+      border: "1px solid var(--line)",
+      borderRadius: 14,
+      overflow: "hidden",
+      background: "var(--panel)"
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, React.createElement("img", {
+    src: f.dataUrl,
+    alt: "",
+    style: {
+      width: "100%",
+      height: 96,
+      objectFit: "cover",
+      display: "block"
+    }
+  }), React.createElement("button", {
+    className: "btn btn-icon",
+    onClick: () => quitarFoto(i),
+    style: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      background: "rgba(0,0,0,.6)",
+      color: "#fff"
+    }
+  }, React.createElement(X, {
+    size: 14
+  }))), React.createElement("select", {
+    value: f.momento,
+    onChange: e => cambiarMomento(i, e.target.value),
+    style: {
+      width: "100%",
+      border: 0,
+      borderTop: "1px solid var(--line)",
+      padding: "8px 10px",
+      fontSize: 13,
+      fontFamily: "inherit",
+      background: "transparent",
+      color: "var(--ink)"
+    }
+  }, React.createElement("option", {
+    value: "dia"
+  }, "De día"), React.createElement("option", {
+    value: "noche"
+  }, "De noche"), React.createElement("option", {
+    value: "montaje"
+  }, "Montaje"))))), React.createElement("label", {
+    className: "campo",
+    style: {
+      marginTop: 22
+    }
+  }, React.createElement("span", null, "Nota para el cliente (opcional)"), React.createElement("input", {
+    value: nota,
+    onChange: e => setNota(e.target.value),
+    placeholder: "Ej: la gráfica se cambió el 15 sin costo"
+  })), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      width: "100%",
+      marginTop: 20,
+      padding: 16,
+      fontSize: 16.5
+    },
+    onClick: publicar
+  }, React.createElement(ShieldCheck, {
+    size: 20
+  }), " Armar el comprobante"), previos && previos.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 30
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 10
+    }
+  }, "Comprobantes anteriores (", previos.length, ")"), previos.map(p => React.createElement("div", {
+    key: p.slug,
+    className: "pub-item",
+    style: {
+      cursor: "default",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: "1 1 150px",
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, p.marca), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      color: "var(--muted)"
+    }
+  }, p.desde ? fmtDate(p.desde) : "", p.hasta ? " — " + fmtDate(p.hasta) : "")), React.createElement("span", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("a", {
+    className: "btn btn-ghost",
+    style: {
+      padding: "9px 12px",
+      fontSize: 13
+    },
+    href: PUB_BASE + "/campana/" + p.slug,
+    target: "_blank",
+    rel: "noopener"
+  }, "Ver"), React.createElement("button", {
+    className: "btn btn-icon ico-edit",
+    onClick: () => borrar(p.slug, p.marca)
+  }, React.createElement(Trash2, {
+    size: 16
+  }))))))));
 }
 function MensajesSeccion({
   data
@@ -7014,7 +7593,7 @@ function Propuestas({
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v37",
+        dateStr: fmtDate(today()) + " · v39",
         fotos,
         chs,
         impactosDe
