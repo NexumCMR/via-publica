@@ -1,5 +1,5 @@
 /* Modo sin internet — guarda la app para que abra aunque no haya señal */
-const CACHE = "via-publica-v1";
+const CACHE = "via-publica-v2";
 const BASE = ["/", "/index.html"];
 
 self.addEventListener("install", (e) => {
