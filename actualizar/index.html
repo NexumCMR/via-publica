@@ -273,9 +273,9 @@
           try{ localStorage.removeItem("masa_clave"); }catch(e){}
           aviso($("msg"),"La clave no es correcta. Recargá la página y probá de nuevo.","mal"); return;
         }
-        aviso($("msg"),"No se pudo publicar: "+((res.j&&res.j.error)||"error"),"mal"); return;
+        aviso($("msg"),"No se pudo publicar: "+((res.j&&res.j.error)||"error")+((res.j&&res.j.detalle)?"<br><small>"+String(res.j.detalle).slice(0,300)+"</small>":""),"mal"); return;
       }
-      aviso($("msg"),"✅ Listo. El portal ya muestra <b>"+res.j.total+" espacios</b>, "+res.j.disponibles+" disponibles.","ok");
+      aviso($("msg"),"✅ Listo. El portal ya muestra <b>"+res.j.total+" espacios</b>, "+res.j.disponibles+" disponibles."+(res.j.repetidos>0?"<br><small>Se ignoraron "+res.j.repetidos+" filas con código repetido.</small>":""),"ok");
       listos=null; $("resumen").className="oculto"; $("archivo").value=""; verEstado();
     })
     .catch(function(){ $("publicar").disabled=false; aviso($("msg"),"Falló la conexión. Probá de nuevo.","mal"); });
