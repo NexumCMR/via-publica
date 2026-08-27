@@ -365,29 +365,44 @@
   $("subirFotos").addEventListener("click", function(){
     if(!listasFotos || !listasFotos.length) return;
     $("subirFotos").disabled=true;
-    var listo=[], i=0;
-    function siguiente(){
+    // Se sube de a tandas: un envío con 176 fotos supera el límite del servidor.
+    var TANDA=6, i=0, subidos=0, fallados=0;
+    function enviar(lote, alTerminar){
+      fetch("/api/masa?accion=fotos-lote",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({clave:clave, fotos:lote})})
+        .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+        .then(function(res){
+          if(res.ok) subidos += (res.j.hechos||[]).length; else fallados += lote.length;
+          alTerminar(res.ok ? null : ((res.j&&res.j.error)||"error"));
+        })
+        .catch(function(){ fallados += lote.length; alTerminar("conexión"); });
+    }
+    function tanda(){
       if(i>=listasFotos.length){
-        aviso($("msgFotos"),"Subiendo al servidor… no cierres la página.","info");
-        fetch("/api/masa?accion=fotos-lote",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({clave:clave, fotos:listo})})
-          .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
-          .then(function(res){
-            $("subirFotos").disabled=false;
-            if(!res.ok){ aviso($("msgFotos"),(res.j&&res.j.error)||"No se pudo subir.","mal"); return; }
-            var n=(res.j.hechos||[]).length;
-            aviso($("msgFotos"),"✅ Listo. "+n+" cartel"+(n===1?"":"es")+" con ficha de fotos. Ya aparecen en el portal.","ok");
-            listasFotos=null; $("resFotos").className="oculto"; $("fotos").value="";
-          })
-          .catch(function(){ $("subirFotos").disabled=false; aviso($("msgFotos"),"Falló la conexión.","mal"); });
+        $("subirFotos").disabled=false;
+        aviso($("msgFotos"), fallados
+          ? "Subidas "+subidos+" fichas. "+fallados+" fotos fallaron: probá de nuevo con esas."
+          : "✅ Listo. "+subidos+" cartel"+(subidos===1?"":"es")+" con ficha de fotos. Ya aparecen en el portal.",
+          fallados ? "mal" : "ok");
+        if(!fallados){ listasFotos=null; $("resFotos").className="oculto"; $("fotos").value=""; }
+        verEstado();
         return;
       }
-      aviso($("msgFotos"),"Preparando foto "+(i+1)+" de "+listasFotos.length+"…","info");
-      achicar(listasFotos[i].file,1500).then(function(d){
-        listo.push({codigo:listasFotos[i].codigo, base64:d}); i++; siguiente();
-      }).catch(function(){ i++; siguiente(); });
+      var grupo=listasFotos.slice(i, i+TANDA), listo=[], k=0;
+      function preparar(){
+        if(k>=grupo.length){
+          var pct=Math.round((i/listasFotos.length)*100);
+          aviso($("msgFotos"),"Subiendo… "+pct+"% ("+i+" de "+listasFotos.length+" fotos). No cierres la página.","info");
+          enviar(listo, function(){ i+=grupo.length; tanda(); });
+          return;
+        }
+        achicar(grupo[k].file,1400).then(function(d){
+          listo.push({codigo:grupo[k].codigo, base64:d}); k++; preparar();
+        }).catch(function(){ k++; preparar(); });
+      }
+      preparar();
     }
-    siguiente();
+    tanda();
   });
 
   function verEstado(){
