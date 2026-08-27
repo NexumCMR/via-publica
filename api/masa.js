@@ -121,7 +121,17 @@ export default async function handler(req, res) {
       if (!(await claveValida(body.clave)))
         return res.status(401).json({ error: "Clave incorrecta" });
 
-      const filas = Array.isArray(body.carteles) ? body.carteles : [];
+      const banda = (v) => {
+        const n = Number(v) || 0;
+        if (!n) return null;
+        if (n <= 3000000) return 1;
+        if (n <= 8000000) return 2;
+        return 3;
+      };
+      const filas = (Array.isArray(body.carteles) ? body.carteles : []).map((f) => {
+        const { precio, ...resto } = f;
+        return { ...resto, banda: banda(precio) };   // el precio no viaja al portal público
+      });
       if (!filas.length) return res.status(400).json({ error: "No llegó ningún cartel" });
       if (filas.length > 3000) return res.status(413).json({ error: "Demasiadas filas" });
 
@@ -147,6 +157,64 @@ export default async function handler(req, res) {
       });
 
       return res.status(200).json({ ok: true, total: filas.length, disponibles });
+    }
+
+    // -------- Subir fotos en lote y dejar la ficha lista --------
+    if (accion === "fotos-lote") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+      const items = Array.isArray(body.fotos) ? body.fotos : [];
+      if (!items.length) return res.status(400).json({ error: "No llegó ninguna foto" });
+
+      const porCodigo = {};
+      for (const it of items) {
+        if (!it.codigo || !it.base64) continue;
+        (porCodigo[it.codigo] = porCodigo[it.codigo] || []).push(it);
+      }
+
+      const hechos = [];
+      for (const codigo of Object.keys(porCodigo)) {
+        // datos del cartel, tomados del inventario que ya subieron
+        const rp = await sb(`/rest/v1/masa_portal?codigo=eq.${encodeURIComponent(codigo)}&select=*`, { method: "GET" });
+        const base = rp.ok ? (await rp.json())[0] : null;
+        if (!base) continue;
+
+        const urls = [];
+        for (let i = 0; i < porCodigo[codigo].length; i++) {
+          const it = porCodigo[codigo][i];
+          const limpio = String(it.base64).replace(/^data:[^;]+;base64,/, "");
+          const bytes = Buffer.from(limpio, "base64");
+          if (bytes.length > 6 * 1024 * 1024) continue;
+          const archivo = `${codigo}/lote-${Date.now()}-${i}.jpg`;
+          const r = await sb(`/storage/v1/object/${BUCKET}/${archivo}`, {
+            method: "POST", headers: { "Content-Type": "image/jpeg", "x-upsert": "true" }, body: bytes,
+          });
+          if (r.ok) urls.push(`${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${archivo}`);
+        }
+        if (!urls.length) continue;
+
+        await sb("/rest/v1/masa_carteles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+          body: JSON.stringify({
+            codigo, nombre: base.direccion, direccion: base.direccion, localidad: base.zona, zona: base.zona,
+            tipo: base.tipo || base.formato, medidas: base.medidas, iluminado: !!base.iluminado,
+            estado: base.estado, disponible_desde: base.libre_desde,
+            mostrar_precio: false, publicado: true, actualizado: new Date().toISOString(),
+          }),
+        });
+        await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(codigo)}`, { method: "DELETE" });
+        await sb("/rest/v1/masa_fotos", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(urls.map((u, i) => ({ codigo, url: u, orden: i, portada: i === 0 }))),
+        });
+        await sb(`/rest/v1/masa_portal?codigo=eq.${encodeURIComponent(codigo)}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ con_ficha: true }),
+        });
+        hechos.push({ codigo, fotos: urls.length });
+      }
+      return res.status(200).json({ ok: true, hechos });
     }
 
     // -------- Publicar un comprobante de campaña --------
