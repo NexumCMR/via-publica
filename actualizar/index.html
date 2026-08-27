@@ -97,6 +97,31 @@
     </div>
 
     <div class="caja">
+      <h2>Fotos de los carteles</h2>
+      <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:6px">
+        Subí las fotos y se asignan solas a cada cartel. Lo importante es
+        <b>que el nombre del archivo empiece con el código</b>.
+      </p>
+      <p class="nota" style="margin-top:8px">
+        Ejemplos que funcionan: <b>1297.jpg</b> · <b>1297-2.jpg</b> · <b>1297 de noche.jpg</b> · <b>cod1297.jpeg</b><br>
+        Podés subir muchas de un cartel: la primera queda como principal.
+      </p>
+      <input type="file" id="fotos" accept="image/*" multiple class="oculto">
+      <button class="bt bt-oro" id="elegirFotos">🖼️ Elegir las fotos</button>
+      <div class="estado" id="msgFotos"></div>
+      <div id="resFotos" class="oculto">
+        <div class="resumen">
+          <div class="r"><b id="fOk" style="color:var(--verde)">0</b><span>Reconocidas</span></div>
+          <div class="r"><b id="fCart">0</b><span>Carteles</span></div>
+          <div class="r"><b id="fMal" style="color:var(--rojo)">0</b><span>Con dudas</span></div>
+        </div>
+        <div id="dudas" style="margin-top:14px"></div>
+        <button class="bt bt-oro" id="subirFotos">Subir las reconocidas</button>
+        <button class="bt bt-linea" id="cancelarFotos">Elegir otras</button>
+      </div>
+    </div>
+
+    <div class="caja">
       <h2>Cambiar la clave</h2>
       <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:12px">Si querés poner otra, cambiala acá. Se aplica al toque.</p>
       <label>Clave nueva</label>
@@ -271,6 +296,98 @@
         aviso($("msgClave"),"✅ Clave cambiada. Usá la nueva la próxima vez.","ok");
       })
       .catch(function(){ $("btCambiar").disabled=false; aviso($("msgClave"),"Falló la conexión.","mal"); });
+  });
+
+
+  // ---------- fotos de los carteles ----------
+  var listasFotos=null, dudosas=[];
+  function achicar(file, max){
+    return new Promise(function(res,rej){
+      var fr=new FileReader();
+      fr.onload=function(){
+        var im=new Image();
+        im.onload=function(){
+          var M=max||1500, w=im.naturalWidth, h=im.naturalHeight;
+          if(Math.max(w,h)>M){ var r=M/Math.max(w,h); w=Math.round(w*r); h=Math.round(h*r); }
+          var c=document.createElement("canvas"); c.width=w; c.height=h;
+          var x=c.getContext("2d"); x.imageSmoothingQuality="high"; x.drawImage(im,0,0,w,h);
+          res(c.toDataURL("image/jpeg",0.84));
+        };
+        im.onerror=function(){ rej(new Error("img")); };
+        im.src=fr.result;
+      };
+      fr.onerror=function(){ rej(new Error("file")); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function codigoDe(nombre){
+    var n=String(nombre||"").replace(/\.[a-z0-9]+$/i,"");
+    var m=n.match(/(?:^|[^0-9])(\d{3,6})(?:[^0-9]|$)/);
+    return m ? m[1] : null;
+  }
+
+  $("elegirFotos").addEventListener("click", function(){ $("fotos").click(); });
+  $("cancelarFotos").addEventListener("click", function(){
+    listasFotos=null; dudosas=[]; $("resFotos").className="oculto"; $("msgFotos").className="estado"; $("fotos").value="";
+  });
+
+  $("fotos").addEventListener("change", function(ev){
+    var files=Array.prototype.slice.call(ev.target.files||[]);
+    if(!files.length) return;
+    aviso($("msgFotos"),"Revisando "+files.length+" fotos…","info");
+    // qué códigos existen en el inventario
+    fetch(API+"/masa_portal?select=codigo",{headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(inv){
+        var validos={}; inv.forEach(function(x){ validos[x.codigo]=true; });
+        var ok=[], mal=[];
+        files.forEach(function(f){
+          var c=codigoDe(f.name);
+          if(c && validos[c]) ok.push({file:f, codigo:c});
+          else mal.push({nombre:f.name, motivo: c ? ("el código "+c+" no está en el inventario") : "no se encontró un código en el nombre"});
+        });
+        listasFotos=ok; dudosas=mal;
+        var cart={}; ok.forEach(function(o){ cart[o.codigo]=true; });
+        $("fOk").textContent=ok.length; $("fCart").textContent=Object.keys(cart).length; $("fMal").textContent=mal.length;
+        $("dudas").innerHTML = mal.length
+          ? '<div class="estado mal" style="display:block"><b>Estas no se van a subir:</b><br>'+
+            mal.slice(0,12).map(function(m){ return "• "+m.nombre+" — "+m.motivo; }).join("<br>")+
+            (mal.length>12 ? "<br>…y "+(mal.length-12)+" más" : "")+
+            '<br><br>Renombralas poniendo el código adelante y volvé a subirlas.</div>'
+          : "";
+        $("resFotos").className="";
+        aviso($("msgFotos"), ok.length ? ("Listas para subir: <b>"+ok.length+" fotos</b> de "+Object.keys(cart).length+" carteles.")
+                                       : "Ninguna foto pudo asignarse a un cartel.", ok.length?"ok":"mal");
+      })
+      .catch(function(){ aviso($("msgFotos"),"No se pudo consultar el inventario.","mal"); });
+  });
+
+  $("subirFotos").addEventListener("click", function(){
+    if(!listasFotos || !listasFotos.length) return;
+    $("subirFotos").disabled=true;
+    var listo=[], i=0;
+    function siguiente(){
+      if(i>=listasFotos.length){
+        aviso($("msgFotos"),"Subiendo al servidor… no cierres la página.","info");
+        fetch("/api/masa?accion=fotos-lote",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({clave:clave, fotos:listo})})
+          .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+          .then(function(res){
+            $("subirFotos").disabled=false;
+            if(!res.ok){ aviso($("msgFotos"),(res.j&&res.j.error)||"No se pudo subir.","mal"); return; }
+            var n=(res.j.hechos||[]).length;
+            aviso($("msgFotos"),"✅ Listo. "+n+" cartel"+(n===1?"":"es")+" con ficha de fotos. Ya aparecen en el portal.","ok");
+            listasFotos=null; $("resFotos").className="oculto"; $("fotos").value="";
+          })
+          .catch(function(){ $("subirFotos").disabled=false; aviso($("msgFotos"),"Falló la conexión.","mal"); });
+        return;
+      }
+      aviso($("msgFotos"),"Preparando foto "+(i+1)+" de "+listasFotos.length+"…","info");
+      achicar(listasFotos[i].file,1500).then(function(d){
+        listo.push({codigo:listasFotos[i].codigo, base64:d}); i++; siguiente();
+      }).catch(function(){ i++; siguiente(); });
+    }
+    siguiente();
   });
 
   function verEstado(){
