@@ -111,11 +111,11 @@ h1,h2,h3,.brand{ font-family:'Bricolage Grotesque',sans-serif; letter-spacing:-.
 @keyframes screenIn{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
 
 /* ---- Main ---- */
-.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; overflow-x:hidden; }
 .topbar{ display:flex; align-items:center; gap:14px; padding:20px 30px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:20; }
 .topbar h1{ font-size:24px; font-weight:800; }
 .topbar .sub{ font-size:14px; color:var(--muted); font-weight:500; }
-.content{ padding:28px 30px 60px; max-width:1280px; width:100%; }
+.content{ padding:28px 30px 60px; max-width:1280px; width:100%; min-width:0; overflow-x:hidden; }
 .hamb{ display:none; background:var(--ink); color:#fff; border:0; width:46px; height:46px; border-radius:12px; cursor:pointer; }
 
 /* ---- Cards / grid ---- */
@@ -342,8 +342,17 @@ tr:hover td{ background:#fcfbf8; }
   .sidebar.open{ transform:translateX(0); }
   .hamb{ display:grid; place-items:center; }
   .cols-4,.cols-3{ grid-template-columns:1fr 1fr; }
-  .content{ padding:20px 16px 60px; }
-  .topbar{ padding:16px; }
+  .content{ padding:20px 18px 70px; }
+  .topbar{ padding:16px 18px; }
+  /* nada debe pegarse ni salirse del borde en pantallas chicas */
+  .card{ padding:17px 16px; }
+  .pub-item{ padding:14px 13px; }
+  h1,h2,h3,.cell-strong,.dir{ overflow-wrap:anywhere; }
+  .campo input,.campo select,input,select,textarea{ max-width:100%; }
+  .searchbox{ min-width:0; }
+  .searchbox input{ min-width:0; }
+  .toolbar{ flex-wrap:wrap; }
+  table{ width:100%; }
   .scrollx{ overflow-x:auto; }
   .scrollx table{ min-width:760px; }
 }
@@ -1052,7 +1061,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 39")), React.createElement("div", {
+  }, "✓ Versión 40")), React.createElement("div", {
     className: "content",
     key: tab
   }, tab === "dashboard" && React.createElement(Dashboard, {
@@ -5301,6 +5310,82 @@ function PublicarSeccion({
       fontFamily: "'Space Mono',monospace",
       fontSize: 11,
       letterSpacing: ".18em",
+      color: "#2fbf71"
+    }
+  }, "PARA MANDARLE A UN CLIENTE"), React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      marginTop: 8
+    }
+  }, "Todo lo que está libre, en un link"), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: "#b9bcc4",
+      marginTop: 6,
+      lineHeight: 1.55
+    }
+  }, "Si te piden \"¿qué tenés disponible?\", mandales esto y lo miran solos: pueden filtrar por zona, formato y ver lo que se libera pronto."), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 14,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("a", {
+    className: "btn",
+    style: {
+      background: "#2fbf71",
+      color: "#06210f",
+      fontWeight: 700,
+      padding: "11px 16px",
+      fontSize: 14
+    },
+    href: PUB_BASE + "/disponibles",
+    target: "_blank",
+    rel: "noopener"
+  }, "Ver el portal"), React.createElement("button", {
+    className: "btn",
+    style: {
+      background: "rgba(255,255,255,.12)",
+      color: "#fff",
+      padding: "11px 16px",
+      fontSize: 14
+    },
+    onClick: async () => {
+      const l = PUB_BASE + "/disponibles";
+      try {
+        await navigator.clipboard.writeText(l);
+        alert("¡Link copiado!");
+      } catch (e) {
+        prompt("Copiá este link:", l);
+      }
+    }
+  }, "Copiar el link"), React.createElement("button", {
+    className: "btn",
+    style: {
+      background: "rgba(255,255,255,.12)",
+      color: "#fff",
+      padding: "11px 16px",
+      fontSize: 14
+    },
+    onClick: () => {
+      const m = "Hola! Te paso todo lo que tenemos disponible ahora, para que lo mires con calma:\n\n" + PUB_BASE + "/disponibles";
+      window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(m), "_blank");
+    }
+  }, "Enviar por WhatsApp"))), React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16,
+      background: "#0a0a0c",
+      color: "#fff",
+      border: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "'Space Mono',monospace",
+      fontSize: 11,
+      letterSpacing: ".18em",
       color: "#e8a93c"
     }
   }, "TU LINK PERSONAL"), React.createElement("div", {
@@ -7593,7 +7678,7 @@ function Propuestas({
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v39",
+        dateStr: fmtDate(today()) + " · v40",
         fotos,
         chs,
         impactosDe
