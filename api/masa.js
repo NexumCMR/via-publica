@@ -262,6 +262,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // -------- Borrar una foto puntual --------
+    if (accion === "borrar-foto") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+      const { id } = body;
+      if (!id) return res.status(400).json({ error: "Falta la foto" });
+      const r = await sb(`/rest/v1/masa_fotos?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!r.ok) return res.status(502).json({ error: "No se pudo borrar la foto" });
+      return res.status(200).json({ ok: true });
+    }
+
     // -------- Cambiar la clave del panel --------
     if (accion === "clave") {
       if (!(await claveValida(body.actual)))
