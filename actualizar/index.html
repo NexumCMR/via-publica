@@ -122,6 +122,18 @@
     </div>
 
     <div class="caja">
+      <h2>Revisar las fotos de un cartel</h2>
+      <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:12px">
+        Si alguna foto no corresponde a ese cartel, borrala acá. Se quita del portal al instante.
+      </p>
+      <label>Código del cartel</label>
+      <input type="text" id="revCod" placeholder="Ej: 1108" inputmode="numeric">
+      <button class="bt bt-linea" id="btRev">Ver las fotos</button>
+      <div class="estado" id="msgRev"></div>
+      <div id="galRev" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:14px"></div>
+    </div>
+
+    <div class="caja">
       <h2>Cambiar la clave</h2>
       <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:12px">Si querés poner otra, cambiala acá. Se aplica al toque.</p>
       <label>Clave nueva</label>
@@ -424,6 +436,49 @@
       preparar();
     }
     tanda();
+  });
+
+
+  // ---------- revisar y depurar fotos ----------
+  function verFotos(){
+    var c=$("revCod").value.trim();
+    if(!c){ aviso($("msgRev"),"Escribí el código.","mal"); return; }
+    aviso($("msgRev"),"Buscando…","info");
+    fetch(API+"/masa_fotos?select=id,url,orden&codigo=eq."+encodeURIComponent(c)+"&order=orden.asc",
+      {headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(fs){
+        if(!fs.length){ $("galRev").innerHTML=""; aviso($("msgRev"),"Ese cartel no tiene fotos cargadas.","mal"); return; }
+        aviso($("msgRev"),fs.length+" foto"+(fs.length===1?"":"s")+". Tocá la ✕ de las que no correspondan.","ok");
+        $("galRev").innerHTML=fs.map(function(f){
+          var origen = f.url.indexOf("/lote-")>=0 ? "Catálogo" : "Subida a mano";
+          return '<div style="position:relative;border:1px solid var(--linea);border-radius:12px;overflow:hidden;background:#0E0E12">'+
+            '<img src="'+f.url+'" style="width:100%;height:96px;object-fit:cover;display:block">'+
+            '<button class="borrarFoto" data-id="'+f.id+'" title="Quitar" style="position:absolute;top:6px;right:6px;'+
+            'width:26px;height:26px;border-radius:50%;border:0;background:rgba(224,87,78,.92);color:#fff;'+
+            'font-size:15px;font-weight:800;cursor:pointer;line-height:1">✕</button>'+
+            '<div style="font-size:10.5px;color:var(--gris);padding:6px 8px;font-family:var(--mono)">'+origen+'</div></div>';
+        }).join("");
+      })
+      .catch(function(){ aviso($("msgRev"),"No se pudo consultar.","mal"); });
+  }
+  $("btRev").addEventListener("click", verFotos);
+  $("revCod").addEventListener("keydown", function(e){ if(e.key==="Enter") verFotos(); });
+
+  document.addEventListener("click", function(e){
+    var b = e.target && e.target.classList && e.target.classList.contains("borrarFoto") ? e.target : null;
+    if(!b) return;
+    if(!confirm("¿Quitar esta foto del cartel?")) return;
+    b.disabled=true;
+    fetch("/api/masa?accion=borrar-foto",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({clave:clave, id:b.getAttribute("data-id")})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(res){
+        if(!res.ok){ b.disabled=false; aviso($("msgRev"),(res.j&&res.j.error)||"No se pudo borrar.","mal"); return; }
+        var cont=b.parentNode; if(cont && cont.parentNode) cont.parentNode.removeChild(cont);
+        aviso($("msgRev"),"Foto quitada.","ok");
+      })
+      .catch(function(){ b.disabled=false; aviso($("msgRev"),"Falló la conexión.","mal"); });
   });
 
   function verEstado(){
