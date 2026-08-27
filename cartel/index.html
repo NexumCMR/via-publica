@@ -38,12 +38,13 @@
   .logo b{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:-.01em;display:block;line-height:1}
   .logo s{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
 
-  .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;background:var(--negro)}
-  .hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;will-change:transform}
-  .hero::after{content:"";position:absolute;inset:0;background:
-    linear-gradient(180deg,rgba(10,10,12,.55) 0%,rgba(10,10,12,0) 26%,rgba(10,10,12,0) 44%,rgba(10,10,12,.86) 72%,var(--negro) 96%)}
-  .hero-in{position:relative;z-index:2;width:100%;max-width:640px;margin:0 auto;padding:78px 24px 40px;color:#fff;
-         max-height:100%;overflow:hidden}
+  .hero{position:relative;min-height:auto;display:flex;align-items:flex-end;overflow:hidden;background:var(--negro);
+    padding-top:8px}
+  .hero::before{content:"";position:absolute;top:-140px;right:-110px;width:340px;height:340px;border-radius:50%;
+    background:radial-gradient(circle,rgba(232,169,60,.20),transparent 68%);pointer-events:none}
+  
+  
+  .hero-in{position:relative;z-index:2;width:100%;max-width:640px;margin:0 auto;padding:34px 24px 42px;color:#fff}
   .kick{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;
         background:var(--oro);color:#1B1206;padding:8px 13px;border-radius:999px;letter-spacing:.14em}
   .hero h1{font-family:var(--disp);font-weight:800;line-height:.9;letter-spacing:-.035em;margin-top:16px;
@@ -312,7 +313,7 @@
     var h='<header class="nav"><div class="logo"><i></i><div><b>Masa Ideas</b><s>Espectaculares</s></div></div></header>';
 
     // ---- portada ----
-    h+='<section class="hero">'+(portada?'<img src="'+esc(portada)+'" alt="'+esc(c.nombre||"")+'">':'')+
+    h+='<section class="hero">'+
       '<div class="hero-in">'+
       (!libre&&c.disponible_desde?'<span class="kick">◆ Se libera el '+esc(fecha(c.disponible_desde))+'</span>':
        (libre?'<span class="kick">◆ Disponible ahora</span>':''))+
@@ -428,8 +429,7 @@
     var heroImg=document.querySelector(".hero>img"), prog=document.getElementById("prog"), tick=false;
     function alScrollear(){
       var y=window.scrollY||0;
-      if(heroImg && y<window.innerHeight) heroImg.style.transform="translateY("+(y*0.18)+"px)";
-      if(prog){ var alto=document.body.scrollHeight-window.innerHeight;
+        if(prog){ var alto=document.body.scrollHeight-window.innerHeight;
         prog.style.width=(alto>0?Math.min(100,(y/alto)*100):0)+"%"; }
       tick=false;
     }
