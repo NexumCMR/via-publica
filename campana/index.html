@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>document.documentElement.className="js";</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comprobante de campaña — Masa Ideas</title>
+<meta name="theme-color" content="#0A0A0C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--negro:#0A0A0C;--negro2:#141419;--papel:#F3F1EC;--blanco:#fff;--oro:#E8A93C;--verde:#2FBF71;
+        --gris:#6E7076;--gris-cl:#A8AAB1;--linea:rgba(10,10,12,.11);--linea-o:rgba(243,241,236,.14);
+        --disp:'Bricolage Grotesque',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'Space Mono',monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--papel);color:var(--negro);font-family:var(--sans);line-height:1.55}
+  .wrap{max-width:680px;margin:0 auto;padding:0 24px}
+  img{display:block}
+
+  .cab{background:var(--negro);color:#fff;padding:30px 0 42px}
+  .marca{display:flex;align-items:center;gap:11px}
+  .marca i{width:32px;height:32px;border-radius:9px;background:var(--oro);display:grid;place-items:center;flex:0 0 32px}
+  .marca i::before{content:"";width:16px;height:10px;background:var(--negro);border-radius:2px;box-shadow:0 7px 0 -3px var(--negro)}
+  .marca b{font-family:var(--disp);font-weight:800;font-size:15px;display:block;line-height:1}
+  .marca s{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
+  .sello{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    border:1px solid var(--verde);color:var(--verde);border-radius:999px;padding:7px 13px;margin-top:26px}
+  h1{font-family:var(--disp);font-weight:800;font-size:clamp(34px,9vw,52px);line-height:.98;letter-spacing:-.035em;margin-top:16px}
+  .per{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--gris-cl);margin-top:14px}
+  .resumen{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .r{flex:1 1 130px;background:rgba(255,255,255,.06);border:1px solid var(--linea-o);border-radius:16px;padding:15px 17px}
+  .r b{display:block;font-family:var(--disp);font-weight:800;font-size:clamp(22px,5.5vw,30px);letter-spacing:-.03em;line-height:1}
+  .r span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.13em;color:var(--gris-cl);margin-top:7px}
+
+  .sec{padding-top:48px}
+  .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--oro)}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(26px,7vw,34px);line-height:1.03;letter-spacing:-.03em;margin-top:11px}
+  .bajada{margin-top:12px;font-size:15.5px;color:var(--gris);line-height:1.6}
+
+  .esp{background:var(--blanco);border:1px solid var(--linea);border-radius:18px;padding:17px 18px;margin-top:12px}
+  .esp .cod{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--oro);letter-spacing:.1em}
+  .esp .n{font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:-.02em;margin-top:4px;line-height:1.2}
+  .esp .z{font-size:13.5px;color:var(--gris);margin-top:3px}
+  .esp .d{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+  .esp .d span{font-size:12px;font-weight:700;background:#F0EEE9;border-radius:7px;padding:5px 9px}
+
+  .fotos{display:grid;gap:14px;margin-top:22px}
+  .foto{border-radius:18px;overflow:hidden;border:1px solid var(--linea);background:var(--negro2);position:relative;cursor:zoom-in}
+  .foto img{width:100%;height:auto}
+  .foto span{position:absolute;left:12px;top:12px;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;
+    background:rgba(10,10,12,.66);backdrop-filter:blur(4px);color:#fff;padding:6px 11px;border-radius:999px}
+  .foto p{padding:12px 15px;font-size:14px;color:var(--gris);background:var(--blanco)}
+
+  .cierre{background:var(--negro);color:#fff;margin-top:56px;padding:46px 0}
+  .cierre h2{font-size:clamp(24px,6.4vw,32px)}
+  .cierre p{margin-top:12px;font-size:15px;color:#B7BAC2}
+  .bt{display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-top:22px;background:var(--oro);
+    color:#1B1206;text-decoration:none;padding:16px 28px;border-radius:999px;font-size:16px;font-weight:800}
+  .bt svg{width:19px;height:19px}
+  footer{padding:26px 0 34px;font-size:13px;color:var(--gris);text-align:center}
+  .cargando{min-height:70svh;display:grid;place-items:center;color:var(--gris);padding:30px;text-align:center}
+
+  .visor{position:fixed;inset:0;z-index:60;background:rgba(6,6,8,.97);display:none;align-items:center;justify-content:center}
+  .visor.on{display:flex}
+  .visor img{max-width:100%;max-height:86svh;object-fit:contain}
+  .visor button{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:44px;height:44px;
+    border-radius:50%;background:rgba(255,255,255,.15);border:0;color:#fff;font-size:24px;cursor:pointer}
+  @media print{ .cierre .bt,.visor{display:none} body{background:#fff} }
+</style>
+</head>
+<body>
+<div id="app"><div class="cargando">Cargando el comprobante…</div></div>
+<div class="visor" id="visor"><button id="visorX" aria-label="Cerrar">×</button><img id="visorImg" alt=""></div>
+
+<script>
+(function(){
+  var API="https://vdxkgywwcxluklvhzmor.supabase.co/rest/v1";
+  var LLAVE="sb_publishable_Pde178b3hSbn8bjirUR9Lw_PsaJiUC_";
+  var TEL="5491161112938";
+  var app=document.getElementById("app");
+
+  var m=location.pathname.match(/campana\/([^\/?#]+)/);
+  var SLUG=(m&&m[1])||paramURL("c")||"";
+  function paramURL(n){
+    var m=new RegExp("[?&]"+n+"=([^&#]*)").exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g," ")) : "";
+  }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function num(n){
+    var s=String(Math.round(Number(n)||0)), r="", c=0;
+    for(var i=s.length-1;i>=0;i--){ r=s[i]+r; if(++c%3===0 && i>0) r="."+r; }
+    return r;
+  }
+  function fecha(d){ if(!d) return ""; var p=String(d).split("-");
+    var mm=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return Number(p[2])+" "+mm[Number(p[1])-1]+" "+p[0]; }
+
+  if(!SLUG){ app.innerHTML='<div class="cargando">No se indicó ninguna campaña.</div>'; return; }
+
+  function pedir(r){ return fetch(API+r,{headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+    .then(function(x){ if(!x.ok) throw new Error(); return x.json(); }); }
+
+  Promise.all([
+    pedir("/masa_campanas?slug=eq."+encodeURIComponent(SLUG)+"&select=*"),
+    pedir("/masa_campana_fotos?slug=eq."+encodeURIComponent(SLUG)+"&select=*&order=orden.asc")
+  ]).then(function(res){
+    var c=res[0][0], fotos=res[1]||[];
+    if(!c){ app.innerHTML='<div class="cargando">Este comprobante no está disponible.</div>'; return; }
+    dibujar(c,fotos); prender();
+  }).catch(function(){
+    app.innerHTML='<div class="cargando">No se pudo cargar el comprobante. Probá de nuevo en un momento.</div>';
+  });
+
+  function dibujar(c,fotos){
+    document.title="Campaña "+(c.marca||"")+" — Masa Ideas";
+    var esp=Array.isArray(c.espacios)?c.espacios:[];
+    var impTot=esp.reduce(function(a,e){ return a+(Number(e.impactos)||0); },0);
+    var dias = (c.desde&&c.hasta) ? Math.max(1,Math.round((new Date(c.hasta)-new Date(c.desde))/86400000)) : null;
+    var alcance = impTot && dias ? Math.round(impTot*(dias/7)) : 0;
+    var wa="https://wa.me/"+TEL+"?text="+encodeURIComponent("Hola! Vi el comprobante de la campaña de "+(c.marca||"")+" y quería consultarles.");
+
+    var h='<header class="cab"><div class="wrap">'+
+      '<div class="marca"><i></i><div><b>Masa Ideas</b><s>Publicidad exterior</s></div></div>'+
+      '<span class="sello">✓ Campaña verificada</span>'+
+      '<h1>'+esc(c.marca)+'</h1>'+
+      ((c.desde||c.hasta)?'<p class="per">'+esc(fecha(c.desde))+(c.hasta?" — "+esc(fecha(c.hasta)):"")+'</p>':'')+
+      '<div class="resumen">'+
+        '<div class="r"><b>'+esp.length+'</b><span>'+(esp.length===1?"Espacio":"Espacios")+'</span></div>'+
+        (dias?'<div class="r"><b>'+dias+'</b><span>Días al aire</span></div>':'')+
+        (alcance?'<div class="r"><b style="color:var(--oro)">'+num(alcance)+'</b><span>Impactos del período</span></div>':'')+
+      '</div></div></header>';
+
+    h+='<main class="wrap">';
+
+    if(fotos.length){
+      h+='<section class="sec"><p class="cap">01 · La prueba</p><h2>Tu campaña, al aire</h2>'+
+        '<p class="bajada">Fotos tomadas en el lugar durante el período contratado.</p><div class="fotos">'+
+        fotos.map(function(f,i){
+          var et = f.momento==="noche" ? "DE NOCHE" : (f.momento==="montaje" ? "MONTAJE" : "AL AIRE");
+          return '<figure class="foto"><img src="'+esc(f.url)+'" alt="'+esc(f.epigrafe||c.marca)+'" loading="'+(i<2?"eager":"lazy")+'">'+
+                 '<span>'+et+'</span>'+(f.epigrafe?'<p>'+esc(f.epigrafe)+'</p>':'')+'</figure>';
+        }).join("")+'</div></section>';
+    }
+
+    if(esp.length){
+      h+='<section class="sec"><p class="cap">0'+(fotos.length?2:1)+' · Dónde estuvo</p><h2>Espacios contratados</h2>'+
+        esp.map(function(e){
+          return '<div class="esp">'+(e.codigo?'<div class="cod">COD '+esc(e.codigo)+'</div>':'')+
+            '<div class="n">'+esc(e.nombre||"")+'</div>'+
+            (e.zona?'<div class="z">'+esc(e.zona)+'</div>':'')+
+            '<div class="d">'+(e.medidas?'<span>'+esc(e.medidas)+'</span>':'')+
+              (e.impactos?'<span>'+num(e.impactos)+' por semana</span>':'')+'</div></div>';
+        }).join("")+'</section>';
+    }
+
+    if(c.nota){
+      h+='<section class="sec"><p class="cap">Nota</p><p class="bajada">'+esc(c.nota)+'</p></section>';
+    }
+
+    h+='</main><section class="cierre"><div class="wrap">'+
+      '<h2>¿Renovamos el espacio?</h2>'+
+      '<p>Si querés continuar la campaña o sumar otro punto, escribinos y lo vemos.</p>'+
+      '<a class="bt" href="'+wa+'" target="_blank" rel="noopener">'+
+      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2z"/></svg>'+
+      'Hablar por WhatsApp</a></div></section>'+
+      '<footer>Comprobante emitido por <b>Masa Ideas</b> · Publicidad en vía pública</footer>';
+
+    app.innerHTML=h;
+  }
+
+  function prender(){
+    var visor=document.getElementById("visor"), vImg=document.getElementById("visorImg");
+    var figs=document.querySelectorAll(".foto");
+    Array.prototype.forEach.call(figs,function(f){
+      f.addEventListener("click",function(){
+        var im=f.querySelector("img"); if(!im) return;
+        vImg.src=im.getAttribute("src"); visor.classList.add("on"); document.body.style.overflow="hidden";
+      });
+    });
+    function cerrar(){ visor.classList.remove("on"); document.body.style.overflow=""; }
+    document.getElementById("visorX").addEventListener("click",cerrar);
+    visor.addEventListener("click",function(e){ if(e.target===visor||e.target===vImg) cerrar(); });
+    document.addEventListener("keydown",function(e){ if(e.key==="Escape") cerrar(); });
+  }
+})();
+</script>
+</body>
+</html>

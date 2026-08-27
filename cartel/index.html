@@ -210,9 +210,13 @@
   var ESTADIO=85000;
 
   var m=location.pathname.match(/cartel\/([^\/?#]+)/);
-  var COD=(m&&m[1])||new URLSearchParams(location.search).get("c")||"";
+  var COD=(m&&m[1])||paramURL("c")||"";
   var app=document.getElementById("app");
 
+  function paramURL(n){
+    var m=new RegExp("[?&]"+n+"=([^&#]*)").exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g," ")) : "";
+  }
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   function num(n){ return Number(n||0).toLocaleString("es-AR",{maximumFractionDigits:0}); }
@@ -247,9 +251,9 @@
 
   // Marca este teléfono como "del equipo" para no contar sus visitas: /cartel/1297?interno=1
   try{
-    var qp=new URLSearchParams(location.search);
-    if(qp.get("interno")==="1") localStorage.setItem("masa_interno","1");
-    if(qp.get("interno")==="0") localStorage.removeItem("masa_interno");
+    var interno=paramURL("interno");
+    if(interno==="1") localStorage.setItem("masa_interno","1");
+    if(interno==="0") localStorage.removeItem("masa_interno");
   }catch(e){}
 
   // Identificador anónimo del dispositivo: sirve para contar personas distintas,

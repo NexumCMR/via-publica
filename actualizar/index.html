@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Actualizar disponibilidad — Masa Ideas</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--negro:#0A0A0C;--negro2:#141419;--papel:#F3F1EC;--oro:#E8A93C;--verde:#2FBF71;--rojo:#E0574E;
+        --gris:#8A8C93;--linea:rgba(243,241,236,.13);
+        --disp:'Bricolage Grotesque',system-ui,sans-serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--mono:'Space Mono',monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--negro);color:var(--papel);font-family:var(--sans);line-height:1.55;padding:0 0 60px}
+  .wrap{max-width:620px;margin:0 auto;padding:0 22px}
+  .top{padding:26px 0 22px;border-bottom:1px solid var(--linea);margin-bottom:26px}
+  .logo{display:flex;align-items:center;gap:11px}
+  .logo i{width:34px;height:34px;border-radius:10px;background:var(--oro);display:grid;place-items:center;flex:0 0 34px}
+  .logo i::before{content:"";width:17px;height:11px;background:var(--negro);border-radius:2px;box-shadow:0 8px 0 -3px var(--negro)}
+  .logo b{font-family:var(--disp);font-weight:800;font-size:16px;display:block;line-height:1}
+  .logo s{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
+  h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,7.5vw,40px);line-height:1.02;letter-spacing:-.03em;margin-top:10px}
+  .sub{color:var(--gris);margin-top:12px;font-size:15.5px}
+  .caja{background:var(--negro2);border:1px solid var(--linea);border-radius:18px;padding:20px;margin-top:20px}
+  .caja h2{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:-.02em;margin-bottom:8px}
+  .paso{display:flex;gap:12px;align-items:flex-start;margin-top:14px}
+  .paso i{flex:0 0 26px;height:26px;border-radius:50%;background:var(--oro);color:#1B1206;display:grid;place-items:center;
+          font-family:var(--disp);font-weight:800;font-size:13px;font-style:normal}
+  .paso p{font-size:14.5px;color:#C6C8CF}
+  label{display:block;font-size:13px;font-weight:700;color:var(--gris);margin-bottom:7px;font-family:var(--mono);
+        text-transform:uppercase;letter-spacing:.12em}
+  input[type=password],input[type=text]{width:100%;padding:14px 15px;border-radius:12px;border:1px solid var(--linea);
+        background:#0E0E12;color:var(--papel);font-size:16px;font-family:inherit;outline:none}
+  input:focus{border-color:var(--oro)}
+  .bt{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:16px;border-radius:14px;border:0;
+      font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:14px}
+  .bt-oro{background:var(--oro);color:#1B1206}
+  .bt-linea{background:transparent;color:var(--papel);border:1px solid var(--linea)}
+  .bt:disabled{opacity:.55;cursor:default}
+  .estado{margin-top:16px;padding:14px 16px;border-radius:12px;font-size:14.5px;line-height:1.55;display:none}
+  .estado.ok{display:block;background:rgba(47,191,113,.12);color:#8FE7B8;border:1px solid rgba(47,191,113,.3)}
+  .estado.mal{display:block;background:rgba(224,87,78,.12);color:#F3A9A3;border:1px solid rgba(224,87,78,.3)}
+  .estado.info{display:block;background:rgba(232,169,60,.1);color:var(--oro);border:1px solid rgba(232,169,60,.28)}
+  .resumen{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .r{flex:1 1 120px;background:#0E0E12;border:1px solid var(--linea);border-radius:14px;padding:14px}
+  .r b{display:block;font-family:var(--disp);font-weight:800;font-size:26px;letter-spacing:-.02em}
+  .r span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.13em;color:var(--gris);margin-top:6px}
+  .nota{font-size:13px;color:var(--gris);margin-top:12px;line-height:1.6}
+  a.link{color:var(--oro)}
+  .oculto{display:none}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="logo"><i></i><div><b>Masa Ideas</b><s>Panel interno</s></div></div>
+  <h1>Actualizar<br>disponibilidad</h1>
+  <p class="sub">Subí el Excel de siempre y el portal público queda al día en segundos.</p>
+</div></div>
+
+<div class="wrap">
+
+  <div id="login" class="caja">
+    <h2>Clave de acceso</h2>
+    <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:14px">Sólo para el equipo de Masa Ideas.</p>
+    <label>Clave</label>
+    <input type="password" id="clave" placeholder="••••••••" autocomplete="current-password">
+    <button class="bt bt-oro" id="entrar">Entrar</button>
+    <div class="estado" id="msgLogin"></div>
+  </div>
+
+  <div id="panel" class="oculto">
+    <div class="caja">
+      <h2>Cómo se hace</h2>
+      <div class="paso"><i>1</i><p>Abrí el Excel de siempre (<b>Listado de disponibles</b>) y guardalo con los cambios del día.</p></div>
+      <div class="paso"><i>2</i><p>Tocá el botón de acá abajo y elegí ese archivo.</p></div>
+      <div class="paso"><i>3</i><p>Revisá el resumen que te muestra y confirmá. Listo: el portal ya está actualizado.</p></div>
+      <p class="nota">No hace falta ordenar ni limpiar nada. Se lee el archivo tal cual está, con las filas de categoría y todo.</p>
+    </div>
+
+    <div class="caja">
+      <h2>El archivo</h2>
+      <input type="file" id="archivo" accept=".xlsx,.xls" class="oculto">
+      <button class="bt bt-oro" id="elegir">📄 Elegir el Excel</button>
+      <div class="estado" id="msg"></div>
+      <div id="resumen" class="oculto">
+        <div class="resumen">
+          <div class="r"><b id="rTot">0</b><span>Espacios</span></div>
+          <div class="r"><b id="rDisp" style="color:var(--verde)">0</b><span>Disponibles</span></div>
+          <div class="r"><b id="rZonas">0</b><span>Zonas</span></div>
+        </div>
+        <button class="bt bt-oro" id="publicar">Publicar en el portal</button>
+        <button class="bt bt-linea" id="cancelar">Elegir otro archivo</button>
+      </div>
+    </div>
+
+    <div class="caja">
+      <h2>Cambiar la clave</h2>
+      <p style="font-size:14.5px;color:#C6C8CF;margin-bottom:12px">Si querés poner otra, cambiala acá. Se aplica al toque.</p>
+      <label>Clave nueva</label>
+      <input type="password" id="claveNueva" placeholder="Mínimo 6 caracteres">
+      <button class="bt bt-linea" id="btCambiar">Cambiar la clave</button>
+      <div class="estado" id="msgClave"></div>
+    </div>
+
+    <div class="caja">
+      <h2>Estado del portal</h2>
+      <p id="ultima" style="font-size:14.5px;color:#C6C8CF">Consultando…</p>
+      <a class="bt bt-linea" href="/disponibles" target="_blank" rel="noopener" style="text-decoration:none">Ver el portal</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(function(){
+  var API="https://vdxkgywwcxluklvhzmor.supabase.co/rest/v1";
+  var LLAVE="sb_publishable_Pde178b3hSbn8bjirUR9Lw_PsaJiUC_";
+  var $=function(id){return document.getElementById(id);};
+  var clave="", listos=null;
+
+  function aviso(el,txt,tipo){ el.className="estado "+(tipo||"info"); el.innerHTML=txt; }
+
+  // ---------- acceso ----------
+  try{ var g=localStorage.getItem("masa_clave"); if(g){ clave=g; $("login").className="caja oculto"; $("panel").className=""; } }catch(e){}
+  $("entrar").addEventListener("click", function(){
+    clave=$("clave").value.trim();
+    if(!clave){ aviso($("msgLogin"),"Escribí la clave.","mal"); return; }
+    try{ localStorage.setItem("masa_clave",clave); }catch(e){}
+    $("login").className="caja oculto"; $("panel").className="";
+    verEstado();
+  });
+  $("clave").addEventListener("keydown", function(e){ if(e.key==="Enter") $("entrar").click(); });
+
+  // ---------- lectura del Excel ----------
+  var CATS={"ESPECTACULARES":"Espectacular","TOP WALL":"Top Wall","TOP SITE":"Top Site",
+            "PANTALLAS LED":"Pantalla LED","PANTALLA LED":"Pantalla LED","CENCOSUD":"Cencosud","MURALES":"Mural"};
+  var ZONAS={"caba":"CABA","vte.lopez":"Vicente López","vte lopez":"Vicente López","vicente lopez":"Vicente López",
+             "san martin":"San Martín","moron":"Morón","ramos mejia":"Ramos Mejía","3 de febrero":"Tres de Febrero",
+             "san justo":"San Justo","avellaneda":"Avellaneda"};
+
+  function aNumero(v){
+    if(v===null||v===undefined||v==="") return null;
+    if(typeof v==="number") return Math.round(v);
+    var s=String(v).replace(/\$/g,"").replace(/\s/g,"");
+    if(/^\d+(\.\d+)?[eE]\d+$/.test(s)) return Math.round(parseFloat(s));
+    if(s.indexOf(",")>=0 && s.indexOf(".")>=0) s=s.replace(/\./g,"").replace(",",".");
+    else s=s.replace(/\./g,"").replace(/,/g,"");
+    var n=parseFloat(s); return isNaN(n)?null:Math.round(n);
+  }
+  function aFecha(v){
+    if(!v) return null;
+    var d = (v instanceof Date) ? v : new Date(v);
+    if(isNaN(d.getTime())) return null;
+    var a=d.getFullYear(); if(a<2018||a>2035) return null;
+    return d.toISOString().slice(0,10);
+  }
+  function texto(v){ return v===null||v===undefined ? "" : String(v).trim(); }
+
+  function leerExcel(hoja){
+    var filas=XLSX.utils.sheet_to_json(hoja,{header:1,raw:false,cellDates:true,defval:""});
+    if(!filas.length) return [];
+    // ubicar las columnas por su nombre en la fila de encabezado
+    var enc=filas[0].map(function(x){ return String(x||"").trim().toUpperCase(); });
+    function col(nombre,porDefecto){
+      var i=enc.indexOf(nombre); return i>=0?i:porDefecto;
+    }
+    var C={cod:col("COD.",0),luz:col("LUZ",1),dir:col("DIRECCION",5),tipo:col("TIPO",6),zona:col("ZONA",7),
+           med:col("MEDIDAS",12),exh:col("EXHIBICION",19),disp:col("DISPONIBILIDAD",18)};
+    // el precio de venta es la SEGUNDA columna llamada PRECIO
+    var precios=[]; enc.forEach(function(v,i){ if(v.indexOf("PRECIO")===0) precios.push(i); });
+    C.precio = precios.length>1 ? precios[1] : (precios[0]!==undefined?precios[0]:11);
+
+    var cat="", out=[], orden=0;
+    for(var i=1;i<filas.length;i++){
+      var f=filas[i]||[];
+      var cod=texto(f[C.cod]);
+      var esNum = cod!=="" && !isNaN(parseFloat(cod));
+      if(!esNum){
+        var todo=f.map(function(x){return String(x||"").trim().toUpperCase();});
+        for(var k in CATS){ if(todo.indexOf(k)>=0){ cat=CATS[k]; break; } }
+        continue;
+      }
+      var exh=texto(f[C.exh]).toUpperCase();
+      var estado = exh.indexOf("DISPONIBLE")>=0 ? "Disponible"
+                 : (exh==="" ? "A confirmar" : (exh==="BN" ? "Banda negativa" : "Ocupado"));
+      var z=texto(f[C.zona]);
+      if(/^\d{4}-\d\d-\d\d/.test(z) || /^\d+$/.test(z)) z="";
+      var zl=z.toLowerCase(); if(ZONAS[zl]) z=ZONAS[zl];
+      var luz=texto(f[C.luz]).toLowerCase();
+
+      out.push({
+        codigo: String(Math.round(parseFloat(cod))),
+        direccion: texto(f[C.dir]),
+        zona: z,
+        formato: cat || texto(f[C.tipo]),
+        tipo: texto(f[C.tipo]),
+        medidas: texto(f[C.med]).replace(/ X /gi," x "),
+        iluminado: luz.charAt(0)==="s",
+        estado: estado,
+        precio: aNumero(f[C.precio]),
+        libre_desde: aFecha(f[C.disp]),
+        orden: orden++
+      });
+    }
+    return out;
+  }
+
+  $("elegir").addEventListener("click", function(){ $("archivo").click(); });
+  $("cancelar").addEventListener("click", function(){ listos=null; $("resumen").className="oculto"; $("msg").className="estado"; $("archivo").value=""; });
+
+  $("archivo").addEventListener("change", function(ev){
+    var f=(ev.target.files||[])[0]; if(!f) return;
+    aviso($("msg"),"Leyendo el archivo…","info");
+    var fr=new FileReader();
+    fr.onload=function(){
+      try{
+        var wb=XLSX.read(fr.result,{type:"array",cellDates:true});
+        var nombre = wb.SheetNames.indexOf("Listado")>=0 ? "Listado" : wb.SheetNames[0];
+        var datos=leerExcel(wb.Sheets[nombre]);
+        if(!datos.length){ aviso($("msg"),"No encontré carteles en ese archivo. ¿Es el listado de disponibles?","mal"); return; }
+        listos=datos;
+        var disp=datos.filter(function(d){return d.estado==="Disponible";}).length;
+        var zs=[]; datos.forEach(function(d){ if(d.zona && zs.indexOf(d.zona)<0) zs.push(d.zona); });
+        $("rTot").textContent=datos.length; $("rDisp").textContent=disp; $("rZonas").textContent=zs.length;
+        $("resumen").className="";
+        aviso($("msg"),"Archivo leído: <b>"+datos.length+" espacios</b> (hoja «"+nombre+"»). Revisá los números y publicá.","ok");
+      }catch(e){ aviso($("msg"),"No se pudo leer el archivo. Fijate que sea un Excel (.xlsx).","mal"); }
+    };
+    fr.onerror=function(){ aviso($("msg"),"No se pudo abrir el archivo.","mal"); };
+    fr.readAsArrayBuffer(f);
+  });
+
+  $("publicar").addEventListener("click", function(){
+    if(!listos) return;
+    $("publicar").disabled=true;
+    aviso($("msg"),"Publicando… no cierres la página.","info");
+    fetch("/api/masa?accion=portal",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ clave: clave, carteles: listos })
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+    .then(function(res){
+      $("publicar").disabled=false;
+      if(!res.ok){
+        if(res.j && /clave/i.test(res.j.error||"")){
+          try{ localStorage.removeItem("masa_clave"); }catch(e){}
+          aviso($("msg"),"La clave no es correcta. Recargá la página y probá de nuevo.","mal"); return;
+        }
+        aviso($("msg"),"No se pudo publicar: "+((res.j&&res.j.error)||"error"),"mal"); return;
+      }
+      aviso($("msg"),"✅ Listo. El portal ya muestra <b>"+res.j.total+" espacios</b>, "+res.j.disponibles+" disponibles.","ok");
+      listos=null; $("resumen").className="oculto"; $("archivo").value=""; verEstado();
+    })
+    .catch(function(){ $("publicar").disabled=false; aviso($("msg"),"Falló la conexión. Probá de nuevo.","mal"); });
+  });
+
+  $("btCambiar").addEventListener("click", function(){
+    var nueva=$("claveNueva").value.trim();
+    if(nueva.length<6){ aviso($("msgClave"),"Tiene que tener al menos 6 caracteres.","mal"); return; }
+    $("btCambiar").disabled=true;
+    fetch("/api/masa?accion=clave",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({actual:clave,nueva:nueva})})
+      .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(res){
+        $("btCambiar").disabled=false;
+        if(!res.ok){ aviso($("msgClave"),(res.j&&res.j.error)||"No se pudo cambiar.","mal"); return; }
+        clave=nueva; try{ localStorage.setItem("masa_clave",nueva); }catch(e){}
+        $("claveNueva").value="";
+        aviso($("msgClave"),"✅ Clave cambiada. Usá la nueva la próxima vez.","ok");
+      })
+      .catch(function(){ $("btCambiar").disabled=false; aviso($("msgClave"),"Falló la conexión.","mal"); });
+  });
+
+  function verEstado(){
+    fetch(API+"/masa_portal_meta?select=*&id=eq.1",{headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
+      .then(function(r){ return r.ok?r.json():[]; })
+      .then(function(a){
+        var m=a&&a[0];
+        if(!m){ $("ultima").textContent="Todavía no se subió ningún inventario."; return; }
+        var d=new Date(m.actualizado);
+        var hs=Math.round((Date.now()-d.getTime())/3600000);
+        var cuando = hs<1 ? "hace un rato" : (hs<24 ? "hace "+hs+" h" : "hace "+Math.round(hs/24)+" días");
+        $("ultima").innerHTML="Última actualización: <b>"+cuando+"</b> · "+m.total+" espacios, "+m.disponibles+" disponibles.";
+      })
+      .catch(function(){ $("ultima").textContent="No se pudo consultar el estado."; });
+  }
+  if($("panel").className==="") verEstado();
+})();
+</script>
+</body>
+</html>

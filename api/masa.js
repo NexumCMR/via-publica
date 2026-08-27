@@ -7,6 +7,20 @@
 const SUPABASE_URL = "https://vdxkgywwcxluklvhzmor.supabase.co";
 const BUCKET = "masa-fotos";
 
+import { createHash } from "node:crypto";
+
+const sha256 = (t) => createHash("sha256").update(String(t)).digest("hex");
+
+// La clave del panel vive en la base, no en el código (el repositorio es público).
+async function claveValida(intento) {
+  if (!intento) return false;
+  const r = await sb("/rest/v1/masa_config?select=clave_hash&id=eq.1", { method: "GET" });
+  if (!r.ok) return false;
+  const filas = await r.json();
+  if (!filas || !filas.length) return false;
+  return sha256(intento) === filas[0].clave_hash;
+}
+
 function sb(ruta, opciones = {}) {
   const clave = process.env.SUPABASE_SERVICE_KEY;
   return fetch(SUPABASE_URL + ruta, {
@@ -100,6 +114,93 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ ok: true, link: `/cartel/${cartel.codigo}` });
+    }
+
+    // -------- Reemplazar todo el inventario del portal (viene del Excel) --------
+    if (accion === "portal") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+
+      const filas = Array.isArray(body.carteles) ? body.carteles : [];
+      if (!filas.length) return res.status(400).json({ error: "No llegó ningún cartel" });
+      if (filas.length > 3000) return res.status(413).json({ error: "Demasiadas filas" });
+
+      // Se borra lo viejo y se carga lo nuevo, para que nunca queden espacios fantasma
+      const rDel = await sb("/rest/v1/masa_portal?codigo=neq.__nada__", { method: "DELETE" });
+      if (!rDel.ok) return res.status(502).json({ error: "No se pudo limpiar el inventario anterior" });
+
+      for (let i = 0; i < filas.length; i += 500) {
+        const lote = filas.slice(i, i + 500);
+        const r = await sb("/rest/v1/masa_portal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+          body: JSON.stringify(lote),
+        });
+        if (!r.ok) return res.status(502).json({ error: "No se pudo guardar el inventario", detalle: await r.text() });
+      }
+
+      const disponibles = filas.filter((f) => f.estado === "Disponible").length;
+      await sb("/rest/v1/masa_portal_meta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ id: 1, actualizado: new Date().toISOString(), total: filas.length, disponibles }),
+      });
+
+      return res.status(200).json({ ok: true, total: filas.length, disponibles });
+    }
+
+    // -------- Publicar un comprobante de campaña --------
+    if (accion === "campana") {
+      const { campana, fotos } = body;
+      if (!campana || !campana.slug || !campana.marca)
+        return res.status(400).json({ error: "Faltan datos de la campaña" });
+
+      const r1 = await sb("/rest/v1/masa_campanas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ ...campana, publicado: true }),
+      });
+      if (!r1.ok) return res.status(502).json({ error: "No se pudo guardar la campaña", detalle: await r1.text() });
+
+      if (Array.isArray(fotos)) {
+        await sb(`/rest/v1/masa_campana_fotos?slug=eq.${encodeURIComponent(campana.slug)}`, { method: "DELETE" });
+        if (fotos.length) {
+          const filas = fotos.map((f, i) => ({
+            slug: campana.slug, url: f.url, epigrafe: f.epigrafe || null,
+            momento: f.momento || null, orden: typeof f.orden === "number" ? f.orden : i,
+          }));
+          const r2 = await sb("/rest/v1/masa_campana_fotos", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(filas),
+          });
+          if (!r2.ok) return res.status(502).json({ error: "No se pudieron guardar las fotos" });
+        }
+      }
+      return res.status(200).json({ ok: true, link: `/campana/${campana.slug}` });
+    }
+
+    // -------- Borrar un comprobante --------
+    if (accion === "borrar-campana") {
+      const { slug } = body;
+      if (!slug) return res.status(400).json({ error: "Falta el identificador" });
+      await sb(`/rest/v1/masa_campana_fotos?slug=eq.${encodeURIComponent(slug)}`, { method: "DELETE" });
+      const r = await sb(`/rest/v1/masa_campanas?slug=eq.${encodeURIComponent(slug)}`, { method: "DELETE" });
+      if (!r.ok) return res.status(502).json({ error: "No se pudo borrar" });
+      return res.status(200).json({ ok: true });
+    }
+
+    // -------- Cambiar la clave del panel --------
+    if (accion === "clave") {
+      if (!(await claveValida(body.actual)))
+        return res.status(401).json({ error: "La clave actual no es correcta" });
+      const nueva = String(body.nueva || "");
+      if (nueva.length < 6) return res.status(400).json({ error: "La clave nueva tiene que tener al menos 6 caracteres" });
+      const r = await sb("/rest/v1/masa_config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ id: 1, clave_hash: sha256(nueva), actualizado: new Date().toISOString() }),
+      });
+      if (!r.ok) return res.status(502).json({ error: "No se pudo cambiar la clave" });
+      return res.status(200).json({ ok: true });
     }
 
     // -------- Mostrar u ocultar del catálogo --------
