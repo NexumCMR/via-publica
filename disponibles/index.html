@@ -97,6 +97,9 @@
   .cuerpo{padding:16px;flex:1;display:flex;flex-direction:column}
   .dir{font-family:var(--disp);font-weight:800;font-size:17px;line-height:1.2;letter-spacing:-.02em}
   .zona{font-size:13px;color:var(--gris);margin-top:4px}
+  .sent{font-size:12.5px;font-weight:700;color:var(--oro);margin-top:6px}
+  .otras{font-size:11.5px;color:var(--gris);margin-top:6px;line-height:1.45;
+    background:rgba(255,255,255,.05);border-radius:8px;padding:6px 9px}
   .datos{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
   .dato{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.06);border-radius:7px;padding:5px 9px;color:#C6C8CF}
   .pie{margin-top:auto;padding-top:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -329,7 +332,7 @@
       if(estadoSel==="Se libera pronto"){ var x=dias(d.d); if(!(d.e!=="Disponible" && x!==null && x>=0 && x<=90)) return false; }
       if(fmtSel!=="Todos" && d.t!==fmtSel) return false;
       if(zonaSel!=="Todas" && d.z!==zonaSel) return false;
-      if(q){ var t=(d.c+" "+d.n+" "+d.z+" "+d.t+" "+d.st).toLowerCase(); if(t.indexOf(q)<0) return false; }
+      if(q){ var t=(d.c+" "+d.n+" "+d.z+" "+d.t+" "+d.st+" "+(d.s||"")).toLowerCase(); if(t.indexOf(q)<0) return false; }
       return true;
     });
   }
@@ -347,6 +350,12 @@
       '<div class="cuerpo">'+
         '<div class="dir">'+esc(d.n||("Espacio "+d.c))+'</div>'+
         (d.z?'<div class="zona">'+esc(d.z)+'</div>':'')+
+        (d.s?'<div class="sent">↗ '+esc(d.s)+'</div>':'')+
+        (d.u?(function(){
+           var otras=DATOS.filter(function(x){ return x.u===d.u && x.c!==d.c; });
+           return otras.length ? '<div class="otras">Este punto tiene '+(otras.length+1)+' caras: '+
+             DATOS.filter(function(x){return x.u===d.u;}).map(function(x){ return esc(x.s||("COD "+x.c)); }).join(" · ")+'</div>' : '';
+         })():'')+
         '<div class="datos">'+
           (d.m?'<span class="dato">'+esc(d.m)+'</span>':'')+
           (d.l==="si"?'<span class="dato">Iluminado</span>':'')+
@@ -464,14 +473,15 @@
   }
 
   // Inventario en vivo (lo último que subieron desde el Excel)
-  fetch(API+"/masa_portal?select=codigo,direccion,zona,formato,tipo,medidas,iluminado,estado,libre_desde,banda,con_ficha&order=orden.asc",
+  fetch(API+"/masa_portal?select=codigo,direccion,zona,formato,tipo,medidas,iluminado,estado,libre_desde,con_ficha,sentido,ubicacion&order=orden.asc",
     {headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
     .then(function(r){ return r.ok?r.json():null; })
     .then(function(a){
       if(!a || !a.length) return;
       DATOS = a.map(function(x){ return {
         c:x.codigo, n:x.direccion, z:x.zona, t:x.formato, st:x.tipo,
-        m:x.medidas, l:x.iluminado?"si":"no", e:x.estado, d:x.libre_desde, b:x.banda, f:x.con_ficha }; });
+        m:x.medidas, l:x.iluminado?"si":"no", e:x.estado, d:x.libre_desde, f:x.con_ficha,
+        s:x.sentido, u:x.ubicacion }; });
       recalcular(); render();
     }).catch(function(){});
 
