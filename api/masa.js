@@ -95,7 +95,8 @@ export default async function handler(req, res) {
       if (!r1.ok) return res.status(502).json({ error: "No se pudo guardar el cartel", detalle: await r1.text() });
 
       if (Array.isArray(fotos)) {
-        await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(cartel.codigo)}`, { method: "DELETE" });
+        // Reemplaza SÓLO las fotos que subió ella; las del catálogo quedan intactas.
+        await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(cartel.codigo)}&url=not.like.*lote-*`, { method: "DELETE" });
         if (fotos.length) {
           const filas = fotos.map((f, i) => ({
             codigo: cartel.codigo,
