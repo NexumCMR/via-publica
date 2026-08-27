@@ -128,10 +128,15 @@ export default async function handler(req, res) {
         if (n <= 8000000) return 2;
         return 3;
       };
-      const filas = (Array.isArray(body.carteles) ? body.carteles : []).map((f) => {
+      // El Excel suele traer códigos repetidos: nos quedamos con la última fila de cada uno.
+      const unicos = new Map();
+      for (const f of (Array.isArray(body.carteles) ? body.carteles : [])) {
         const { precio, ...resto } = f;
-        return { ...resto, banda: banda(precio) };   // el precio no viaja al portal público
-      });
+        if (!resto.codigo) continue;
+        unicos.set(String(resto.codigo), { ...resto, banda: banda(precio) });  // el precio no viaja al portal
+      }
+      const filas = Array.from(unicos.values());
+      const repetidos = (Array.isArray(body.carteles) ? body.carteles.length : 0) - filas.length;
       if (!filas.length) return res.status(400).json({ error: "No llegó ningún cartel" });
       if (filas.length > 3000) return res.status(413).json({ error: "Demasiadas filas" });
 
@@ -156,7 +161,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ id: 1, actualizado: new Date().toISOString(), total: filas.length, disponibles }),
       });
 
-      return res.status(200).json({ ok: true, total: filas.length, disponibles });
+      return res.status(200).json({ ok: true, total: filas.length, disponibles, repetidos });
     }
 
     // -------- Subir fotos en lote y dejar la ficha lista --------
