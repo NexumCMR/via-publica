@@ -208,10 +208,10 @@ export default async function handler(req, res) {
             mostrar_precio: false, publicado: true, actualizado: new Date().toISOString(),
           }),
         });
-        await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(codigo)}`, { method: "DELETE" });
+        // Se AGREGAN: nunca se borran las fotos que ya tenía el cartel.
         await sb("/rest/v1/masa_fotos", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(urls.map((u, i) => ({ codigo, url: u, orden: i, portada: i === 0 }))),
+          body: JSON.stringify(urls.map((u, i) => ({ codigo, url: u, orden: i, portada: false }))),
         });
         await sb(`/rest/v1/masa_portal?codigo=eq.${encodeURIComponent(codigo)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
