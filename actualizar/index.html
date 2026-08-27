@@ -216,9 +216,12 @@
       var zl=z.toLowerCase(); if(ZONAS[zl]) z=ZONAS[zl];
       var luz=texto(f[C.luz]).toLowerCase();
 
+      var dd=partirDireccion(texto(f[C.dir]));
       out.push({
         codigo: String(Math.round(parseFloat(cod))),
         direccion: texto(f[C.dir]),
+        sentido: dd.sentido,
+        ubicacion: (dd.base + " · " + z).toLowerCase(),
         zona: z,
         formato: cat || texto(f[C.tipo]),
         tipo: texto(f[C.tipo]),
@@ -320,6 +323,24 @@
       fr.readAsDataURL(file);
     });
   }
+  // "Panamericana Km 39 (Tránsito hacia CABA)" → ubicación + sentido
+  function partirDireccion(d){
+    var t=String(d||"");
+    var sen="";
+    var m=t.match(/tr[áa]nsito\s+(?:hacia|a|al)?\s*([^)]{2,40})/i);
+    if(m) sen=m[1].replace(/[.)\s]+$/,"").trim();
+    var base=t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig," ")
+               .replace(/\b(tr[áa]nsito|sentido)\s+(hacia|a|al)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig,"")
+               .replace(/\s{2,}/g," ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g,"");
+    if(sen){
+      var l=sen.toLowerCase();
+      if(/caba|capital/.test(l)) sen="Hacia CABA";
+      else if(/provincia|prov/.test(l)) sen="Hacia Provincia";
+      else sen="Hacia "+sen.charAt(0).toUpperCase()+sen.slice(1);
+    }
+    return { base: base, sentido: sen };
+  }
+
   function codigoDe(nombre){
     var n=String(nombre||"").replace(/\.[a-z0-9]+$/i,"");
     var m=n.match(/(?:^|[^0-9])(\d{3,6})(?:[^0-9]|$)/);
