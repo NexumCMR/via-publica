@@ -930,6 +930,10 @@ function App() {
     label: "Publicar en WhatsApp",
     icon: MessageCircle
   }, {
+    id: "portal",
+    label: "El portal",
+    icon: ExternalLink
+  }, {
     id: "mensajes",
     label: "Mensajes listos",
     icon: Mail
@@ -971,6 +975,7 @@ function App() {
     clientes: ["Clientes", "Tu cartera de contactos"],
     seguimiento: ["Seguimiento comercial", "No pierdas ningún cliente"],
     publicar: ["Publicar en WhatsApp", "Armá la imagen y el link de un cartel"],
+    portal: ["El portal", "Lo que está libre, en un link para el cliente"],
     mensajes: ["Mensajes listos", "Escribile a un cliente en dos toques"],
     simular: ["Simular marca", "Mostrale al cliente su marca en el cartel"],
     detectar: ["¿Qué marca es?", "Sacale una foto a un cartel y encontrá al anunciante"],
@@ -1061,7 +1066,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 40")), React.createElement("div", {
+  }, "✓ Versión 42")), React.createElement("div", {
     className: "content",
     key: tab
   }, tab === "dashboard" && React.createElement(Dashboard, {
@@ -1079,7 +1084,7 @@ function App() {
     update: update
   }), tab === "publicar" && React.createElement(PublicarSeccion, {
     data: data
-  }), tab === "mensajes" && React.createElement(MensajesSeccion, {
+  }), tab === "portal" && React.createElement(PortalSeccion, null), tab === "mensajes" && React.createElement(MensajesSeccion, {
     data: data
   }), tab === "simular" && React.createElement(SimuladorSeccion, {
     data: data
@@ -5131,6 +5136,203 @@ function MensajesSeccion({
     }
   }, "Este cliente no tiene teléfono cargado, así que vas a elegir el contacto en WhatsApp."));
 }
+function PortalSeccion() {
+  const [datos, setDatos] = useState(null);
+  const [meta, setMeta] = useState(null);
+  const LINK = PUB_BASE + "/disponibles";
+  useEffect(() => {
+    fetch(PUB_SB + "/masa_portal?select=estado", {
+      headers: {
+        apikey: PUB_KEY,
+        Authorization: "Bearer " + PUB_KEY
+      }
+    }).then(r => r.ok ? r.json() : null).then(a => {
+      if (!a) return setDatos({
+        total: 0,
+        libres: 0
+      });
+      setDatos({
+        total: a.length,
+        libres: a.filter(x => x.estado === "Disponible").length
+      });
+    }).catch(() => setDatos({
+      total: 0,
+      libres: 0
+    }));
+    fetch(PUB_SB + "/masa_portal_meta?select=actualizado&id=eq.1", {
+      headers: {
+        apikey: PUB_KEY,
+        Authorization: "Bearer " + PUB_KEY
+      }
+    }).then(r => r.ok ? r.json() : []).then(a => setMeta(a && a[0] ? a[0] : null)).catch(() => setMeta(null));
+  }, []);
+  const cuando = () => {
+    if (!meta) return null;
+    const hs = Math.round((Date.now() - new Date(meta.actualizado).getTime()) / 3600000);
+    return hs < 1 ? "recién" : hs < 24 ? `hace ${hs} h` : `hace ${Math.round(hs / 24)} días`;
+  };
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(LINK);
+      alert("¡Link copiado!");
+    } catch (e) {
+      prompt("Copiá este link:", LINK);
+    }
+  };
+  const mandar = () => {
+    const m = "Hola! Te paso todo lo que tenemos disponible ahora, para que lo mires con calma:\n\n" + LINK;
+    window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(m), "_blank");
+  };
+  return React.createElement("div", null, React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 17,
+      marginBottom: 6
+    }
+  }, "¿Qué es el portal?"), React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      lineHeight: 1.65,
+      color: "var(--muted)"
+    }
+  }, "Es una página tuya en internet donde el cliente ve ", React.createElement("b", null, "todos los espacios disponibles"), " y los filtra por zona o formato, sin tener que preguntarte.", React.createElement("br", null), React.createElement("br", null), "Cuando te escriben «¿qué tenés libre?», le mandás este link y lo mira solo. Después te contesta con los códigos que le interesan.")), React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16,
+      background: "#0a0a0c",
+      color: "#fff",
+      border: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontFamily: "'Space Mono',monospace",
+      fontSize: 11,
+      letterSpacing: ".18em",
+      color: "#2fbf71"
+    }
+  }, "EN VIVO ", cuando() ? "· ACTUALIZADO " + cuando().toUpperCase() : ""), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      marginTop: 14,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: "1 1 120px",
+      background: "rgba(255,255,255,.07)",
+      borderRadius: 12,
+      padding: "13px 15px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 26,
+      fontWeight: 800,
+      color: "#2fbf71"
+    }
+  }, datos ? datos.libres : "—"), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#b9bcc4",
+      marginTop: 3
+    }
+  }, "Disponibles ahora")), React.createElement("div", {
+    style: {
+      flex: "1 1 120px",
+      background: "rgba(255,255,255,.07)",
+      borderRadius: 12,
+      padding: "13px 15px"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 26,
+      fontWeight: 800
+    }
+  }, datos ? datos.total : "—"), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#b9bcc4",
+      marginTop: 3
+    }
+  }, "Espacios en cartera"))), React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#b9bcc4",
+      marginTop: 14,
+      lineHeight: 1.55
+    }
+  }, "El portal se actualiza solo cuando en la empresa suben el Excel nuevo. Vos no tenés que hacer nada.")), React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 10
+    }
+  }, "Mandáselo a un cliente"), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      width: "100%",
+      padding: 15,
+      fontSize: 16
+    },
+    onClick: mandar
+  }, React.createElement(MessageCircle, {
+    size: 19
+  }), " Enviar por WhatsApp"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginTop: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    className: "btn btn-ghost",
+    style: {
+      flex: "1 1 150px",
+      padding: 14
+    },
+    onClick: copiar
+  }, "Copiar el link"), React.createElement("a", {
+    className: "btn btn-ghost",
+    style: {
+      flex: "1 1 150px",
+      padding: 14,
+      justifyContent: "center"
+    },
+    href: LINK,
+    target: "_blank",
+    rel: "noopener"
+  }, "Ver cómo se ve")), React.createElement("div", {
+    style: {
+      fontFamily: "'Space Mono',monospace",
+      fontSize: 12.5,
+      background: "#f4f1ea",
+      padding: "11px 13px",
+      borderRadius: 10,
+      marginTop: 14,
+      wordBreak: "break-all",
+      color: "#15233b"
+    }
+  }, LINK), React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 22
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      marginBottom: 6
+    }
+  }, "Dónde más ponerlo"), React.createElement("div", {
+    style: {
+      fontSize: 14,
+      lineHeight: 1.65,
+      color: "var(--muted)"
+    }
+  }, "· En tu estado de WhatsApp, cada tanto.", React.createElement("br", null), "· En la bio de Instagram del estudio.", React.createElement("br", null), "· En la firma de tus mails.", React.createElement("br", null), "· Cuando alguien te pregunta por una zona en particular.")));
+}
 function PublicarSeccion({
   data
 }) {
@@ -5270,7 +5472,13 @@ function PublicarSeccion({
     onClick: nuevoVacio
   }, React.createElement(Plus, {
     size: 19
-  }), " Crear uno nuevo a mano"), React.createElement("label", {
+  }), " Crear uno que no esté en la lista"), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginTop: 6,
+      lineHeight: 1.5
+    }
+  }, "Sólo para un cartel que todavía no esté cargado: vas a tener que escribir vos todos los datos."), React.createElement("label", {
     style: {
       display: "flex",
       alignItems: "flex-start",
@@ -5298,82 +5506,6 @@ function PublicarSeccion({
       marginTop: 2
     }
   }, "Así los números muestran sólo a los clientes, no las veces que lo abrís vos.")))), React.createElement("div", {
-    className: "card",
-    style: {
-      marginBottom: 16,
-      background: "#0a0a0c",
-      color: "#fff",
-      border: 0
-    }
-  }, React.createElement("div", {
-    style: {
-      fontFamily: "'Space Mono',monospace",
-      fontSize: 11,
-      letterSpacing: ".18em",
-      color: "#2fbf71"
-    }
-  }, "PARA MANDARLE A UN CLIENTE"), React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 700,
-      marginTop: 8
-    }
-  }, "Todo lo que está libre, en un link"), React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      color: "#b9bcc4",
-      marginTop: 6,
-      lineHeight: 1.55
-    }
-  }, "Si te piden \"¿qué tenés disponible?\", mandales esto y lo miran solos: pueden filtrar por zona, formato y ver lo que se libera pronto."), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 14,
-      flexWrap: "wrap"
-    }
-  }, React.createElement("a", {
-    className: "btn",
-    style: {
-      background: "#2fbf71",
-      color: "#06210f",
-      fontWeight: 700,
-      padding: "11px 16px",
-      fontSize: 14
-    },
-    href: PUB_BASE + "/disponibles",
-    target: "_blank",
-    rel: "noopener"
-  }, "Ver el portal"), React.createElement("button", {
-    className: "btn",
-    style: {
-      background: "rgba(255,255,255,.12)",
-      color: "#fff",
-      padding: "11px 16px",
-      fontSize: 14
-    },
-    onClick: async () => {
-      const l = PUB_BASE + "/disponibles";
-      try {
-        await navigator.clipboard.writeText(l);
-        alert("¡Link copiado!");
-      } catch (e) {
-        prompt("Copiá este link:", l);
-      }
-    }
-  }, "Copiar el link"), React.createElement("button", {
-    className: "btn",
-    style: {
-      background: "rgba(255,255,255,.12)",
-      color: "#fff",
-      padding: "11px 16px",
-      fontSize: 14
-    },
-    onClick: () => {
-      const m = "Hola! Te paso todo lo que tenemos disponible ahora, para que lo mires con calma:\n\n" + PUB_BASE + "/disponibles";
-      window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(m), "_blank");
-    }
-  }, "Enviar por WhatsApp"))), React.createElement("div", {
     className: "card",
     style: {
       marginBottom: 16,
@@ -5436,122 +5568,17 @@ function PublicarSeccion({
         prompt("Copiá este link:", PUB_BASE + "/moni");
       }
     }
-  }, "Copiar el link"))), pubs === null && React.createElement("div", {
-    className: "cell-sub",
-    style: {
-      padding: "6px 2px 14px"
-    }
-  }, "Buscando lo que ya publicaste…"), pubs && pubs.length > 0 && React.createElement("div", {
-    style: {
-      marginBottom: 22
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      justifyContent: "space-between",
-      gap: 10,
-      marginBottom: 10
-    }
-  }, React.createElement("h3", {
-    style: {
-      fontSize: 16
-    }
-  }, "Ya publicados (", pubs.length, ")"), Object.keys(visitas).length > 0 && React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "var(--muted)",
-      fontWeight: 600
-    }
-  }, Object.values(personas).reduce((a, b) => a + b, 0), " personas en total")), pubs.map(p => React.createElement("div", {
-    key: p.codigo,
-    className: "pub-item",
-    style: {
-      cursor: "default",
-      flexWrap: "wrap"
-    }
-  }, React.createElement("span", {
-    style: {
-      flex: "1 1 160px",
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontWeight: 700,
-      fontSize: 15
-    }
-  }, p.nombre || p.codigo), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 12.5,
-      color: "var(--muted)"
-    }
-  }, p.localidad || "—", " · ", PUB_BASE.replace("https://", ""), "/cartel/", p.codigo), React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      marginTop: 6,
-      fontSize: 12.5,
-      fontWeight: 700,
-      padding: "4px 10px",
-      borderRadius: 20,
-      background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
-      color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790"
-    }
-  }, (personas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie" : `${personas[p.codigo]} ${personas[p.codigo] === 1 ? "persona lo abrió" : "personas lo abrieron"} · ${visitas[p.codigo]} ${visitas[p.codigo] === 1 ? "vez" : "veces"}`)), React.createElement("label", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      fontSize: 13,
-      fontWeight: 600,
-      flex: "1 1 100%",
-      marginTop: 4,
-      cursor: "pointer"
-    }
-  }, React.createElement("input", {
-    type: "checkbox",
-    checked: p.destacado !== false,
-    onChange: e => enCatalogo(p.codigo, e.target.checked),
-    style: {
-      width: 18,
-      height: 18
-    }
-  }), "Mostrar en mi catálogo"), React.createElement("span", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, React.createElement("a", {
-    className: "btn btn-ghost",
-    style: {
-      padding: "9px 12px",
-      fontSize: 13
-    },
-    href: pubLink(p.codigo),
-    target: "_blank",
-    rel: "noopener"
-  }, "Ver"), React.createElement("button", {
-    className: "btn btn-ghost",
-    style: {
-      padding: "9px 12px",
-      fontSize: 13
-    },
-    onClick: () => copiar(p.codigo)
-  }, "Copiar link"), React.createElement("button", {
-    className: "btn btn-icon ico-edit",
-    onClick: () => borrar(p.codigo, p.nombre),
-    disabled: borrando === p.codigo
-  }, React.createElement(Trash2, {
-    size: 16
-  })))))), React.createElement("h3", {
+  }, "Copiar el link"))), React.createElement("h3", {
     style: {
       fontSize: 16,
+      marginBottom: 4
+    }
+  }, "1 · Elegí el cartel que querés publicar"), React.createElement("div", {
+    className: "cell-sub",
+    style: {
       marginBottom: 10
     }
-  }, "Tus carteles (", todos.length, ")"), React.createElement("div", {
+  }, "Tocá el cartel en la lista y ya viene con todos sus datos cargados."), React.createElement("div", {
     className: "toolbar",
     style: {
       marginBottom: 8,
@@ -5652,7 +5679,117 @@ function PublicarSeccion({
     style: {
       marginTop: 6
     }
-  }, "Cargalos en «Carteles» o creá uno a mano acá arriba.")), elegido && React.createElement(PublicarCartel, {
+  }, "Cargalos en «Carteles» o creá uno a mano acá arriba.")), pubs === null && React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      padding: "6px 2px 14px"
+    }
+  }, "Buscando lo que ya publicaste…"), pubs && pubs.length > 0 && React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: 10,
+      marginBottom: 10
+    }
+  }, React.createElement("h3", {
+    style: {
+      fontSize: 16
+    }
+  }, "Lo que ya publicaste (", pubs.length, ")"), Object.keys(visitas).length > 0 && React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "var(--muted)",
+      fontWeight: 600
+    }
+  }, Object.values(personas).reduce((a, b) => a + b, 0), " personas en total")), pubs.map(p => React.createElement("div", {
+    key: p.codigo,
+    className: "pub-item",
+    style: {
+      cursor: "default",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: "1 1 160px",
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, p.nombre || p.codigo), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12.5,
+      color: "var(--muted)"
+    }
+  }, p.localidad || "—", " · ", PUB_BASE.replace("https://", ""), "/cartel/", p.codigo), React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 6,
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: "4px 10px",
+      borderRadius: 20,
+      background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
+      color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790"
+    }
+  }, (personas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie" : `${personas[p.codigo]} ${personas[p.codigo] === 1 ? "persona lo abrió" : "personas lo abrieron"} · ${visitas[p.codigo]} ${visitas[p.codigo] === 1 ? "vez" : "veces"}`)), React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 13,
+      fontWeight: 600,
+      flex: "1 1 100%",
+      marginTop: 4,
+      cursor: "pointer"
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: p.destacado !== false,
+    onChange: e => enCatalogo(p.codigo, e.target.checked),
+    style: {
+      width: 18,
+      height: 18
+    }
+  }), "Mostrar en mi catálogo"), React.createElement("span", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("a", {
+    className: "btn btn-ghost",
+    style: {
+      padding: "9px 12px",
+      fontSize: 13
+    },
+    href: pubLink(p.codigo),
+    target: "_blank",
+    rel: "noopener"
+  }, "Ver"), React.createElement("button", {
+    className: "btn btn-ghost",
+    style: {
+      padding: "9px 12px",
+      fontSize: 13
+    },
+    onClick: () => copiar(p.codigo)
+  }, "Copiar link"), React.createElement("button", {
+    className: "btn btn-icon ico-edit",
+    onClick: () => borrar(p.codigo, p.nombre),
+    disabled: borrando === p.codigo
+  }, React.createElement(Trash2, {
+    size: 16
+  })))))), elegido && React.createElement(PublicarCartel, {
     cartel: elegido,
     onClose: () => {
       setElegido(null);
@@ -7678,7 +7815,7 @@ function Propuestas({
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v40",
+        dateStr: fmtDate(today()) + " · v42",
         fotos,
         chs,
         impactosDe
