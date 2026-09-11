@@ -1066,7 +1066,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 42")), React.createElement("div", {
+  }, "✓ Versión 44")), React.createElement("div", {
     className: "content",
     key: tab
   }, tab === "dashboard" && React.createElement(Dashboard, {
@@ -2394,7 +2394,7 @@ const PUB_BASE = "https://via-publica-delta.vercel.app";
 const PUB_SB = "https://vdxkgywwcxluklvhzmor.supabase.co/rest/v1";
 const PUB_KEY = "sb_publishable_Pde178b3hSbn8bjirUR9Lw_PsaJiUC_";
 async function traerPublicados() {
-  const r = await fetch(PUB_SB + "/masa_carteles?select=codigo,nombre,localidad,estado,destacado,actualizado&publicado=eq.true&order=actualizado.desc", {
+  const r = await fetch(PUB_SB + "/masa_carteles?select=codigo,nombre,localidad,estado,destacado,actualizado,origen&publicado=eq.true&order=actualizado.desc", {
     headers: {
       apikey: PUB_KEY,
       Authorization: "Bearer " + PUB_KEY
@@ -2477,7 +2477,7 @@ function armarPlaca(img, encuadre, cartel, opciones) {
     const esc = escBase * (encuadre.zoom || 1) * zoomExtra;
     const dw = iw * esc,
       dh = ih * esc;
-    const dx = (W - dw) / 2,
+    const dx = (W - dw) / 2 + (encuadre.x || 0),
       dy = (FOTO_H - dh) / 2 + (encuadre.y || 0);
     x.drawImage(img, dx, dy, dw, dh);
     x.restore();
@@ -2630,7 +2630,7 @@ function armarPortada(img, encuadre) {
   const esc = Math.max(W / iw, FOTO_H / ih) * (encuadre.zoom || 1);
   const dw = iw * esc,
     dh = ih * esc;
-  x.drawImage(img, (W - dw) / 2, (FOTO_H - dh) / 2 + (encuadre.y || 0), dw, dh);
+  x.drawImage(img, (W - dw) / 2 + (encuadre.x || 0), (FOTO_H - dh) / 2 + (encuadre.y || 0), dw, dh);
   let g = x.createLinearGradient(0, 0, 0, 280);
   g.addColorStop(0, "rgba(10,10,12,.5)");
   g.addColorStop(1, "rgba(10,10,12,0)");
@@ -2728,6 +2728,7 @@ function PublicarCartel({
   const [principal, setPrincipal] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [desp, setDesp] = useState(0);
+  const [despX, setDespX] = useState(0);
   const [mostrarPrecio, setMostrarPrecio] = useState(true);
   const [d, setD] = useState({
     nombre: tituloCorto(cartel.nombre) || "",
@@ -2778,7 +2779,8 @@ function PublicarCartel({
       try {
         const url = armarPlaca(im, {
           zoom,
-          y: desp
+          y: desp,
+          x: despX
         }, datosPlaca);
         if (previaRef.current) previaRef.current.src = url;
         setPlaca(url);
@@ -2787,7 +2789,7 @@ function PublicarCartel({
       }
     };
     im.src = fotos[principal].dataUrl;
-  }, [paso, principal, zoom, desp, fotos]);
+  }, [paso, principal, zoom, desp, despX, fotos]);
   const elegirFotos = async ev => {
     const files = Array.from(ev.target.files || []);
     if (!files.length) return;
@@ -2822,7 +2824,8 @@ function PublicarCartel({
       if (imgRef.current) {
         const portadaImg = armarPortada(imgRef.current, {
           zoom,
-          y: desp
+          y: desp,
+          x: despX
         });
         const rp = await fetch("/api/masa?accion=foto", {
           method: "POST",
@@ -2924,7 +2927,8 @@ function PublicarCartel({
     try {
       const blob = await armarVideoPlaca(imgRef.current, {
         zoom,
-        y: desp
+        y: desp,
+        x: despX
       }, datosPlaca, setVidPct);
       const ext = blob.type.includes("mp4") ? "mp4" : "webm";
       setVidBlob(blob);
@@ -3377,6 +3381,21 @@ function PublicarCartel({
       fontSize: 13,
       fontWeight: 700
     }
+  }, "Mover a los costados"), React.createElement("input", {
+    type: "range",
+    min: "-500",
+    max: "500",
+    step: "10",
+    value: despX,
+    onChange: e => setDespX(Number(e.target.value)),
+    style: {
+      width: "100%"
+    }
+  }), React.createElement("label", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700
+    }
   }, "Acercar o alejar"), React.createElement("input", {
     type: "range",
     min: "1",
@@ -3387,7 +3406,17 @@ function PublicarCartel({
     style: {
       width: "100%"
     }
-  }), React.createElement("div", {
+  }), React.createElement("button", {
+    className: "btn btn-ghost",
+    style: {
+      marginTop: 4
+    },
+    onClick: () => {
+      setDesp(0);
+      setDespX(0);
+      setZoom(1);
+    }
+  }, "Volver al centro"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 10,
@@ -5339,6 +5368,8 @@ function PublicarSeccion({
   const [busq, setBusq] = useState("");
   const [elegido, setElegido] = useState(null);
   const [pubs, setPubs] = useState(null);
+  const [verPubs, setVerPubs] = useState(false);
+  const [verCatalogo, setVerCatalogo] = useState(false);
   const [borrando, setBorrando] = useState("");
   const [visitas, setVisitas] = useState({});
   const [personas, setPersonas] = useState({});
@@ -5684,112 +5715,162 @@ function PublicarSeccion({
     style: {
       padding: "6px 2px 14px"
     }
-  }, "Buscando lo que ya publicaste…"), pubs && pubs.length > 0 && React.createElement("div", {
-    style: {
-      marginBottom: 22
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "baseline",
-      justifyContent: "space-between",
-      gap: 10,
-      marginBottom: 10
-    }
-  }, React.createElement("h3", {
-    style: {
-      fontSize: 16
-    }
-  }, "Lo que ya publicaste (", pubs.length, ")"), Object.keys(visitas).length > 0 && React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "var(--muted)",
-      fontWeight: 600
-    }
-  }, Object.values(personas).reduce((a, b) => a + b, 0), " personas en total")), pubs.map(p => React.createElement("div", {
-    key: p.codigo,
-    className: "pub-item",
-    style: {
-      cursor: "default",
-      flexWrap: "wrap"
-    }
-  }, React.createElement("span", {
-    style: {
-      flex: "1 1 160px",
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontWeight: 700,
-      fontSize: 15
-    }
-  }, p.nombre || p.codigo), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 12.5,
-      color: "var(--muted)"
-    }
-  }, p.localidad || "—", " · ", PUB_BASE.replace("https://", ""), "/cartel/", p.codigo), React.createElement("span", {
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      marginTop: 6,
-      fontSize: 12.5,
-      fontWeight: 700,
-      padding: "4px 10px",
-      borderRadius: 20,
-      background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
-      color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790"
-    }
-  }, (personas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie" : `${personas[p.codigo]} ${personas[p.codigo] === 1 ? "persona lo abrió" : "personas lo abrieron"} · ${visitas[p.codigo]} ${visitas[p.codigo] === 1 ? "vez" : "veces"}`)), React.createElement("label", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      fontSize: 13,
-      fontWeight: 600,
-      flex: "1 1 100%",
-      marginTop: 4,
-      cursor: "pointer"
-    }
-  }, React.createElement("input", {
-    type: "checkbox",
-    checked: p.destacado !== false,
-    onChange: e => enCatalogo(p.codigo, e.target.checked),
-    style: {
-      width: 18,
-      height: 18
-    }
-  }), "Mostrar en mi catálogo"), React.createElement("span", {
-    style: {
-      display: "flex",
-      gap: 6
-    }
-  }, React.createElement("a", {
-    className: "btn btn-ghost",
-    style: {
-      padding: "9px 12px",
-      fontSize: 13
-    },
-    href: pubLink(p.codigo),
-    target: "_blank",
-    rel: "noopener"
-  }, "Ver"), React.createElement("button", {
-    className: "btn btn-ghost",
-    style: {
-      padding: "9px 12px",
-      fontSize: 13
-    },
-    onClick: () => copiar(p.codigo)
-  }, "Copiar link"), React.createElement("button", {
-    className: "btn btn-icon ico-edit",
-    onClick: () => borrar(p.codigo, p.nombre),
-    disabled: borrando === p.codigo
-  }, React.createElement(Trash2, {
-    size: 16
-  })))))), elegido && React.createElement(PublicarCartel, {
+  }, "Buscando lo que ya publicaste…"), pubs && pubs.length > 0 && (() => {
+    const mias = pubs.filter(p => p.origen !== "catalogo");
+    const delCatalogo = pubs.filter(p => p.origen === "catalogo");
+    const lista = verCatalogo ? pubs : mias;
+    return React.createElement("div", {
+      style: {
+        marginBottom: 22
+      }
+    }, React.createElement("button", {
+      onClick: () => setVerPubs(!verPubs),
+      style: {
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "14px 15px",
+        borderRadius: 14,
+        cursor: "pointer",
+        border: "1px solid var(--line)",
+        background: "var(--panel)",
+        fontFamily: "inherit"
+      }
+    }, React.createElement("span", {
+      style: {
+        textAlign: "left"
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 15.5,
+        fontWeight: 700,
+        color: "var(--ink)"
+      }
+    }, "Fichas que publicaste (", mias.length, ")"), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 13,
+        color: "var(--muted)",
+        marginTop: 2
+      }
+    }, Object.keys(visitas).length > 0 ? `${Object.values(personas).reduce((a, b) => a + b, 0)} personas las abrieron` : "Ver los links, las visitas y borrar")), React.createElement(ChevronRight, {
+      size: 20,
+      color: "#9aa7ba",
+      style: {
+        transform: verPubs ? "rotate(90deg)" : "none",
+        transition: ".18s",
+        flex: "0 0 auto"
+      }
+    })), verPubs && React.createElement("div", {
+      style: {
+        marginTop: 12
+      }
+    }, lista.map(p => React.createElement("div", {
+      key: p.codigo,
+      className: "pub-item",
+      style: {
+        cursor: "default",
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: "1 1 160px",
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontWeight: 700,
+        fontSize: 15
+      }
+    }, p.nombre || p.codigo), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 12.5,
+        color: "var(--muted)"
+      }
+    }, p.localidad || "—", " · ", PUB_BASE.replace("https://", ""), "/cartel/", p.codigo), React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 6,
+        fontSize: 12.5,
+        fontWeight: 700,
+        padding: "4px 10px",
+        borderRadius: 20,
+        background: (visitas[p.codigo] || 0) > 0 ? "#e6f6ec" : "#f4f1ea",
+        color: (visitas[p.codigo] || 0) > 0 ? "#137a3e" : "#6b7790"
+      }
+    }, (personas[p.codigo] || 0) === 0 ? "Todavía no lo abrió nadie" : `${personas[p.codigo]} ${personas[p.codigo] === 1 ? "persona lo abrió" : "personas lo abrieron"} · ${visitas[p.codigo]} ${visitas[p.codigo] === 1 ? "vez" : "veces"}`)), React.createElement("label", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        fontSize: 13,
+        fontWeight: 600,
+        flex: "1 1 100%",
+        marginTop: 4,
+        cursor: "pointer"
+      }
+    }, React.createElement("input", {
+      type: "checkbox",
+      checked: p.destacado !== false,
+      onChange: e => enCatalogo(p.codigo, e.target.checked),
+      style: {
+        width: 18,
+        height: 18
+      }
+    }), "Mostrar en mi catálogo"), React.createElement("span", {
+      style: {
+        display: "flex",
+        gap: 6
+      }
+    }, React.createElement("a", {
+      className: "btn btn-ghost",
+      style: {
+        padding: "9px 12px",
+        fontSize: 13
+      },
+      href: pubLink(p.codigo),
+      target: "_blank",
+      rel: "noopener"
+    }, "Ver"), React.createElement("button", {
+      className: "btn btn-ghost",
+      style: {
+        padding: "9px 12px",
+        fontSize: 13
+      },
+      onClick: () => copiar(p.codigo)
+    }, "Copiar link"), React.createElement("button", {
+      className: "btn btn-icon ico-edit",
+      onClick: () => borrar(p.codigo, p.nombre),
+      disabled: borrando === p.codigo
+    }, React.createElement(Trash2, {
+      size: 16
+    }))))), delCatalogo.length > 0 && React.createElement("div", {
+      style: {
+        marginTop: 12
+      }
+    }, React.createElement("button", {
+      className: "btn btn-ghost",
+      style: {
+        width: "100%",
+        padding: 12,
+        fontSize: 14
+      },
+      onClick: () => setVerCatalogo(!verCatalogo)
+    }, verCatalogo ? "Ocultar" : "Mostrar", " las ", delCatalogo.length, " fichas del catálogo"), React.createElement("div", {
+      className: "cell-sub",
+      style: {
+        marginTop: 7,
+        lineHeight: 1.5
+      }
+    }, "Son las que se crearon solas al cargar las fotos del catálogo de la empresa. No las hiciste vos."))));
+  })(), elegido && React.createElement(PublicarCartel, {
     cartel: elegido,
     onClose: () => {
       setElegido(null);
@@ -7815,7 +7896,7 @@ function Propuestas({
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v42",
+        dateStr: fmtDate(today()) + " · v44",
         fotos,
         chs,
         impactosDe
