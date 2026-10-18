@@ -841,8 +841,10 @@ function daysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 const KEY = "pvp_data_v4";
+const VISIBLES = ["publicar", "portal", "prospectar", "propuestas"];
+const seVe = id => VISIBLES.indexOf(id) !== -1;
 function App() {
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(VISIBLES[0]);
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
@@ -955,7 +957,7 @@ function App() {
     icon: MapPin
   }, {
     id: "propuestas",
-    label: "Propuestas",
+    label: "Propuestas comerciales",
     icon: FileText
   }, {
     id: "prospectar",
@@ -1007,7 +1009,7 @@ function App() {
     className: "live-dot"
   }), " Asistente comercial"))), React.createElement("div", {
     className: "navwrap"
-  }, NAV.map(n => React.createElement("button", {
+  }, VISIBLES.map(id => NAV.filter(x => x.id === id)[0]).filter(Boolean).map(n => React.createElement("button", {
     key: n.id,
     className: "navbtn" + (tab === n.id ? " active" : ""),
     onClick: () => {
@@ -1050,9 +1052,9 @@ function App() {
     onClick: () => setSideOpen(s => !s)
   }, React.createElement(Menu, {
     size: 22
-  })), React.createElement("div", null, React.createElement("h1", null, titles[tab][0]), React.createElement("div", {
+  })), React.createElement("div", null, React.createElement("h1", null, (titles[tab] || ["", ""])[0]), React.createElement("div", {
     className: "sub"
-  }, titles[tab][1])), React.createElement("div", {
+  }, (titles[tab] || ["", ""])[1])), React.createElement("div", {
     style: {
       flex: 1
     }
@@ -1066,10 +1068,13 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 44")), React.createElement("div", {
+  }, "✓ Versión 45")), React.createElement("div", {
     className: "content",
     key: tab
-  }, tab === "dashboard" && React.createElement(Dashboard, {
+  }, !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(AvisoCopia, {
+    data: data,
+    update: update
+  }), tab === "dashboard" && React.createElement(Dashboard, {
     data: data,
     update: update,
     go: setTab
@@ -1114,6 +1119,9 @@ function App() {
   }), tab === "asistente" && React.createElement(Asistente, {
     data: data,
     addUsage: addUsage
+  }), !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(CopiaSeguridad, {
+    data: data,
+    update: update
   })))));
 }
 function Splash({
@@ -1170,6 +1178,162 @@ function ContactBtns({
   }, React.createElement(Mail, {
     size: 19
   })));
+}
+function diasDesdeCopia(data) {
+  return data.ultimaCopia ? Math.max(0, Math.floor((new Date(today()) - new Date(data.ultimaCopia)) / 86400000)) : null;
+}
+function bajarCopia(data, update) {
+  try {
+    const blob = new Blob([JSON.stringify(data)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `respaldo-via-publica-${today()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    update({
+      ultimaCopia: today()
+    });
+  } catch {
+    alert("No se pudo crear la copia.");
+  }
+}
+function subirCopia(file, update) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || typeof d !== "object" || !Array.isArray(d.clients)) throw 0;
+      if (!confirm("Esto reemplazará los datos actuales por los del archivo de copia. ¿Querés continuar?")) return;
+      update(d);
+      alert("¡Copia restaurada con éxito! 🎉");
+    } catch {
+      alert("Ese archivo no parece una copia válida de la app.");
+    }
+  };
+  r.readAsText(file);
+}
+function AvisoCopia({
+  data,
+  update
+}) {
+  const diasCopia = diasDesdeCopia(data);
+  const hayDatos = (data.billboards || []).length > 3 || (data.clients || []).length > 3;
+  if (!hayDatos || !(diasCopia === null || diasCopia > 15)) return null;
+  return React.createElement("div", {
+    className: "alert a",
+    style: {
+      marginBottom: 16,
+      alignItems: "flex-start"
+    }
+  }, React.createElement(ShieldCheck, {
+    size: 20,
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }), React.createElement("div", null, React.createElement("b", null, diasCopia === null ? "Nunca hiciste una copia de seguridad" : `Hace ${diasCopia} días que no hacés una copia`), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      lineHeight: 1.5,
+      marginTop: 3
+    }
+  }, "Si se rompe o cambiás el teléfono, perdés tus ", (data.billboards || []).length, " carteles y ", (data.clients || []).length, " clientes. Son 10 segundos."), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      marginTop: 10
+    },
+    onClick: () => bajarCopia(data, update)
+  }, React.createElement(Download, {
+    size: 17
+  }), " Hacer la copia ahora")));
+}
+function CopiaSeguridad({
+  data,
+  update
+}) {
+  const diasCopia = diasDesdeCopia(data);
+  return React.createElement("div", {
+    className: "card",
+    style: {
+      marginTop: 18,
+      display: "flex",
+      gap: 14,
+      alignItems: "flex-start",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      background: "var(--green-bg)",
+      color: "var(--green)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0
+    }
+  }, React.createElement(ShieldCheck, {
+    size: 22
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 220
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      fontSize: 17,
+      marginBottom: 4
+    }
+  }, "Copia de seguridad"), React.createElement("div", {
+    style: {
+      color: "var(--ink2)",
+      fontSize: 14,
+      lineHeight: 1.55,
+      marginBottom: 10
+    }
+  }, "Tus ", (data.billboards || []).length, " carteles y ", (data.clients || []).length, " clientes están guardados", React.createElement("b", null, " sólo en este teléfono"), ". No están en internet.", React.createElement("br", null), React.createElement("br", null), "Eso quiere decir que si cambiás de celular, si se rompe, o si el teléfono se queda sin espacio,", React.createElement("b", null, " se pierde todo y no hay forma de recuperarlo"), ".", React.createElement("br", null), React.createElement("br", null), "Tocando el botón se baja ", React.createElement("b", null, "un archivo"), " con toda tu información. Guardalo donde quieras (mandátelo por mail a vos misma, ponelo en Drive, lo que te resulte más fácil). El día que pase algo, tocás «Restaurar» y vuelve todo como estaba."), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      marginBottom: 12,
+      color: diasCopia === null || diasCopia > 15 ? "#a4271c" : "var(--green)"
+    }
+  }, diasCopia === null ? "⚠️ Todavía no hiciste ninguna copia." : diasCopia === 0 ? "✅ Hiciste una copia hoy." : diasCopia === 1 ? "✅ Última copia: ayer." : diasCopia > 15 ? `⚠️ Última copia: hace ${diasCopia} días. Conviene hacer una nueva.` : `✅ Última copia: hace ${diasCopia} días.`), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    className: "btn btn-primary",
+    onClick: () => bajarCopia(data, update)
+  }, React.createElement(Download, {
+    size: 18
+  }), " Hacer copia de seguridad"), React.createElement("label", {
+    className: "btn btn-ghost",
+    style: {
+      cursor: "pointer"
+    }
+  }, React.createElement(Upload, {
+    size: 18
+  }), " Restaurar copia", React.createElement("input", {
+    type: "file",
+    accept: "application/json,.json",
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      subirCopia(e.target.files[0], update);
+      e.target.value = "";
+    }
+  })))));
 }
 function Dashboard({
   data,
@@ -1283,43 +1447,8 @@ function Dashboard({
     day: "numeric",
     month: "long"
   });
-  const diasCopia = data.ultimaCopia ? Math.max(0, Math.floor((new Date(today()) - new Date(data.ultimaCopia)) / 86400000)) : null;
-  const hacerBackup = () => {
-    try {
-      const blob = new Blob([JSON.stringify(data)], {
-        type: "application/json"
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `respaldo-via-publica-${today()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      update({
-        ultimaCopia: today()
-      });
-    } catch {
-      alert("No se pudo crear la copia.");
-    }
-  };
-  const restaurar = file => {
-    if (!file) return;
-    const r = new FileReader();
-    r.onload = () => {
-      try {
-        const d = JSON.parse(r.result);
-        if (!d || typeof d !== "object" || !Array.isArray(d.clients)) throw 0;
-        if (!confirm("Esto reemplazará los datos actuales por los del archivo de copia. ¿Querés continuar?")) return;
-        update(d);
-        alert("¡Copia restaurada con éxito! 🎉");
-      } catch {
-        alert("Ese archivo no parece una copia válida de la app.");
-      }
-    };
-    r.readAsText(file);
-  };
+  const diasCopia = diasDesdeCopia(data);
+  const hacerBackup = () => bajarCopia(data, update);
   return React.createElement(React.Fragment, null, React.createElement("div", {
     className: "greeting"
   }, React.createElement("div", null, React.createElement("div", {
@@ -1591,82 +1720,10 @@ function Dashboard({
     onClick: () => go("prospectar")
   }, React.createElement(Search, {
     size: 18
-  }), " Buscar empresas")), React.createElement("div", {
-    className: "card",
-    style: {
-      marginTop: 18,
-      display: "flex",
-      gap: 14,
-      alignItems: "flex-start",
-      flexWrap: "wrap"
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      background: "var(--green-bg)",
-      color: "var(--green)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
-    }
-  }, React.createElement(ShieldCheck, {
-    size: 22
-  })), React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 220
-    }
-  }, React.createElement("div", {
-    style: {
-      fontWeight: 800,
-      fontSize: 17,
-      marginBottom: 4
-    }
-  }, "Copia de seguridad"), React.createElement("div", {
-    style: {
-      color: "var(--ink2)",
-      fontSize: 14,
-      lineHeight: 1.55,
-      marginBottom: 10
-    }
-  }, "Tus ", (data.billboards || []).length, " carteles y ", (data.clients || []).length, " clientes están guardados", React.createElement("b", null, " sólo en este teléfono"), ". No están en internet.", React.createElement("br", null), React.createElement("br", null), "Eso quiere decir que si cambiás de celular, si se rompe, o si el teléfono se queda sin espacio,", React.createElement("b", null, " se pierde todo y no hay forma de recuperarlo"), ".", React.createElement("br", null), React.createElement("br", null), "Tocando el botón se baja ", React.createElement("b", null, "un archivo"), " con toda tu información. Guardalo donde quieras (mandátelo por mail a vos misma, ponelo en Drive, lo que te resulte más fácil). El día que pase algo, tocás «Restaurar» y vuelve todo como estaba."), React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 700,
-      marginBottom: 12,
-      color: diasCopia === null || diasCopia > 15 ? "#a4271c" : "var(--green)"
-    }
-  }, diasCopia === null ? "⚠️ Todavía no hiciste ninguna copia." : diasCopia === 0 ? "✅ Hiciste una copia hoy." : diasCopia === 1 ? "✅ Última copia: ayer." : diasCopia > 15 ? `⚠️ Última copia: hace ${diasCopia} días. Conviene hacer una nueva.` : `✅ Última copia: hace ${diasCopia} días.`), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement("button", {
-    className: "btn btn-primary",
-    onClick: hacerBackup
-  }, React.createElement(Download, {
-    size: 18
-  }), " Hacer copia de seguridad"), React.createElement("label", {
-    className: "btn btn-ghost",
-    style: {
-      cursor: "pointer"
-    }
-  }, React.createElement(Upload, {
-    size: 18
-  }), " Restaurar copia", React.createElement("input", {
-    type: "file",
-    accept: "application/json,.json",
-    style: {
-      display: "none"
-    },
-    onChange: e => {
-      restaurar(e.target.files[0]);
-      e.target.value = "";
-    }
-  }))))));
+  }), " Buscar empresas")), React.createElement(CopiaSeguridad, {
+    data: data,
+    update: update
+  }));
 }
 function ResumenCliente({
   client,
@@ -5710,7 +5767,7 @@ function PublicarSeccion({
     style: {
       marginTop: 6
     }
-  }, "Cargalos en «Carteles» o creá uno a mano acá arriba.")), pubs === null && React.createElement("div", {
+  }, seVe("inventario") ? "Cargalos en «Carteles» o creá uno a mano acá arriba." : "Usá el botón de acá arriba para crear el cartel a mano.")), pubs === null && React.createElement("div", {
     className: "cell-sub",
     style: {
       padding: "6px 2px 14px"
@@ -7855,12 +7912,17 @@ function Propuestas({
     billboards
   } = data;
   const [clienteId, setClienteId] = useState("");
+  const [nombreManual, setNombreManual] = useState("");
   const [picks, setPicks] = useState([]);
   const [obs, setObs] = useState("");
   const [incluirPrecio, setIncluirPrecio] = useState(true);
   const [incluirProduccion, setIncluirProduccion] = useState(false);
   const [incluirColocacion, setIncluirColocacion] = useState(false);
-  const cliente = clients.find(c => c.id === clienteId);
+  const clienteElegido = clients.find(c => c.id === clienteId);
+  const cliente = clienteElegido || (nombreManual.trim() ? {
+    empresa: nombreManual.trim(),
+    email: ""
+  } : undefined);
   const seleccionados = billboards.filter(b => picks.includes(b.id));
   const total = seleccionados.reduce((s, b) => s + (Number(b.precio) || 0), 0);
   const totalProd = seleccionados.reduce((s, b) => s + (Number(b.produccion) || 0), 0);
@@ -7896,7 +7958,7 @@ function Propuestas({
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v44",
+        dateStr: fmtDate(today()) + " · v45",
         fotos,
         chs,
         impactosDe
@@ -7960,21 +8022,49 @@ function Propuestas({
   }, React.createElement("h2", {
     style: {
       fontSize: 18,
+      marginBottom: 4
+    }
+  }, "1 · ¿Para quién es? ", React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      color: "var(--muted)",
+      fontSize: 14
+    }
+  }, "(opcional)")), React.createElement("div", {
+    className: "cell-sub",
+    style: {
       marginBottom: 12
     }
-  }, "1 · Elegí el cliente (opcional)"), React.createElement("select", {
+  }, "El nombre sale arriba en el PDF. Si lo dejás vacío, la propuesta sale sin nombre."), React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", null, "Nombre de la empresa"), React.createElement("input", {
+    value: clienteElegido ? clienteElegido.empresa : nombreManual,
+    onChange: e => {
+      setNombreManual(e.target.value);
+      setClienteId("");
+    },
+    placeholder: "Ej.: Supermercado La Esquina"
+  })), clients.length > 0 && React.createElement("div", {
+    className: "field",
+    style: {
+      marginTop: 12
+    }
+  }, React.createElement("label", null, "…o elegila de las que ya tenés guardadas"), React.createElement("select", {
     className: "select",
     style: {
       width: "100%"
     },
     value: clienteId,
-    onChange: e => setClienteId(e.target.value)
+    onChange: e => {
+      setClienteId(e.target.value);
+      if (e.target.value) setNombreManual("");
+    }
   }, React.createElement("option", {
     value: ""
-  }, "— Seleccionar cliente —"), clients.map(c => React.createElement("option", {
+  }, "— Escribirlo a mano arriba —"), clients.map(c => React.createElement("option", {
     key: c.id,
     value: c.id
-  }, c.empresa, " · ", c.contacto))), React.createElement("div", {
+  }, c.empresa, c.contacto ? " · " + c.contacto : "")))), React.createElement("div", {
     className: "field",
     style: {
       marginTop: 16
@@ -8892,7 +8982,7 @@ function Prospectar({
       email: "",
       red: ""
     });
-    alert("Prospecto guardado en Clientes ✓");
+    alert(seVe("clientes") ? "Prospecto guardado en Clientes ✓" : "Empresa guardada ✓ Ya la podés elegir en «Propuestas comerciales».");
   };
   return React.createElement(React.Fragment, null, React.createElement("div", {
     className: "card",
@@ -9079,12 +9169,16 @@ function Prospectar({
   }, React.createElement(Building2, {
     size: 20,
     color: "var(--accent)"
-  }), " ", resultados.length, " empresas encontradas"), savedCount > 0 && React.createElement("button", {
+  }), " ", resultados.length, " empresas encontradas"), savedCount > 0 && seVe("clientes") ? React.createElement("button", {
     className: "btn btn-ghost btn-sm",
     onClick: () => go("clientes")
   }, React.createElement(Users, {
     size: 16
-  }), " Ver ", savedCount, " prospecto(s) guardado(s)")), React.createElement("div", {
+  }), " Ver ", savedCount, " prospecto(s) guardado(s)") : savedCount > 0 ? React.createElement("span", {
+    className: "cell-sub"
+  }, React.createElement(Users, {
+    size: 15
+  }), " ", savedCount, " guardada(s)") : null), React.createElement("div", {
     className: "grid cols-2"
   }, resultados.map((e, i) => {
     const tel = onlyDigits(e.telefono);
@@ -9262,7 +9356,7 @@ function Prospectar({
     onClick: () => setShowManual(v => !v)
   }, React.createElement(Pencil, {
     size: 18
-  }), " Cargar empresa a mano"), React.createElement("button", {
+  }), " Cargar empresa a mano"), seVe("clientes") && React.createElement("button", {
     className: "btn btn-ghost",
     onClick: () => go("clientes")
   }, React.createElement(Users, {
