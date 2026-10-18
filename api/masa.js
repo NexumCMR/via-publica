@@ -86,7 +86,7 @@ export default async function handler(req, res) {
       const { cartel, fotos } = body;
       if (!cartel || !cartel.codigo) return res.status(400).json({ error: "Falta el código del cartel" });
 
-      const fila = { ...cartel, actualizado: new Date().toISOString() };
+      const fila = { ...cartel, origen: "app", actualizado: new Date().toISOString() };
       const r1 = await sb("/rest/v1/masa_carteles", {
         method: "POST",
         headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
             codigo, nombre: base.direccion, direccion: base.direccion, localidad: base.zona, zona: base.zona,
             tipo: base.tipo || base.formato, medidas: base.medidas, iluminado: !!base.iluminado,
             estado: base.estado, disponible_desde: base.libre_desde,
-            mostrar_precio: false, publicado: true, actualizado: new Date().toISOString(),
+            mostrar_precio: false, publicado: true, origen: "catalogo", actualizado: new Date().toISOString(),
           }),
         });
         // Se AGREGAN: nunca se borran las fotos que ya tenía el cartel.
