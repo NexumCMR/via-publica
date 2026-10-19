@@ -278,6 +278,31 @@ tr:hover td{ background:#fcfbf8; }
 .alert{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px; margin-bottom:12px; font-weight:600; }
 .alert.r{ background:var(--red-bg); color:#9c1f29; }
 .alert.a{ background:var(--amber-bg); color:#8a5a00; }
+.alert.g{ background:var(--green-bg); color:#14532d; }
+/* «Subir Excel y fotos» */
+.act-titulo{ display:flex; align-items:center; gap:12px; }
+.act-titulo h2{ font-size:20px; margin:0; }
+.act-num{ flex:0 0 32px; width:32px; height:32px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:800; font-size:16px; font-family:'Bricolage Grotesque',system-ui,-apple-system,sans-serif; }
+.act-boton{ width:100%; padding:16px; font-size:16px; }
+.act-boton2{ width:100%; padding:13px; margin-top:10px; }
+.act-aviso{ font-size:14.5px; line-height:1.5; }
+.act-aviso > svg{ flex:0 0 auto; }
+.act-cambios{ font-size:14.5px; color:var(--ink2); line-height:1.5; margin:0 2px 12px; }
+.act-fotos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:8px; margin:4px 0 14px; }
+.act-foto{ position:relative; aspect-ratio:1/1; border-radius:12px; overflow:hidden; background:#eef2f7; }
+.act-foto img{ width:100%; height:100%; object-fit:cover; display:block; }
+.act-foto b{ position:absolute; left:6px; top:6px; background:var(--accent); color:#fff; font-size:11.5px; padding:2px 7px; border-radius:6px; }
+.act-foto i{ position:absolute; left:0; right:0; bottom:0; font-style:normal; font-size:11px; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.65)); padding:12px 6px 4px; }
+.act-foto button{ position:absolute; right:6px; top:6px; width:28px; height:28px; border-radius:50%; border:0; background:rgba(220,47,60,.95); color:#fff; display:grid; place-items:center; cursor:pointer; }
+.act-mas{ display:grid; place-items:center; font-weight:800; color:var(--muted); font-size:18px; }
+.act-barra{ height:10px; border-radius:6px; background:rgba(0,0,0,.08); overflow:hidden; margin-top:10px; }
+.act-barra span{ display:block; height:100%; background:var(--accent); transition:width .3s; }
+.act-girando{ width:18px; height:18px; border-radius:50%; border:2.5px solid currentColor; border-right-color:transparent; animation:actGira .8s linear infinite; flex:0 0 auto; }
+@keyframes actGira{ to{ transform:rotate(360deg); } }
+.act-revisar{ margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+.act-revisar summary{ cursor:pointer; font-weight:700; font-size:14.5px; color:var(--ink2); }
+.act-input{ flex:1; min-width:0; font-size:16px; padding:12px 14px; border:1.5px solid var(--line); border-radius:12px; outline:0; font-family:inherit; }
+.act-input:focus{ border-color:var(--accent); }
 .todo-item{ display:flex; align-items:center; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); }
 .todo-item:last-child{ border-bottom:0; }
 .todo-dot{ width:12px; height:12px; border-radius:50%; flex-shrink:0; }
@@ -932,7 +957,7 @@ function daysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 const KEY = "pvp_data_v4";
-const VISIBLES = ["publicar", "portal", "prospectar", "propuestas"];
+const VISIBLES = ["publicar", "portal", "prospectar", "propuestas", "actualizar"];
 const seVe = id => VISIBLES.indexOf(id) !== -1;
 function App() {
   const [tab, setTab] = useState(VISIBLES[0]);
@@ -1062,6 +1087,10 @@ function App() {
     id: "asistente",
     label: "Asistente",
     icon: Sparkles
+  }, {
+    id: "actualizar",
+    label: "Subir Excel y fotos",
+    icon: Upload
   }];
   const titles = {
     dashboard: ["Inicio", "Tu resumen del día"],
@@ -1078,7 +1107,8 @@ function App() {
     propuestas: ["Propuestas comerciales", "Armá y exportá propuestas"],
     prospectar: ["Buscar empresas", "Encontrá nuevos anunciantes"],
     mails: ["Enviar mails", "Escribí a varios prospectos a la vez"],
-    asistente: ["Asistente", "Preguntá sobre tu información"]
+    asistente: ["Asistente", "Preguntá sobre tu información"],
+    actualizar: ["Subir Excel y fotos", "De acá se actualiza todo"]
   };
   return React.createElement(React.Fragment, null, React.createElement("style", null, CSS), !hideSplash && React.createElement(Splash, {
     leaving: !booting
@@ -1159,7 +1189,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 47")), React.createElement("div", {
+  }, "✓ Versión 48")), React.createElement("div", {
     className: "content",
     key: tab
   }, !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(AvisoCopia, {
@@ -1210,6 +1240,9 @@ function App() {
   }), tab === "asistente" && React.createElement(Asistente, {
     data: data,
     addUsage: addUsage
+  }), tab === "actualizar" && React.createElement(ActualizarSeccion, {
+    data: data,
+    update: update
   }), !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(CopiaSeguridad, {
     data: data,
     update: update
@@ -5496,6 +5529,908 @@ function MensajesSeccion({
     }
   }, "Este cliente no tiene teléfono cargado, así que vas a elegir el contacto en WhatsApp."));
 }
+const AC_CATS = {
+  "ESPECTACULARES": "Espectacular",
+  "TOP WALL": "Top Wall",
+  "TOP SITE": "Top Site",
+  "PANTALLAS LED": "Pantalla LED",
+  "PANTALLA LED": "Pantalla LED",
+  "CENCOSUD": "Cencosud",
+  "MURALES": "Mural"
+};
+const AC_ZONAS = {
+  "caba": "CABA",
+  "vte.lopez": "Vicente López",
+  "vte lopez": "Vicente López",
+  "vicente lopez": "Vicente López",
+  "san martin": "San Martín",
+  "moron": "Morón",
+  "ramos mejia": "Ramos Mejía",
+  "3 de febrero": "Tres de Febrero",
+  "san justo": "San Justo",
+  "avellaneda": "Avellaneda"
+};
+const acTexto = v => v === null || v === undefined ? "" : String(v).trim();
+function acNumero(v) {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number") return Math.round(v);
+  let s = String(v).replace(/\$/g, "").replace(/\s/g, "");
+  if (/^\d+(\.\d+)?[eE]\d+$/.test(s)) return Math.round(parseFloat(s));
+  if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) s = s.replace(/\./g, "").replace(",", ".");else s = s.replace(/\./g, "").replace(/,/g, "");
+  const n = parseFloat(s);
+  return isNaN(n) ? null : Math.round(n);
+}
+function acFecha(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return null;
+  const a = d.getFullYear();
+  if (a < 2018 || a > 2035) return null;
+  return d.toISOString().slice(0, 10);
+}
+function acPartirDireccion(d) {
+  const t = String(d || "");
+  let sen = "";
+  const m = t.match(/tr[áa]nsito\s+(?:hacia|a|al)?\s*([^)]{2,40})/i);
+  if (m) sen = m[1].replace(/[.)\s]+$/, "").trim();
+  const base = t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig, " ").replace(/\b(tr[áa]nsito|sentido)\s+(hacia|a|al)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig, "").replace(/\s{2,}/g, " ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g, "");
+  if (sen) {
+    const l = sen.toLowerCase();
+    if (/caba|capital/.test(l)) sen = "Hacia CABA";else if (/provincia|prov/.test(l)) sen = "Hacia Provincia";else sen = "Hacia " + sen.charAt(0).toUpperCase() + sen.slice(1);
+  }
+  return {
+    base,
+    sentido: sen
+  };
+}
+function acLeerPortal(hoja) {
+  const filas = XLSX.utils.sheet_to_json(hoja, {
+    header: 1,
+    raw: false,
+    cellDates: true,
+    defval: ""
+  });
+  if (!filas.length) return [];
+  const enc = filas[0].map(x => String(x || "").trim().toUpperCase());
+  const col = (nombre, def) => {
+    const i = enc.indexOf(nombre);
+    return i >= 0 ? i : def;
+  };
+  const C = {
+    cod: col("COD.", 0),
+    luz: col("LUZ", 1),
+    dir: col("DIRECCION", 5),
+    tipo: col("TIPO", 6),
+    zona: col("ZONA", 7),
+    med: col("MEDIDAS", 12),
+    exh: col("EXHIBICION", 19),
+    disp: col("DISPONIBILIDAD", 18)
+  };
+  const precios = [];
+  enc.forEach((v, i) => {
+    if (v.indexOf("PRECIO") === 0) precios.push(i);
+  });
+  C.precio = precios.length > 1 ? precios[1] : precios[0] !== undefined ? precios[0] : 11;
+  let cat = "",
+    orden = 0;
+  const out = [];
+  for (let i = 1; i < filas.length; i++) {
+    const f = filas[i] || [];
+    const cod = acTexto(f[C.cod]);
+    if (cod === "" || isNaN(parseFloat(cod))) {
+      const todo = f.map(x => String(x || "").trim().toUpperCase());
+      for (const k in AC_CATS) {
+        if (todo.indexOf(k) >= 0) {
+          cat = AC_CATS[k];
+          break;
+        }
+      }
+      continue;
+    }
+    const exh = acTexto(f[C.exh]).toUpperCase();
+    const estado = exh.indexOf("DISPONIBLE") >= 0 ? "Disponible" : exh === "" ? "A confirmar" : exh === "BN" ? "Banda negativa" : "Ocupado";
+    let z = acTexto(f[C.zona]);
+    if (/^\d{4}-\d\d-\d\d/.test(z) || /^\d+$/.test(z)) z = "";
+    z = zonaBonita(AC_ZONAS[z.toLowerCase()] || z);
+    const dd = acPartirDireccion(acTexto(f[C.dir]));
+    out.push({
+      codigo: String(Math.round(parseFloat(cod))),
+      direccion: acTexto(f[C.dir]),
+      sentido: dd.sentido,
+      ubicacion: (dd.base + " · " + z).toLowerCase(),
+      zona: z,
+      formato: cat || acTexto(f[C.tipo]),
+      tipo: acTexto(f[C.tipo]),
+      medidas: acTexto(f[C.med]).replace(/ X /gi, " x "),
+      iluminado: acTexto(f[C.luz]).toLowerCase().charAt(0) === "s",
+      estado,
+      precio: acNumero(f[C.precio]),
+      libre_desde: acFecha(f[C.disp]),
+      orden: orden++
+    });
+  }
+  return out;
+}
+function acLeerLista(rows) {
+  const num = v => {
+    if (v === null || v === undefined || v === "") return 0;
+    if (typeof v === "number") return Math.round(v);
+    let s = String(v).trim();
+    if (/^[\d.,]+e[+-]?\d+$/i.test(s.replace(/\s/g, ""))) return Math.round(parseFloat(s.replace(",", ".")));
+    s = s.replace(/[^\d.,]/g, "");
+    return Number(s.replace(/[.,]/g, "")) || 0;
+  };
+  const tipo = t => {
+    const x = String(t || "").trim().toLowerCase();
+    const found = TIPOS.find(T => T.toLowerCase() === x);
+    if (found) return found;
+    if (x.startsWith("colum")) return "Columna";
+    if (x.startsWith("vall")) return "Vallado";
+    if (x.startsWith("tel")) return "Telón";
+    if (x.includes("led") || x.includes("pantalla")) return "Pantalla LED";
+    return "Cartel";
+  };
+  const C = {
+    cod: 0,
+    direccion: 5,
+    tipo: 6,
+    precio: 11,
+    medidas: 12,
+    prodcoloc: 14,
+    coloc: 15,
+    exhibicion: 19
+  };
+  const out = [];
+  for (const r of rows) {
+    const cod = String(r[C.cod] ?? "").replace(/\.0+$/, "").trim();
+    if (!/^\d{2,}$/.test(cod) || !String(r[C.direccion] ?? "").trim()) continue;
+    const prodcoloc = num(r[C.prodcoloc]),
+      coloc = num(r[C.coloc]);
+    const exhib = String(r[C.exhibicion] ?? "").trim();
+    out.push({
+      codigo: cod,
+      tipo: tipo(r[C.tipo]),
+      medidas: String(r[C.medidas] ?? "").trim(),
+      precio: num(r[C.precio]),
+      produccion: Math.max(0, prodcoloc - coloc),
+      colocacion: coloc,
+      estado: !exhib || /disponible/i.test(exhib) ? "Disponible" : "Ocupado"
+    });
+  }
+  return out;
+}
+function acSincronizarLista(billboards, registros) {
+  const porCod = {};
+  registros.forEach(r => {
+    porCod[r.codigo] = r;
+  });
+  const hoy = today();
+  let cambiados = 0;
+  const alertas = [];
+  const lista = (billboards || []).map(b => {
+    const r = b.codigo ? porCod[String(b.codigo)] : null;
+    if (!r) return b;
+    const viejo = Number(b.precio) || 0,
+      precio = r.precio > 0 ? r.precio : viejo;
+    const produccion = r.produccion > 0 ? r.produccion : Number(b.produccion) || 0;
+    const colocacion = r.colocacion > 0 ? r.colocacion : Number(b.colocacion) || 0;
+    const cambia = viejo !== precio || (b.estado || "") !== r.estado || r.medidas && (b.medidas || "") !== r.medidas || (Number(b.produccion) || 0) !== produccion || (Number(b.colocacion) || 0) !== colocacion;
+    if (!cambia) return b;
+    cambiados++;
+    if (viejo > 0 && precio !== viejo && (precio / viejo >= 3 || precio / viejo <= 0.34)) alertas.push(`${b.codigo} (${tituloCorto(b.nombre)}): ${money(viejo)} → ${money(precio)}`);
+    const hist = [...(b.hist || []), {
+      fecha: hoy,
+      precio: viejo,
+      estado: b.estado
+    }].slice(-12);
+    return {
+      ...b,
+      precio,
+      produccion,
+      colocacion,
+      estado: r.estado,
+      medidas: r.medidas || b.medidas,
+      tipo: b.tipo || r.tipo,
+      hist
+    };
+  });
+  return {
+    lista,
+    cambiados,
+    alertas
+  };
+}
+function acCodigoDe(nombre) {
+  const n = String(nombre || "").replace(/\.[a-z0-9]+$/i, "");
+  const m = n.match(/(?:^|[^0-9])(\d{3,6})(?:[^0-9]|$)/);
+  return m ? m[1] : null;
+}
+function acAchicar(file, max) {
+  return new Promise((ok, mal) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const im = new Image();
+      im.onload = () => {
+        let w = im.naturalWidth,
+          h = im.naturalHeight;
+        if (Math.max(w, h) > max) {
+          const r = max / Math.max(w, h);
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        const x = c.getContext("2d");
+        x.imageSmoothingQuality = "high";
+        x.drawImage(im, 0, 0, w, h);
+        const url = c.toDataURL("image/jpeg", 0.84);
+        c.width = c.height = 0;
+        ok(url);
+      };
+      im.onerror = () => mal(new Error("foto"));
+      im.src = fr.result;
+    };
+    fr.onerror = () => mal(new Error("archivo"));
+    fr.readAsDataURL(file);
+  });
+}
+const acClaveGuardada = () => {
+  try {
+    return localStorage.getItem("masa_clave") || "";
+  } catch (e) {
+    return "";
+  }
+};
+const acGuardarClave = c => {
+  try {
+    if (c) localStorage.setItem("masa_clave", c);else localStorage.removeItem("masa_clave");
+  } catch (e) {}
+};
+async function acPost(accion, body) {
+  const r = await fetch("/api/masa?accion=" + accion, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  let j = {};
+  try {
+    j = await r.json();
+  } catch (e) {}
+  return {
+    ok: r.ok,
+    status: r.status,
+    j
+  };
+}
+function ActualizarSeccion({
+  data,
+  update
+}) {
+  const [meta, setMeta] = useState(null);
+  const [inv, setInv] = useState(null);
+  const [clave, setClave] = useState(acClaveGuardada());
+  const [pideClave, setPideClave] = useState(null);
+  const [claveTxt, setClaveTxt] = useState("");
+  const [claveMal, setClaveMal] = useState(false);
+  const [ex, setEx] = useState(null);
+  const [exBusy, setExBusy] = useState("");
+  const [exOk, setExOk] = useState(null);
+  const [exErr, setExErr] = useState("");
+  const [fs, setFs] = useState(null);
+  const [fsBusy, setFsBusy] = useState(null);
+  const [fsOk, setFsOk] = useState("");
+  const [fsErr, setFsErr] = useState("");
+  const [revCod, setRevCod] = useState("");
+  const [rev, setRev] = useState(null);
+  const inExcel = useRef(null),
+    inFotos = useRef(null);
+  const traerEstado = () => {
+    fetch(PUB_SB + "/masa_portal_meta?select=*&id=eq.1", {
+      headers: SB_HEADERS
+    }).then(r => r.ok ? r.json() : []).then(a => setMeta(a && a[0] ? a[0] : false)).catch(() => setMeta(false));
+    traerInventario().then(setInv).catch(() => setInv([]));
+  };
+  useEffect(traerEstado, []);
+  const hace = iso => {
+    const hs = Math.round((Date.now() - new Date(iso).getTime()) / 3600000);
+    return hs < 1 ? "recién" : hs < 24 ? `hace ${hs} h` : `hace ${Math.round(hs / 24)} días`;
+  };
+  const conClave = accion => {
+    if (clave) return true;
+    setClaveMal(false);
+    setPideClave(accion);
+    return false;
+  };
+  const claveRechazada = accion => {
+    acGuardarClave("");
+    setClave("");
+    setClaveMal(true);
+    setPideClave(accion);
+  };
+  const seguirConClave = () => {
+    const c = claveTxt.trim();
+    if (!c) return;
+    acGuardarClave(c);
+    setClave(c);
+    setClaveTxt("");
+    const accion = pideClave;
+    setPideClave(null);
+    setTimeout(() => {
+      if (accion === "excel") publicarExcel(c);
+      if (accion === "fotos") subirFotos(c);
+      if (accion && accion.borrar) borrarFoto(accion.borrar, c);
+    }, 0);
+  };
+  const leerExcel = async file => {
+    if (!file) return;
+    setExErr("");
+    setExOk(null);
+    setEx(null);
+    setExBusy("Leyendo el Excel…");
+    try {
+      const wb = XLSX.read(await file.arrayBuffer(), {
+        type: "array",
+        cellDates: true
+      });
+      const hoja = wb.SheetNames.indexOf("Listado") >= 0 ? "Listado" : wb.SheetNames[0];
+      const ws = wb.Sheets[hoja];
+      const portal = acLeerPortal(ws);
+      if (!portal.length) {
+        setExErr("No encontré carteles en ese archivo. ¿Es el Listado de disponibles?");
+        setExBusy("");
+        return;
+      }
+      const lista = acLeerLista(XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        raw: true,
+        defval: ""
+      }));
+      const unicos = {};
+      portal.forEach(f => {
+        unicos[f.codigo] = f;
+      });
+      const cods = Object.keys(unicos);
+      const pub = {};
+      (inv || []).forEach(r => {
+        pub[String(r.codigo)] = r;
+      });
+      const nuevos = cods.filter(c => !pub[c]).length;
+      const fuera = (inv || []).filter(r => !unicos[String(r.codigo)]).length;
+      const cambian = cods.filter(c => pub[c] && pub[c].estado === "Disponible" !== (unicos[c].estado === "Disponible")).length;
+      const zonas = {};
+      cods.forEach(c => {
+        if (unicos[c].zona) zonas[unicos[c].zona] = 1;
+      });
+      const sinc = acSincronizarLista(data.billboards, lista);
+      setEx({
+        nombre: file.name,
+        hoja,
+        portal,
+        lista,
+        total: cods.length,
+        disponibles: cods.filter(c => unicos[c].estado === "Disponible").length,
+        zonas: Object.keys(zonas).length,
+        nuevos,
+        fuera,
+        cambian,
+        publicados: (inv || []).length,
+        mios: sinc.cambiados,
+        alertas: sinc.alertas
+      });
+    } catch (e) {
+      setExErr("No pude leer el archivo. Fijate que sea el Excel (.xlsx) del listado.");
+    }
+    setExBusy("");
+  };
+  const publicarExcel = async c => {
+    const k = c || clave;
+    if (!ex) return;
+    if (!k) {
+      conClave("excel");
+      return;
+    }
+    setExErr("");
+    setExBusy("Publicando… no cierres esta pantalla.");
+    try {
+      const res = await acPost("portal", {
+        clave: k,
+        carteles: ex.portal
+      });
+      if (res.status === 401) {
+        setExBusy("");
+        claveRechazada("excel");
+        return;
+      }
+      if (!res.ok) {
+        setExBusy("");
+        setExErr("No se pudo publicar: " + (res.j && res.j.error || "error del servidor") + ". Probá de nuevo en un rato.");
+        return;
+      }
+      const sinc = acSincronizarLista(data.billboards, ex.lista);
+      if (sinc.cambiados) update({
+        billboards: sinc.lista
+      });
+      setExOk({
+        total: res.j.total,
+        disponibles: res.j.disponibles,
+        repetidos: res.j.repetidos || 0,
+        mios: sinc.cambiados
+      });
+      setEx(null);
+      traerEstado();
+    } catch (e) {
+      setExErr("Falló la conexión. Revisá internet y probá de nuevo.");
+    }
+    setExBusy("");
+  };
+  const elegirFotos = lista => {
+    const files = Array.prototype.slice.call(lista || []);
+    if (!files.length) return;
+    setFsErr("");
+    setFsOk("");
+    const validos = {};
+    (inv || []).forEach(r => {
+      validos[String(r.codigo)] = r;
+    });
+    const ok = [],
+      mal = [];
+    files.forEach(f => {
+      const c = acCodigoDe(f.name);
+      if (c && validos[c]) ok.push({
+        file: f,
+        codigo: c,
+        url: URL.createObjectURL(f)
+      });else mal.push({
+        nombre: f.name,
+        motivo: c ? `el ${c} no está en el inventario` : "no tiene el número del cartel en el nombre"
+      });
+    });
+    const carteles = {};
+    ok.forEach(o => {
+      carteles[o.codigo] = 1;
+    });
+    if (fs) fs.ok.forEach(o => URL.revokeObjectURL(o.url));
+    setFs({
+      ok,
+      mal,
+      carteles: Object.keys(carteles).length
+    });
+  };
+  const subirFotos = async c => {
+    const k = c || clave;
+    if (!fs || !fs.ok.length) return;
+    if (!k) {
+      conClave("fotos");
+      return;
+    }
+    setFsErr("");
+    setFsBusy({
+      hechas: 0,
+      total: fs.ok.length
+    });
+    const TANDA = 6;
+    let subidos = 0,
+      fallaron = 0;
+    for (let i = 0; i < fs.ok.length; i += TANDA) {
+      const grupo = fs.ok.slice(i, i + TANDA),
+        listo = [];
+      for (const g of grupo) {
+        try {
+          listo.push({
+            codigo: g.codigo,
+            base64: await acAchicar(g.file, 1400)
+          });
+        } catch (e) {
+          fallaron++;
+        }
+      }
+      try {
+        const res = listo.length ? await acPost("fotos-lote", {
+          clave: k,
+          fotos: listo
+        }) : {
+          ok: true,
+          j: {
+            hechos: []
+          }
+        };
+        if (res.status === 401) {
+          setFsBusy(null);
+          claveRechazada("fotos");
+          return;
+        }
+        if (res.ok) subidos += (res.j.hechos || []).length;else fallaron += listo.length;
+      } catch (e) {
+        fallaron += listo.length;
+      }
+      setFsBusy({
+        hechas: Math.min(fs.ok.length, i + TANDA),
+        total: fs.ok.length
+      });
+    }
+    setFsBusy(null);
+    if (fallaron) setFsErr(`Se subieron fotos de ${subidos} carteles, pero ${fallaron} no se pudieron subir. Probá de nuevo con esas.`);else {
+      setFsOk(`Listo: ${subidos} ${subidos === 1 ? "cartel quedó" : "carteles quedaron"} con fotos nuevas. Ya se ven en el portal, en las fichas y en las propuestas.`);
+      fs.ok.forEach(o => URL.revokeObjectURL(o.url));
+      setFs(null);
+    }
+    traerEstado();
+  };
+  const verFotos = async () => {
+    const c = revCod.trim();
+    if (!c) return;
+    setRev({
+      cargando: true
+    });
+    try {
+      const r = await fetch(PUB_SB + "/masa_fotos?select=id,url,orden&portada=eq.false&codigo=eq." + encodeURIComponent(c) + "&order=orden.asc", {
+        headers: SB_HEADERS
+      });
+      const a = r.ok ? await r.json() : [];
+      setRev({
+        codigo: c,
+        fotos: Array.isArray(a) ? a : []
+      });
+    } catch (e) {
+      setRev({
+        codigo: c,
+        fotos: [],
+        error: true
+      });
+    }
+  };
+  const borrarFoto = async (id, c) => {
+    const k = c || clave;
+    if (!k) {
+      conClave({
+        borrar: id
+      });
+      return;
+    }
+    if (!c && !confirm("¿Quitar esta foto del cartel? Se saca del portal al instante.")) return;
+    const res = await acPost("borrar-foto", {
+      clave: k,
+      id
+    }).catch(() => ({
+      ok: false,
+      j: {}
+    }));
+    if (res.status === 401) {
+      claveRechazada({
+        borrar: id
+      });
+      return;
+    }
+    if (!res.ok) {
+      alert("No se pudo quitar la foto. Probá de nuevo.");
+      return;
+    }
+    setRev(v => v ? {
+      ...v,
+      fotos: v.fotos.filter(f => f.id !== id)
+    } : v);
+  };
+  const pct = fsBusy ? Math.round(fsBusy.hechas / Math.max(1, fsBusy.total) * 100) : 0;
+  return React.createElement("div", null, React.createElement("div", {
+    className: "portal-vivo"
+  }, React.createElement("span", {
+    className: "live-dot"
+  }), React.createElement("span", null, meta === null ? "Consultando lo publicado…" : meta ? React.createElement(React.Fragment, null, React.createElement("b", null, meta.total, " carteles publicados"), " · ", meta.disponibles, " disponibles · actualizado ", hace(meta.actualizado)) : "Todavía no se subió ningún Excel.")), pideClave && React.createElement("div", {
+    className: "card act-clave",
+    style: {
+      marginBottom: 16
+    }
+  }, React.createElement("h2", {
+    style: {
+      fontSize: 19,
+      marginBottom: 4
+    }
+  }, "La clave del panel"), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginBottom: 12,
+      lineHeight: 1.5
+    }
+  }, claveMal ? "Esa clave no es la correcta. Probá de nuevo." : "Es la misma de la página para actualizar el portal. Te la pido una sola vez: queda guardada en este teléfono."), React.createElement("div", {
+    className: "field"
+  }, React.createElement("label", null, "Clave"), React.createElement("input", {
+    type: "password",
+    value: claveTxt,
+    onChange: e => setClaveTxt(e.target.value),
+    autoComplete: "current-password",
+    onKeyDown: e => {
+      if (e.key === "Enter") seguirConClave();
+    },
+    autoFocus: true
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginTop: 12
+    }
+  }, React.createElement("button", {
+    className: "btn btn-ghost",
+    style: {
+      flex: 1
+    },
+    onClick: () => {
+      setPideClave(null);
+      setClaveTxt("");
+    }
+  }, "Cancelar"), React.createElement("button", {
+    className: "btn btn-primary",
+    style: {
+      flex: 2
+    },
+    onClick: seguirConClave,
+    disabled: !claveTxt.trim()
+  }, "Seguir"))), React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    className: "act-titulo"
+  }, React.createElement("span", {
+    className: "act-num"
+  }, "1"), React.createElement("h2", null, "El Excel de disponibles")), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      margin: "4px 0 14px",
+      lineHeight: 1.55
+    }
+  }, "Elegí el Excel de siempre (el «Listado de disponibles»), tal cual viene. Antes de publicar te muestro qué cambia."), React.createElement("input", {
+    ref: inExcel,
+    type: "file",
+    accept: ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      leerExcel(e.target.files[0]);
+      e.target.value = "";
+    }
+  }), exBusy && React.createElement("div", {
+    className: "alert a act-aviso"
+  }, React.createElement("span", {
+    className: "act-girando"
+  }), " ", exBusy), exErr && React.createElement("div", {
+    className: "alert r act-aviso"
+  }, React.createElement(AlertCircle, {
+    size: 20
+  }), " ", exErr), exOk && React.createElement("div", {
+    className: "alert g act-aviso"
+  }, React.createElement(CheckCircle2, {
+    size: 20
+  }), React.createElement("span", null, "Listo. El portal ya muestra ", React.createElement("b", null, exOk.total, " carteles"), ", ", exOk.disponibles, " disponibles.", exOk.mios ? ` Y actualicé ${exOk.mios} ${exOk.mios === 1 ? "cartel" : "carteles"} de tu lista (precio y disponibilidad).` : "")), !ex && !exBusy && React.createElement("button", {
+    className: "btn act-boton " + (exOk ? "btn-ghost" : "btn-primary"),
+    onClick: () => inExcel.current && inExcel.current.click()
+  }, React.createElement(Upload, {
+    size: 20
+  }), " ", exOk ? "Subir otro Excel" : "Elegir el Excel"), ex && !exBusy && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginBottom: 10
+    }
+  }, ex.nombre, " · hoja «", ex.hoja, "»"), React.createElement("div", {
+    className: "rev-stats"
+  }, React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", null, ex.total), React.createElement("span", null, "carteles")), React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", {
+    style: {
+      color: "var(--green)"
+    }
+  }, ex.disponibles), React.createElement("span", null, "disponibles")), React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", null, ex.zonas), React.createElement("span", null, "zonas"))), ex.publicados > 0 && (ex.nuevos || ex.fuera || ex.cambian ? React.createElement("div", {
+    className: "act-cambios"
+  }, "Comparado con lo publicado: ", React.createElement("b", null, ex.nuevos), " ", ex.nuevos === 1 ? "nuevo" : "nuevos", " · ", React.createElement("b", null, ex.fuera), " que ya no ", ex.fuera === 1 ? "está" : "están", " · ", React.createElement("b", null, ex.cambian), " que ", ex.cambian === 1 ? "cambió" : "cambiaron", " de libre a ocupado (o al revés).") : React.createElement("div", {
+    className: "act-cambios"
+  }, "Comparado con lo publicado: son los mismos carteles y ninguno cambió de libre a ocupado.")), ex.publicados > 0 && ex.total < ex.publicados * 0.6 && React.createElement("div", {
+    className: "alert r act-aviso"
+  }, React.createElement(AlertTriangle, {
+    size: 20
+  }), React.createElement("span", null, "Ojo: este Excel tiene ", React.createElement("b", null, "muchos menos carteles"), " que los publicados (", ex.total, " contra ", ex.publicados, "). Si lo publicás, el portal va a mostrar sólo ", ex.total, ". ¿Es el listado completo?")), ex.mios > 0 && React.createElement("div", {
+    className: "act-cambios"
+  }, "También se actualizan el precio y la disponibilidad de ", React.createElement("b", null, ex.mios), " ", ex.mios === 1 ? "cartel" : "carteles", " de tu lista."), ex.alertas.length > 0 && React.createElement("div", {
+    className: "alert a act-aviso",
+    style: {
+      alignItems: "flex-start"
+    }
+  }, React.createElement(AlertTriangle, {
+    size: 20,
+    style: {
+      flex: "0 0 auto",
+      marginTop: 2
+    }
+  }), React.createElement("span", null, "Revisá estos precios, cambiaron muchísimo (¿un cero de más o de menos?):", React.createElement("br", null), ex.alertas.slice(0, 5).map((a, i) => React.createElement("span", {
+    key: i,
+    style: {
+      display: "block",
+      fontWeight: 500
+    }
+  }, a)))), React.createElement("button", {
+    className: "btn btn-primary act-boton",
+    onClick: () => publicarExcel()
+  }, React.createElement(CheckCircle2, {
+    size: 20
+  }), " Publicar"), React.createElement("button", {
+    className: "btn btn-ghost act-boton2",
+    onClick: () => {
+      setEx(null);
+      setExErr("");
+    }
+  }, "Elegir otro archivo"))), React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16
+    }
+  }, React.createElement("div", {
+    className: "act-titulo"
+  }, React.createElement("span", {
+    className: "act-num"
+  }, "2"), React.createElement("h2", null, "Fotos de los carteles")), React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      margin: "4px 0 14px",
+      lineHeight: 1.55
+    }
+  }, "Elegí todas las que quieras: cada una va sola a su cartel por ", React.createElement("b", null, "el número que tiene en el nombre"), ". Sirven así: ", React.createElement("b", null, "1297.jpg"), " · ", React.createElement("b", null, "1297-2.jpg"), " · ", React.createElement("b", null, "1297 de noche.jpg"), "."), React.createElement("input", {
+    ref: inFotos,
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    style: {
+      display: "none"
+    },
+    onChange: e => {
+      elegirFotos(e.target.files);
+      e.target.value = "";
+    }
+  }), fsOk && React.createElement("div", {
+    className: "alert g act-aviso"
+  }, React.createElement(CheckCircle2, {
+    size: 20
+  }), " ", fsOk), !fs && !fsBusy && React.createElement("button", {
+    className: "btn act-boton " + (fsOk ? "btn-ghost" : "btn-primary"),
+    onClick: () => inFotos.current && inFotos.current.click(),
+    disabled: inv === null
+  }, React.createElement(LayoutPanelTop, {
+    size: 20
+  }), " ", inv === null ? "Cargando el inventario…" : fsOk ? "Subir más fotos" : "Elegir las fotos"), fsBusy && React.createElement("div", {
+    className: "alert a act-aviso",
+    style: {
+      display: "block"
+    }
+  }, "Subiendo… ", fsBusy.hechas, " de ", fsBusy.total, " fotos. No cierres esta pantalla.", React.createElement("div", {
+    className: "act-barra"
+  }, React.createElement("span", {
+    style: {
+      width: pct + "%"
+    }
+  }))), fsErr && React.createElement("div", {
+    className: "alert r act-aviso"
+  }, React.createElement(AlertCircle, {
+    size: 20
+  }), " ", fsErr), fs && !fsBusy && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "rev-stats"
+  }, React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", {
+    style: {
+      color: "var(--green)"
+    }
+  }, fs.ok.length), React.createElement("span", null, fs.ok.length === 1 ? "foto lista" : "fotos listas")), React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", null, fs.carteles), React.createElement("span", null, "carteles")), React.createElement("div", {
+    className: "rev-stat"
+  }, React.createElement("b", {
+    style: {
+      color: fs.mal.length ? "var(--red)" : undefined
+    }
+  }, fs.mal.length), React.createElement("span", null, "con dudas"))), fs.ok.length > 0 && React.createElement("div", {
+    className: "act-fotos"
+  }, fs.ok.slice(0, 12).map((o, i) => React.createElement("div", {
+    key: i,
+    className: "act-foto"
+  }, React.createElement("img", {
+    src: o.url,
+    alt: ""
+  }), React.createElement("b", null, o.codigo))), fs.ok.length > 12 && React.createElement("div", {
+    className: "act-foto act-mas"
+  }, "+", fs.ok.length - 12)), fs.mal.length > 0 && React.createElement("div", {
+    className: "alert r act-aviso",
+    style: {
+      alignItems: "flex-start"
+    }
+  }, React.createElement(AlertCircle, {
+    size: 20,
+    style: {
+      flex: "0 0 auto",
+      marginTop: 2
+    }
+  }), React.createElement("span", null, "Estas no se van a subir:", fs.mal.slice(0, 8).map((m, i) => React.createElement("span", {
+    key: i,
+    style: {
+      display: "block",
+      fontWeight: 500
+    }
+  }, m.nombre, " — ", m.motivo)), fs.mal.length > 8 && React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 500
+    }
+  }, "…y ", fs.mal.length - 8, " más"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 500,
+      marginTop: 6
+    }
+  }, "Ponele el número del cartel adelante al nombre y volvé a elegirlas."))), fs.ok.length > 0 && React.createElement("button", {
+    className: "btn btn-primary act-boton",
+    onClick: () => subirFotos()
+  }, React.createElement(Upload, {
+    size: 20
+  }), " Subir ", fs.ok.length, " ", fs.ok.length === 1 ? "foto" : "fotos"), React.createElement("button", {
+    className: "btn btn-ghost act-boton2",
+    onClick: () => {
+      fs.ok.forEach(o => URL.revokeObjectURL(o.url));
+      setFs(null);
+    }
+  }, "Elegir otras")), React.createElement("details", {
+    className: "act-revisar"
+  }, React.createElement("summary", null, "¿Quedó una foto que no va? Sacala acá"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12
+    }
+  }, React.createElement("input", {
+    className: "act-input",
+    value: revCod,
+    onChange: e => setRevCod(e.target.value.replace(/[^\d]/g, "")),
+    placeholder: "Número del cartel (ej. 1108)",
+    inputMode: "numeric",
+    onKeyDown: e => {
+      if (e.key === "Enter") verFotos();
+    }
+  }), React.createElement("button", {
+    className: "btn btn-ghost",
+    onClick: verFotos,
+    disabled: !revCod.trim()
+  }, React.createElement(Search, {
+    size: 18
+  }), " Ver")), rev && rev.cargando && React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginTop: 10
+    }
+  }, "Buscando…"), rev && !rev.cargando && !rev.fotos.length && React.createElement("div", {
+    className: "cell-sub",
+    style: {
+      marginTop: 10
+    }
+  }, rev.error ? "No se pudo consultar. Probá de nuevo." : `El ${rev.codigo} no tiene fotos subidas.`), rev && !rev.cargando && rev.fotos.length > 0 && React.createElement("div", {
+    className: "act-fotos"
+  }, rev.fotos.map(f => React.createElement("div", {
+    key: f.id,
+    className: "act-foto"
+  }, React.createElement("img", {
+    src: f.url,
+    alt: "",
+    loading: "lazy"
+  }), React.createElement("button", {
+    onClick: () => borrarFoto(f.id),
+    "aria-label": "Quitar esta foto"
+  }, React.createElement(X, {
+    size: 15
+  })), React.createElement("i", null, /\/lote-/.test(f.url) ? "Catálogo" : "Subida a mano")))))));
+}
 function PortalSeccion() {
   const [inv, setInv] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -8289,6 +9224,16 @@ async function fotoParaPropuesta(b) {
       return await cargarImagenPDF(c);
     } catch (e) {}
   }
+  if (b && b.codigo) {
+    try {
+      const lotes = (await traerFotosDe(String(b.codigo))).filter(u => /\/lote-/.test(u));
+      for (const u of lotes) {
+        try {
+          return await cargarImagenPDF(u);
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
   return null;
 }
 function cajaUtil(im) {
@@ -8310,6 +9255,7 @@ function cajaUtil(im) {
     const x = c.getContext("2d");
     x.drawImage(im, 0, 0, sw, sh);
     const d = x.getImageData(0, 0, sw, sh).data;
+    c.width = c.height = 0;
     const lum = (px, py) => {
       const k = (py * sw + px) * 4;
       return 0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2];
@@ -8386,7 +9332,265 @@ function lienzoPDF(im, W, H, o) {
     x.fillStyle = "rgba(10,10,12," + o.velo + ")";
     x.fillRect(0, 0, W, H);
   }
-  return c.toDataURL("image/jpeg", o.calidad || 0.84);
+  const url = c.toDataURL("image/jpeg", o.calidad || 0.84);
+  c.width = c.height = 0;
+  return url;
+}
+function azarDe(s) {
+  let h = 2166136261;
+  const t = String(s || "masa");
+  for (let i = 0; i < t.length; i++) {
+    h ^= t.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
+    h += 0x6d2b79f5;
+    let r = h;
+    r = Math.imul(r ^ r >>> 15, r | 1);
+    r ^= r + Math.imul(r ^ r >>> 7, r | 61);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+}
+function proporcionDe(medidas) {
+  const m = String(medidas || "").replace(/,/g, ".").match(/(\d+(?:\.\d+)?)\s*m?\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+  if (!m) return 0;
+  const a = parseFloat(m[1]),
+    b = parseFloat(m[2]);
+  return a > 0 && b > 0 ? a / b : 0;
+}
+function ilustracionPDF(W, H, o) {
+  o = o || {};
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const x = c.getContext("2d");
+  const azar = azarDe(o.semilla);
+  const U = Math.min(W, H) / 100;
+  const suelo = H * (o.suelo || 0.86);
+  const tipo = String(o.tipo || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const enPared = /medianera|top ?wall|mural|telon|wall|top ?site/.test(tipo);
+  const pantalla = /led|pantalla/.test(tipo);
+  const columna = /columna|monoposte|totem/.test(tipo);
+  const cielo = x.createLinearGradient(0, 0, 0, suelo);
+  cielo.addColorStop(0, "#23395f");
+  cielo.addColorStop(0.55, "#182a48");
+  cielo.addColorStop(1, "#111e35");
+  x.fillStyle = cielo;
+  x.fillRect(0, 0, W, H);
+  const horizonte = x.createLinearGradient(0, suelo - H * 0.35, 0, suelo);
+  horizonte.addColorStop(0, "rgba(232,89,12,0)");
+  horizonte.addColorStop(1, "rgba(232,89,12,0.10)");
+  x.fillStyle = horizonte;
+  x.fillRect(0, suelo - H * 0.35, W, H * 0.35);
+  if (o.resplandor) {
+    const rg = x.createRadialGradient(W * o.resplandor[0], H * o.resplandor[1], 0, W * o.resplandor[0], H * o.resplandor[1], Math.max(W, H) * 0.45);
+    rg.addColorStop(0, "rgba(232,89,12,0.22)");
+    rg.addColorStop(1, "rgba(232,89,12,0)");
+    x.fillStyle = rg;
+    x.fillRect(0, 0, W, H);
+  }
+  x.strokeStyle = "rgba(255,255,255,0.035)";
+  x.lineWidth = Math.max(1, U * 0.12);
+  const paso = Math.max(W, H) / 20;
+  for (let gx = paso / 2; gx < W; gx += paso) {
+    x.beginPath();
+    x.moveTo(gx, 0);
+    x.lineTo(gx, suelo);
+    x.stroke();
+  }
+  for (let gy = paso / 2; gy < suelo; gy += paso) {
+    x.beginPath();
+    x.moveTo(0, gy);
+    x.lineTo(W, gy);
+    x.stroke();
+  }
+  const cx = W * (o.cx == null ? 0.5 : o.cx);
+  let pw, ph, px, py;
+  let r = proporcionDe(o.medidas) || (enPared ? 0.8 : 2.2);
+  if (o.cartel !== false) {
+    if (enPared) {
+      r = Math.min(2.6, Math.max(0.3, r));
+      ph = H * (o.alto || 0.42);
+      pw = ph * r;
+      const maxW = W * (o.ancho || 0.56);
+      if (pw > maxW) {
+        pw = maxW;
+        ph = pw / r;
+      }
+      px = cx - pw / 2;
+      py = suelo - ph - Math.max(H * 0.2, ph * 0.35);
+      if (py < H * 0.1) py = H * 0.1;
+    } else {
+      r = Math.min(3.6, Math.max(1.15, r));
+      pw = W * (o.ancho || 0.56);
+      ph = pw / r;
+      const patas = Math.min(H * 0.34, Math.max(H * 0.16, ph * 0.85));
+      const maxPh = suelo - patas - H * 0.12;
+      if (ph > maxPh) {
+        ph = maxPh;
+        pw = ph * r;
+      }
+      px = cx - pw / 2;
+      py = suelo - patas - ph;
+    }
+    const g = x.createRadialGradient(cx, py + ph / 2, 0, cx, py + ph / 2, Math.max(pw, ph) * 1.1);
+    g.addColorStop(0, "rgba(232,89,12,0.28)");
+    g.addColorStop(1, "rgba(232,89,12,0)");
+    x.fillStyle = g;
+    x.fillRect(0, 0, W, H);
+  }
+  const edificios = (alMin, alMax, anMin, anMax, color, luz, pLuz) => {
+    let ex = -W * 0.02;
+    while (ex < W) {
+      const bw = W * (anMin + azar() * (anMax - anMin)),
+        bh = H * (alMin + azar() * (alMax - alMin));
+      x.fillStyle = color;
+      x.fillRect(ex, suelo - bh, bw + 1, bh);
+      if (azar() < 0.25) x.fillRect(ex + bw * 0.35, suelo - bh - H * 0.03, bw * 0.12, H * 0.03);
+      const vw = Math.max(2, bw * 0.09),
+        vh = Math.max(2, H * 0.012),
+        sx = bw * 0.2,
+        sy = H * 0.03;
+      for (let wy = suelo - bh + sy; wy < suelo - sy; wy += sy) {
+        for (let wx = ex + sx * 0.6; wx < ex + bw - vw; wx += sx) {
+          x.fillStyle = azar() < pLuz ? luz : "rgba(255,255,255,0.035)";
+          x.fillRect(wx, wy, vw, vh);
+        }
+      }
+      ex += bw + W * 0.004;
+    }
+  };
+  const ec = o.ciudad || 1;
+  edificios(0.16 * ec, 0.4 * ec, 0.05, 0.11, "#1a2c4b", "rgba(255,206,130,0.42)", 0.16);
+  edificios(0.07 * ec, 0.2 * ec, 0.06, 0.14, "#13213a", "rgba(255,196,120,0.34)", 0.12);
+  x.fillStyle = "#0c1628";
+  x.fillRect(0, suelo, W, H - suelo);
+  x.fillStyle = "rgba(255,255,255,0.07)";
+  x.fillRect(0, suelo, W, Math.max(1, U * 0.25));
+  const yc = suelo + (H - suelo) * 0.58,
+    lr = W * 0.05;
+  x.fillStyle = "rgba(255,255,255,0.12)";
+  if (o.calle !== false) for (let rx = azar() * lr; rx < W; rx += lr * 2) x.fillRect(rx, yc, lr, Math.max(1.5, U * 0.35));
+  let panel = null;
+  if (o.cartel !== false) {
+    const oscuro = "#0b1426",
+      estructura = "#2a3d5f";
+    if (o.sombraIzq) sombra();
+    if (enPared) {
+      const bw = pw * 1.3,
+        bx = cx - bw / 2,
+        top = py - Math.max(ph * 0.12, H * 0.035);
+      x.fillStyle = "#1f3354";
+      x.fillRect(bx, top, bw, suelo - top);
+      x.fillStyle = "rgba(0,0,0,0.18)";
+      x.fillRect(bx + bw * 0.86, top, bw * 0.14, suelo - top);
+      const vw = Math.max(2, bw * 0.045),
+        vh = Math.max(2, H * 0.011);
+      for (let wy = py + ph + H * 0.04; wy < suelo - H * 0.03; wy += H * 0.034) {
+        for (let wx = bx + bw * 0.07; wx < bx + bw * 0.83; wx += bw * 0.095) {
+          x.fillStyle = azar() < 0.16 ? "rgba(255,206,130,0.34)" : "rgba(255,255,255,0.04)";
+          x.fillRect(wx, wy, vw, vh);
+        }
+      }
+    } else if (columna || pantalla) {
+      const cw = Math.max(pw * 0.07, U * 1.2);
+      x.fillStyle = estructura;
+      x.fillRect(cx - cw / 2, py + ph, cw, suelo - py - ph);
+      x.fillStyle = "rgba(255,255,255,0.08)";
+      x.fillRect(cx - cw / 2, py + ph, cw * 0.28, suelo - py - ph);
+      x.fillStyle = estructura;
+      x.fillRect(cx - cw * 1.1, suelo - U * 0.9, cw * 2.2, U * 0.9);
+    } else {
+      const lw = Math.max(pw * 0.045, U * 0.9);
+      [0.27, 0.73].forEach(f => {
+        x.fillStyle = estructura;
+        x.fillRect(px + pw * f - lw / 2, py + ph, lw, suelo - py - ph);
+        x.fillStyle = "rgba(255,255,255,0.08)";
+        x.fillRect(px + pw * f - lw / 2, py + ph, lw * 0.28, suelo - py - ph);
+      });
+      x.fillStyle = oscuro;
+      x.fillRect(px - pw * 0.025, py + ph, pw * 1.05, Math.max(U * 0.6, ph * 0.045));
+    }
+    const borde = Math.max(U * 0.45, pw * 0.012);
+    x.fillStyle = pantalla ? "#05080f" : "#f4f1ea";
+    x.fillRect(px - borde * (pantalla ? 1.8 : 1), py - borde * (pantalla ? 1.8 : 1), pw + borde * (pantalla ? 3.6 : 2), ph + borde * (pantalla ? 3.6 : 2));
+    const pg = x.createLinearGradient(0, py, 0, py + ph);
+    pg.addColorStop(0, pantalla ? "#f26b1d" : "#f0691c");
+    pg.addColorStop(1, pantalla ? "#c9420b" : "#d4490d");
+    x.fillStyle = pg;
+    x.fillRect(px, py, pw, ph);
+    if (pantalla) {
+      x.strokeStyle = "rgba(0,0,0,0.14)";
+      x.lineWidth = Math.max(0.6, U * 0.06);
+      const pp = Math.max(3, pw / 60);
+      for (let gx = px + pp; gx < px + pw; gx += pp) {
+        x.beginPath();
+        x.moveTo(gx, py);
+        x.lineTo(gx, py + ph);
+        x.stroke();
+      }
+      for (let gy = py + pp; gy < py + ph; gy += pp) {
+        x.beginPath();
+        x.moveTo(px, gy);
+        x.lineTo(px + pw, gy);
+        x.stroke();
+      }
+    } else {
+      const n = pw > ph * 2.2 ? 3 : 2;
+      x.save();
+      x.beginPath();
+      x.rect(px, py, pw, ph);
+      x.clip();
+      for (let i = 0; i < n; i++) {
+        const lx = px + pw * ((i + 0.5) / n),
+          rr = Math.max(pw / n * 0.75, ph * 0.6);
+        const hz = x.createRadialGradient(lx, py, 0, lx, py, rr);
+        hz.addColorStop(0, "rgba(255,240,205,0.30)");
+        hz.addColorStop(1, "rgba(255,240,205,0)");
+        x.fillStyle = hz;
+        x.fillRect(px, py, pw, ph);
+      }
+      x.restore();
+      for (let i = 0; i < n; i++) {
+        const lx = px + pw * ((i + 0.5) / n),
+          ly = py - Math.max(ph * 0.13, U * 1.5);
+        x.strokeStyle = oscuro;
+        x.lineWidth = Math.max(1, U * 0.28);
+        x.beginPath();
+        x.moveTo(lx, py - borde);
+        x.lineTo(lx, ly);
+        x.lineTo(lx + U * 0.8, ly);
+        x.stroke();
+        x.fillStyle = "#e9eef7";
+        x.fillRect(lx + U * 0.5, ly - U * 0.25, U * 1.1, U * 0.5);
+      }
+    }
+    const br = x.createLinearGradient(px, py, px + pw, py + ph);
+    br.addColorStop(0, "rgba(255,255,255,0.10)");
+    br.addColorStop(0.45, "rgba(255,255,255,0)");
+    x.fillStyle = br;
+    x.fillRect(px, py, pw, ph);
+    panel = {
+      x: px / W,
+      y: py / H,
+      w: pw / W,
+      h: ph / H
+    };
+  }
+  if (o.cartel === false && o.sombraIzq) sombra();
+  const url = c.toDataURL("image/jpeg", o.calidad || 0.9);
+  c.width = c.height = 0;
+  return {
+    url,
+    panel
+  };
+  function sombra() {
+    const sg = x.createLinearGradient(0, 0, W * 0.62, 0);
+    sg.addColorStop(0, "rgba(9,15,28," + o.sombraIzq + ")");
+    sg.addColorStop(1, "rgba(9,15,28,0)");
+    x.fillStyle = sg;
+    x.fillRect(0, 0, W * 0.62, H);
+  }
 }
 const PDF_NUMEROS = ["", "Un", "Dos", "Tres", "Cuatro", "Cinco", "Seis", "Siete", "Ocho", "Nueve", "Diez", "Once", "Doce", "Trece", "Catorce", "Quince", "Dieciséis", "Diecisiete", "Dieciocho", "Diecinueve", "Veinte"];
 const pdfMiles = n => {
@@ -8470,11 +9674,24 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
     }
     return l;
   };
-  const titulo = (s, w, maxL, grande, chico) => {
+  const entranPalabras = (s, f, t, w) => String(s || "").split(/\s+/).every(p => !p || ancho(p, f, t) <= w);
+  const parejo = (s, f, t, w) => {
+    const l = partir(s, f, t, w);
+    if (l.length < 2) return l;
+    let lo = w * 0.35,
+      hi = w;
+    for (let k = 0; k < 14; k++) {
+      const mid = (lo + hi) / 2;
+      if (entranPalabras(s, f, t, mid) && partir(s, f, t, mid).length <= l.length) hi = mid;else lo = mid;
+    }
+    return partir(s, f, t, hi);
+  };
+  const titulo = (s, w, maxL, grande, chico, sinParejo) => {
     for (let t = grande; t >= chico; t -= 2) {
+      if (!entranPalabras(s, TIT, t, w)) continue;
       const l = partir(s, TIT, t, w);
       if (l.length <= maxL) return {
-        l,
+        l: sinParejo ? l : parejo(s, TIT, t, w),
         t
       };
     }
@@ -8520,8 +9737,8 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
   const hoja = (im, o) => doc.addImage(lienzoPDF(im, PX, PY, o), "JPEG", 0, 0, W, H, undefined, "FAST");
   const n = cs.length;
   const conFoto = fotos.map((f, i) => f ? i : -1).filter(i => i > -1);
-  const fotoTapa = conFoto.length ? fotos[conFoto[conFoto.length >= 3 ? 1 : 0]] : null;
-  const fotoCierre = conFoto.length ? fotos[conFoto[conFoto.length - 1]] : null;
+  const fotoTapa = conFoto.length ? fotos[conFoto[conFoto.length >= 2 ? 1 : 0]] : null;
+  const fotoCierre = conFoto.length >= 3 ? fotos[conFoto[0]] : null;
   const nombreDe = b => tituloCorto(b.nombre) || "Cartel " + (b.codigo || "");
   const zonaDe = b => zonaBonita(b.zona || (String(b.ubicacion || "").indexOf(",") > -1 ? String(b.ubicacion).split(",").pop().trim() : ""));
   const luzDe = b => typeof b.iluminado === "boolean" ? b.iluminado ? "Sí" : "No" : b.luz ? /si|sí/i.test(String(b.luz)) ? "Sí" : "No" : "";
@@ -8531,14 +9748,178 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
     year: "numeric"
   });
   const asesor = String(cfg.asesor || "Mónica").trim();
+  const direccionDe = b => {
+    if (b.deEmpresa) return "";
+    const u = String(b.ubicacion || "").trim();
+    const d = tituloCorto(u.indexOf(",") > -1 ? u.slice(0, u.lastIndexOf(",")).trim() : u);
+    const pn = plano(nombreDe(b)),
+      pd = plano(d);
+    return !d || pn.indexOf(pd) > -1 || pd.indexOf(pn) > -1 ? "" : d;
+  };
+  const metaDe = b => [direccionDe(b), zonaDe(b), b.tipo, b.medidas].filter(Boolean).join(" · ");
+  const rotulo = cli && cli.empresa ? String(cli.empresa).trim() : "Tu marca acá";
+  const enPanel = (s, bx, by, bw, bh, min, tope) => {
+    if (!s) return;
+    const t0 = String(s).toUpperCase(),
+      maxL = bh > bw * 1.3 ? 4 : bh > bw * 0.6 ? 3 : 2;
+    const anchoUtil = bw * (tope ? 0.7 : 0.8),
+      altoUtil = bh * (tope ? 0.56 : 0.76);
+    for (let t = Math.min(bh * (tope || 0.46), 96); t >= (min || 6); t -= 0.5) {
+      if (!entranPalabras(t0, TIT, t, anchoUtil)) continue;
+      let l = partir(t0, TIT, t, anchoUtil);
+      if (l.length <= maxL && t * l.length <= altoUtil) {
+        l = parejo(t0, TIT, t, anchoUtil);
+        const y0 = by + (bh - t * l.length) / 2 - t * 0.06;
+        l.forEach((li, i) => texto(li, bx + bw / 2, y0 + i * t, TIT, t, "#ffffff", {
+          al: "center"
+        }));
+        return;
+      }
+    }
+  };
+  const escena = (bx, by, bw, bh, o, rot, min, tope) => {
+    const k = Math.min(2.2, 1800 / Math.max(bw, bh));
+    const r = ilustracionPDF(Math.round(bw * k), Math.round(bh * k), o);
+    doc.addImage(r.url, "JPEG", bx, by, bw, bh, undefined, "FAST");
+    if (r.panel && rot) enPanel(rot, bx + r.panel.x * bw, by + r.panel.y * bh, r.panel.w * bw, r.panel.h * bh, min, tope);
+  };
+  const cota = (x1, y1, x2, y2, t) => {
+    const hor = Math.abs(y2 - y1) < 1;
+    doc.setDrawColor("#ffffff");
+    doc.setLineWidth(0.7);
+    doc.line(x1, y1, x2, y2);
+    if (hor) {
+      doc.line(x1, y1 - 5, x1, y1 + 5);
+      doc.line(x2, y2 - 5, x2, y2 + 5);
+    } else {
+      doc.line(x1 - 5, y1, x1 + 5, y1);
+      doc.line(x2 - 5, y2, x2 + 5, y2);
+    }
+    doc.setFillColor("#ffffff");
+    if (hor) {
+      doc.triangle(x1, y1, x1 + 6, y1 - 2.6, x1 + 6, y1 + 2.6, "F");
+      doc.triangle(x2, y2, x2 - 6, y2 - 2.6, x2 - 6, y2 + 2.6, "F");
+    } else {
+      doc.triangle(x1, y1, x1 - 2.6, y1 + 6, x1 + 2.6, y1 + 6, "F");
+      doc.triangle(x2, y2, x2 - 2.6, y2 - 6, x2 + 2.6, y2 - 6, "F");
+    }
+    if (hor) {
+      const w = ancho(t, TXB, 10) + 12;
+      rect((x1 + x2) / 2 - w / 2, y1 - 8, w, 16, "#1b2b48");
+      texto(t, (x1 + x2) / 2, y1 - 5.4, TXB, 10, "#ffffff", {
+        al: "center"
+      });
+    } else texto(t, x1 + 9, (y1 + y2) / 2 - 5.4, TXB, 10, "#ffffff");
+  };
+  const persona = (x, ys, h) => {
+    doc.setFillColor("#d7dbe3");
+    const r = h * 0.085;
+    doc.circle(x, ys - h + r, r, "F");
+    doc.roundedRect(x - h * 0.13, ys - h + r * 2 + h * 0.025, h * 0.26, h * 0.4, h * 0.05, h * 0.05, "F");
+    doc.rect(x - h * 0.11, ys - h * 0.43, h * 0.09, h * 0.43, "F");
+    doc.rect(x + h * 0.02, ys - h * 0.43, h * 0.09, h * 0.43, "F");
+  };
+  const dibujoAEscala = (bx, by, bw, bh, b) => {
+    rect(bx, by, bw, bh, "#1b2b48");
+    doc.setDrawColor("#22375c");
+    doc.setLineWidth(0.4);
+    for (let gx = bx + 20; gx < bx + bw; gx += 20) doc.line(gx, by, gx, by + bh);
+    for (let gy = by + 20; gy < by + bh; gy += 20) doc.line(bx, gy, bx + bw, gy);
+    const mm = String(b.medidas || "").replace(/,/g, ".").match(/(\d+(?:\.\d+)?)\s*m?\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+    const sabe = !!mm,
+      am = sabe ? parseFloat(mm[1]) : 8,
+      alm = sabe ? parseFloat(mm[2]) : 4;
+    const tp = plano(b.tipo);
+    const enPared = /medianera|top ?wall|mural|telon|wall|top ?site/.test(tp);
+    const unPoste = /columna|monoposte|totem|led|pantalla/.test(tp);
+    const patas = enPared ? 0 : Math.max(5, alm * 0.9);
+    const edifAlto = enPared ? alm + Math.max(5, alm * 0.5) : 0,
+      edifAncho = enPared ? am * 1.35 + 2 : 0;
+    const escAncho = Math.max(am * 1.5, edifAncho * 1.25, am + 7),
+      escAlto = (enPared ? edifAlto : patas + alm) + 2;
+    const padX = 40,
+      arriba = 96,
+      abajo = 96;
+    const s = Math.min((bw - 2 * padX) / escAncho, (bh - arriba - abajo) / escAlto);
+    const sueloY = by + bh - abajo,
+      cxm = bx + bw / 2 + (enPared ? 0 : Math.min(30, am * s * 0.08));
+    const P = {
+      w: am * s,
+      h: alm * s
+    };
+    P.x = cxm - P.w / 2;
+    P.y = enPared ? sueloY - (edifAlto - 1.2) * s : sueloY - (patas + alm) * s;
+    doc.setDrawColor("#8fa3c4");
+    doc.setLineWidth(0.8);
+    doc.line(bx + 28, sueloY, bx + bw - 28, sueloY);
+    doc.setDrawColor("#c9d3e6");
+    doc.setLineWidth(0.7);
+    doc.setFillColor("#243a61");
+    let izq = P.x;
+    if (enPared) {
+      const ew = edifAncho * s,
+        eh = edifAlto * s;
+      izq = cxm - ew / 2;
+      doc.rect(izq, sueloY - eh, ew, eh, "FD");
+      doc.setDrawColor("#3d5888");
+      doc.setLineWidth(0.5);
+      for (let wy = P.y + P.h + 1.3 * s; wy < sueloY - 1.8 * s; wy += 2.8 * s) for (let wx = izq + 1 * s; wx < izq + ew - 1.8 * s; wx += 2.6 * s) doc.rect(wx, wy, 1.2 * s, 1.5 * s, "S");
+    } else if (unPoste) {
+      const pw2 = Math.max(3, 0.7 * s);
+      doc.rect(cxm - pw2 / 2, P.y + P.h, pw2, sueloY - P.y - P.h, "FD");
+      doc.rect(cxm - pw2 * 1.6, sueloY - Math.max(2, 0.3 * s), pw2 * 3.2, Math.max(2, 0.3 * s), "FD");
+    } else {
+      const lw2 = Math.max(2.5, 0.45 * s);
+      [0.27, 0.73].forEach(f => doc.rect(P.x + P.w * f - lw2 / 2, P.y + P.h, lw2, sueloY - P.y - P.h, "FD"));
+      doc.rect(P.x - P.w * 0.02, P.y + P.h, P.w * 1.04, Math.max(2, 0.35 * s), "FD");
+    }
+    doc.setFillColor(NARANJA);
+    doc.setDrawColor("#ffffff");
+    doc.setLineWidth(1.2);
+    doc.rect(P.x, P.y, P.w, P.h, "FD");
+    enPanel(rotulo, P.x, P.y, P.w, P.h, 6);
+    if (sabe) {
+      const fmt = v => String(v).replace(".", ",") + " m";
+      cota(P.x, P.y - 18, P.x + P.w, P.y - 18, fmt(am));
+      const xv = enPared ? izq + edifAncho * s + 14 : P.x + P.w + 16;
+      cota(xv, P.y, xv, P.y + P.h, fmt(alm));
+    }
+    const hp = 1.75 * s;
+    if (hp >= 9) {
+      const xp = Math.max(bx + 34, izq - Math.max(1.6 * s, 14));
+      persona(xp, sueloY, hp);
+      texto("1,75 m", xp, sueloY + 6, TXT, 7, "#8fa3c4", {
+        al: "center"
+      });
+    }
+    texto(sabe ? "Dibujo a escala, con las medidas reales del espacio." : "Dibujo de referencia del espacio.", bx + bw / 2, sueloY + 34, TXB, 10.5, "#ffffff", {
+      al: "center"
+    });
+    texto("Pedinos las fotos y te las mandamos al toque.", bx + bw / 2, sueloY + 50, TXT, 10, "#a9b8d3", {
+      al: "center"
+    });
+  };
   aviso("Armando la portada…");
-  hoja(fotoTapa, {
+  if (fotoTapa) hoja(fotoTapa, {
     abajo: {
       alto: 0.72,
       fuerza: 0.93
     },
-    arriba: true
-  });
+    arriba: true,
+    foco: 0.3
+  });else {
+    const b0 = cs[0] || {};
+    escena(0, 0, W, H, {
+      tipo: b0.tipo,
+      medidas: b0.medidas,
+      cx: 0.72,
+      ancho: 0.4,
+      suelo: 0.86,
+      ciudad: 0.8,
+      semilla: rotulo,
+      sombraIzq: 0.78
+    }, rotulo, 9, 0.3);
+  }
   marca(M, M - 6, true);
   texto(fecha, W - M, M - 2, TXT, 8.5, CLARO, {
     al: "right"
@@ -8551,7 +9932,7 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
     const sub = n === 1 ? "Un espacio en vía pública, elegido para tu marca." : `${PDF_NUMEROS[n] || n} espacios en vía pública, elegidos para tu marca.`;
     y -= 26;
     texto(sub, M, y, TXT, 13, "#ffffff");
-    const T = titulo(cli && cli.empresa ? cli.empresa : cfg.lema || "Tu marca en la calle", W * 0.72, 2, 68, 40);
+    const T = fotoTapa ? titulo(cli && cli.empresa ? cli.empresa : cfg.lema || "Tu marca en la calle", W * 0.72, 2, 68, 40) : titulo(cli && cli.empresa ? cli.empresa : cfg.lema || "Tu marca en la calle", W * 0.46, 3, 60, 30);
     const alto = T.t * 1.02;
     y -= 10 + alto * T.l.length;
     T.l.forEach((l, i) => texto(l, M - 2, y + i * alto, TIT, T.t, "#ffffff"));
@@ -8559,78 +9940,132 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
       esp: 1.6
     });
   }
-  const POR_HOJA = 12;
-  for (let p = 0; n > 1 && p * POR_HOJA < n; p++) {
-    aviso("Armando el resumen…");
-    doc.addPage();
-    rect(0, 0, W, H, CREMA);
-    marca(M, M - 6, false);
-    texto("LAS OPCIONES", W - M, M + 2, TXB, 8, NARANJA, {
-      al: "right"
-    });
-    const tit = n === 1 ? "Un espacio para tu marca" : `${PDF_NUMEROS[n] || n} espacios para elegir` + (p > 0 ? " (sigue)" : "");
-    texto(tit, M - 1, 74, TIT, 30, TINTA);
-    if (n > 1) texto("Se pueden tomar de a uno o combinados. Armamos el circuito según el presupuesto y las zonas que prioricen.", M, 112, TXT, 10, GRIS);
-    const grupo = cs.slice(p * POR_HOJA, (p + 1) * POR_HOJA);
-    const m = grupo.length;
-    const cols = m <= 3 ? m : m === 4 ? 2 : m <= 6 ? 3 : 4;
-    const filas = Math.ceil(m / cols);
-    const gap = 16,
-      cw = (W - 2 * M - gap * (cols - 1)) / cols;
-    const y0 = n > 1 ? 136 : 112,
-      piso = H - 44;
+  const totalPaquete = cs.reduce((a, b) => a + (Number(b.precio) || 0) * (inc.precio ? 1 : 0) + (inc.prod ? Number(b.produccion) || 0 : 0) + (inc.coloc ? Number(b.colocacion) || 0 : 0), 0);
+  const nota = inc.total && totalPaquete > 0 ? `Total del paquete: $${pdfMiles(totalPaquete)} por mes + IVA.` : !inc.prod && !inc.coloc ? "Producción y colocación se cotizan aparte." : "";
+  const precioLinea = (b, x0, y, tp) => {
+    const pr = Number(b.precio) > 0;
+    texto(pr ? "$" + pdfMiles(b.precio) : "A consultar", x0, y, TXB, tp, pr ? NARANJA : TINTA);
+    if (pr) texto("por mes + IVA", x0 + ancho("$" + pdfMiles(b.precio), TXB, tp) + 4, y + tp * 0.3, TXT, 6.8, GRIS);
+  };
+  const imagenTarjeta = (i, b, x0, y0, w, h) => {
+    if (fotos[i]) {
+      const pxw = Math.round(Math.min(900, w * 2.6));
+      doc.addImage(lienzoPDF(fotos[i], pxw, Math.round(pxw * h / w), {
+        calidad: 0.82,
+        foco: 0.22
+      }), "JPEG", x0, y0, w, h, undefined, "FAST");
+    } else escena(x0, y0, w, h, {
+      tipo: b.tipo,
+      medidas: b.medidas,
+      semilla: String(b.codigo || b.nombre || "") + i,
+      ancho: 0.6,
+      alto: 0.5,
+      suelo: 0.85
+    }, rotulo, 5);
+    if (b.codigo) etiqueta(b.codigo, x0 + 7, y0 + 7, NARANJA, "#ffffff");
+  };
+  const tarjetas = (grupo, desde, y0, piso) => {
+    const m = grupo.length,
+      avail = piso - y0;
+    if (m === 4) {
+      const gap = 16,
+        cw = (W - 2 * M - gap) / 2,
+        ch = Math.min(200, (avail - gap) / 2);
+      const top = y0 + (avail - (ch * 2 + gap)) / 2;
+      grupo.forEach((b, k) => {
+        const i = desde + k,
+          x0 = M + k % 2 * (cw + gap),
+          yy0 = top + Math.floor(k / 2) * (ch + gap);
+        rect(x0, yy0, cw, ch, "#ffffff");
+        const fw = Math.min(ch * 1.1, cw * 0.52);
+        imagenTarjeta(i, b, x0, yy0, fw, ch);
+        const tx0 = x0 + fw + 16,
+          tw = cw - fw - 30;
+        let ty = yy0 + 18;
+        partir(nombreDe(b), TXB, 12.5, tw, 3).forEach(l => {
+          texto(l, tx0, ty, TXB, 12.5, TINTA);
+          ty += 15.5;
+        });
+        ty += 4;
+        partir(metaDe(b), TXT, 9, tw, 4).forEach(l => {
+          texto(l, tx0, ty, TXT, 9, GRIS);
+          ty += 12;
+        });
+        if (inc.precio) precioLinea(b, tx0, yy0 + ch - 32, 13);
+      });
+      return;
+    }
+    const cols = m <= 3 ? m : m <= 6 ? 3 : 4;
+    const filas = Math.ceil(m / cols),
+      gap = cols <= 2 ? 22 : 16;
+    const cw = (W - 2 * M - gap * (cols - 1)) / cols;
+    const fn = cols <= 2 ? 13 : cols === 3 ? 10.5 : 9.5,
+      lh = fn * 1.22;
+    const fm = cols <= 2 ? 9.5 : cols === 3 ? 8.2 : 7.6,
+      mh = fm * 1.3;
+    const tp = cols <= 2 ? 13.5 : cols === 3 ? 11 : 10;
     const tx = grupo.map(b => ({
-      nl: partir(nombreDe(b), TXB, cols <= 2 ? 11.5 : 9.5, cw),
-      ml: partir([zonaDe(b), b.tipo, b.medidas].filter(Boolean).join(" · "), TXT, cols <= 2 ? 8.6 : 7.6, cw)
+      nl: partir(nombreDe(b), TXB, fn, cw, 3),
+      ml: partir(metaDe(b), TXT, fm, cw, 2)
     }));
-    const lh = cols <= 2 ? 13.5 : 11.5,
-      mh = cols <= 2 ? 10.5 : 9.5;
-    const altoTexto = k => 8 + tx[k].nl.length * lh + tx[k].ml.length * mh + (inc.precio ? 15 : 0);
+    const altoTexto = k => 9 + tx[k].nl.length * lh + 2 + tx[k].ml.length * mh + (inc.precio ? tp + 8 : 0);
     const textoFila = [];
     for (let r = 0; r < filas; r++) {
       let mx = 0;
       for (let k = r * cols; k < Math.min(m, (r + 1) * cols); k++) mx = Math.max(mx, altoTexto(k));
       textoFila.push(mx);
     }
-    const libre = piso - y0 - textoFila.reduce((a2, v) => a2 + v, 0) - 12 * (filas - 1);
-    const th = Math.max(70, Math.min(cw * 0.66, libre / filas));
-    let cy = y0;
+    const proporcion = m === 2 ? 0.86 : m === 3 ? 0.95 : m <= 6 ? 0.74 : 0.9;
+    const sep = 16,
+      libre = avail - textoFila.reduce((a, v) => a + v, 0) - sep * (filas - 1);
+    const th = Math.max(60, Math.min(cw * proporcion, libre / filas));
+    const bloque = th * filas + textoFila.reduce((a, v) => a + v, 0) + sep * (filas - 1);
+    let cy = y0 + Math.max(0, (avail - bloque) / 2);
     for (let r = 0; r < filas; r++) {
-      for (let k = r * cols; k < Math.min(m, (r + 1) * cols); k++) {
+      const enFila = Math.min(m, (r + 1) * cols) - r * cols;
+      const corre = (cols - enFila) * (cw + gap) / 2;
+      for (let k = r * cols; k < r * cols + enFila; k++) {
         const b = grupo[k],
-          i = p * POR_HOJA + k,
-          cx = M + k % cols * (cw + gap);
-        if (fotos[i]) doc.addImage(lienzoPDF(fotos[i], 720, Math.round(720 * th / cw), {
-          calidad: 0.8,
-          foco: 0.22
-        }), "JPEG", cx, cy, cw, th, undefined, "FAST");else {
-          rect(cx, cy, cw, th, TINTA);
-          if (b.codigo) texto(String(b.codigo), cx + cw - 8, cy + th * 0.12, TIT, Math.min(th * 0.8, 90), "#1d2e4d", {
-            al: "right"
-          });
-        }
-        if (b.codigo) etiqueta(b.codigo, cx + 7, cy + 7, NARANJA, "#ffffff");
-        let yy = cy + th + 8;
+          i = desde + k,
+          cx = M + corre + (k - r * cols) * (cw + gap);
+        imagenTarjeta(i, b, cx, cy, cw, th);
+        let yy = cy + th + 9;
         tx[k].nl.forEach(l => {
-          texto(l, cx, yy, TXB, cols <= 2 ? 11.5 : 9.5, TINTA);
+          texto(l, cx, yy, TXB, fn, TINTA);
           yy += lh;
         });
+        yy += 2;
         tx[k].ml.forEach(l => {
-          texto(l, cx, yy, TXT, cols <= 2 ? 8.6 : 7.6, GRIS);
+          texto(l, cx, yy, TXT, fm, GRIS);
           yy += mh;
         });
-        if (inc.precio) {
-          const pr = Number(b.precio) > 0,
-            tp = cols <= 2 ? 12 : 10;
-          texto(pr ? "$" + pdfMiles(b.precio) : "A consultar", cx, yy + 2, TXB, tp, pr ? NARANJA : TINTA);
-          if (pr) texto("por mes + IVA", cx + ancho("$" + pdfMiles(b.precio), TXB, tp) + 4, yy + 2 + tp * 0.28, TXT, 6.8, GRIS);
-        }
+        if (inc.precio) precioLinea(b, cx, yy + 4, tp);
       }
-      cy += th + textoFila[r] + 12;
+      cy += th + textoFila[r] + sep;
     }
-    const totalPaquete = cs.reduce((a, b) => a + (Number(b.precio) || 0) * (inc.precio ? 1 : 0) + (inc.prod ? Number(b.produccion) || 0 : 0) + (inc.coloc ? Number(b.colocacion) || 0 : 0), 0);
-    const nota = inc.total && totalPaquete > 0 ? `Total del paquete: $${pdfMiles(totalPaquete)} por mes + IVA.` : !inc.prod && !inc.coloc ? "Producción y colocación se cotizan aparte." : "";
-    if (nota && (p + 1) * POR_HOJA >= n) texto(nota, M, H - 30, inc.total ? TXB : TXT, inc.total ? 10.5 : 8, inc.total ? TINTA : GRIS);
+  };
+  if (n > 1) {
+    const paginas = Math.ceil(n / 8),
+      base = Math.floor(n / paginas),
+      sobra = n % paginas;
+    let desde = 0;
+    for (let p = 0; p < paginas; p++) {
+      const m = base + (p < sobra ? 1 : 0),
+        ultima = p === paginas - 1;
+      aviso("Armando el resumen…");
+      doc.addPage();
+      rect(0, 0, W, H, CREMA);
+      marca(M, M - 6, false);
+      texto(paginas > 1 ? `LAS OPCIONES · ${p + 1} DE ${paginas}` : "LAS OPCIONES", W - M, M + 2, TXB, 8, NARANJA, {
+        al: "right",
+        esp: 0.6
+      });
+      texto(`${PDF_NUMEROS[n] || n} espacios para elegir`, M - 1, 74, TIT, 30, TINTA);
+      texto("Se pueden tomar de a uno o combinados. Armamos el circuito según el presupuesto y las zonas que prioricen.", M, 112, TXT, 10, GRIS);
+      tarjetas(cs.slice(desde, desde + m), desde, 140, H - (ultima && nota ? 50 : 38));
+      if (ultima && nota) texto(nota, M, H - 32, inc.total ? TXB : TXT, inc.total ? 10.5 : 8, inc.total ? TINTA : GRIS);
+      desde += m;
+    }
   }
   const PANEL = 300;
   const etiquetas = (b, x0, y0, wMax) => {
@@ -8652,7 +10087,7 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
     const f = fotos[i],
       k = f ? cajaUtil(f) : null;
     const contador = String(i + 1).padStart(2, "0") + " / " + String(n).padStart(2, "0");
-    const ubic = [zonaDe(b), b.sentido].filter(Boolean).join(" · ");
+    const ubic = [direccionDe(b), zonaDe(b), b.sentido].filter(Boolean).join(" · ");
     const imp = P.impactosDe ? P.impactosDe(b) : 0;
     const pr = Number(b.precio) > 0;
     const extras = [inc.prod && "Producción " + precioTxt(b.produccion), inc.coloc && "Colocación " + precioTxt(b.colocacion)].filter(Boolean);
@@ -8663,18 +10098,7 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
       if (f) doc.addImage(lienzoPDF(f, 1200, Math.round(1200 * H / FW), {
         foco: 0.5,
         calidad: 0.86
-      }), "JPEG", FX, 0, FW, H, undefined, "FAST");else {
-        rect(FX, 0, FW, H, "#1b2b48");
-        if (b.codigo) texto(String(b.codigo), FX + FW / 2, H * 0.2, TIT, 190, "#223660", {
-          al: "center"
-        });
-        texto("Pedinos las fotos de este espacio:", FX + FW / 2, H * 0.66, TXT, 12, "#a9b8d3", {
-          al: "center"
-        });
-        texto("te las mandamos al toque.", FX + FW / 2, H * 0.66 + 16, TXT, 12, "#a9b8d3", {
-          al: "center"
-        });
-      }
+      }), "JPEG", FX, 0, FW, H, undefined, "FAST");else dibujoAEscala(FX, 0, FW, H, b);
       const X = 32,
         AW = PANEL - 2 * X;
       marca(X, 30, true);
@@ -8682,11 +10106,11 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
         al: "right"
       });
       let y = etiquetas(b, X, 104, AW) + 16;
-      const T = titulo(nombreDe(b), AW, 4, 34, 20);
+      const T = titulo(nombreDe(b), AW, 4, 34, 20, true);
       const alto = T.t * 1.06;
       T.l.forEach((l, j) => texto(l, X - 1, y + j * alto, TIT, T.t, "#ffffff"));
       y += alto * T.l.length + 10;
-      if (ubic) partir(ubic, TXT, 11, AW, 2).forEach(l => {
+      if (ubic) partir(ubic, TXT, 11, AW, 3).forEach(l => {
         texto(l, X, y, TXT, 11, CLARO);
         y += 14.5;
       });
@@ -8796,7 +10220,7 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
     doc.line(M, yr, W - M, yr);
     let y = yr - 24;
     if (ubic) texto(ubic, M, y, TXT, 11.5, CLARO);
-    const T = titulo(nombreDe(b), W - 2 * M - 40, 2, 38, 26);
+    const T = titulo(nombreDe(b), W - 2 * M - 40, 2, 38, 26, true);
     const alto = T.t * 1.04;
     y -= 6 + alto * T.l.length;
     T.l.forEach((l, j) => texto(l, M - 1, y + j * alto, TIT, T.t, "#ffffff"));
@@ -8804,17 +10228,26 @@ async function armarPropuestaPDF(JsPDF, P, avisar) {
   });
   aviso("Terminando…");
   doc.addPage();
-  hoja(fotoCierre, {
+  if (fotoCierre) hoja(fotoCierre, {
     abajo: {
       alto: 0.9,
       fuerza: 0.96
     },
     arriba: true,
-    velo: 0.22
+    velo: 0.22,
+    foco: 0.3
+  });else escena(0, 0, W, H, {
+    cartel: false,
+    calle: false,
+    suelo: 0.9,
+    ciudad: 0.5,
+    semilla: rotulo + " cierre",
+    resplandor: [0.86, 0.3],
+    sombraIzq: 0.6
   });
   marca(M, M - 6, true);
   {
-    let y = H * 0.38;
+    let y = H * (fotoCierre ? 0.38 : 0.3);
     texto("SIGUIENTE PASO", M, y, TXB, 8.5, NARANJA, {
       esp: 1.6
     });
