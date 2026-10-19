@@ -245,7 +245,8 @@ tr:hover td{ background:#fcfbf8; }
 .prop-precio input{ border:0; outline:0; width:100%; min-width:0; padding:11px 0; font-size:16px; font-weight:700; color:var(--ink); background:transparent; }
 .prop-precio input::placeholder{ font-weight:500; font-size:13px; color:#9aa7ba; }
 .prop-lista{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
-.prop-pick .cell-sub{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.prop-pick .cell-sub{ line-height:1.45; margin-top:2px; }
+.prop-pick .pub-nombre{ -webkit-line-clamp:3; }
 .prop-lista > .prop-pick{ min-width:0; }
 @media (max-width:520px){
   /* en el celular: foto + nombre + sacar arriba, y el precio abajo a lo ancho */
@@ -1158,7 +1159,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 46")), React.createElement("div", {
+  }, "✓ Versión 47")), React.createElement("div", {
     className: "content",
     key: tab
   }, !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(AvisoCopia, {
@@ -2600,6 +2601,7 @@ function aCartel(r) {
     iluminado: !!r.iluminado,
     estado: r.estado || "Disponible",
     disponibleDesde: r.libre_desde || "",
+    sentido: r.sentido || "",
     precio: "",
     deEmpresa: true
   };
@@ -8243,6 +8245,619 @@ function buildProposalDoc(JsPDF, P) {
   if (cfg.mail) T(W - MX, y + 62, cfg.mail, "normal", 12, "#a9bbd6", "right");
   return doc;
 }
+const PDF_FUENTES = [["Anton-Regular.ttf", "anton/", "Anton", "normal"], ["Barlow-Regular.ttf", "barlow/", "Barlow", "normal"], ["Barlow-SemiBold.ttf", "barlow/", "Barlow", "bold"]];
+const PDF_FUENTES_BASE = ["https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/", "https://raw.githubusercontent.com/google/fonts/main/ofl/"];
+let _pdfFuentes = null;
+function _aBase64(buf) {
+  const b = new Uint8Array(buf);
+  let t = "";
+  for (let i = 0; i < b.length; i += 0x8000) t += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(t);
+}
+async function bajarFuentesPDF() {
+  if (_pdfFuentes) return _pdfFuentes;
+  const res = {};
+  for (const [archivo, carpeta] of PDF_FUENTES) {
+    let ok = false;
+    for (const base of PDF_FUENTES_BASE) {
+      try {
+        const r = await fetch(base + carpeta + archivo);
+        if (!r.ok) continue;
+        res[archivo] = _aBase64(await r.arrayBuffer());
+        ok = true;
+        break;
+      } catch (e) {}
+    }
+    if (!ok) return null;
+  }
+  _pdfFuentes = res;
+  return res;
+}
+async function cargarImagenPDF(src) {
+  const url = /^data:/.test(src) ? src : await urlADataUrl(src);
+  return await new Promise((ok, mal) => {
+    const im = new Image();
+    im.onload = () => ok(im);
+    im.onerror = () => mal(new Error("foto"));
+    im.src = url;
+  });
+}
+async function fotoParaPropuesta(b) {
+  const cands = [b && b.foto, b && b.codigo ? `fotos/${b.codigo}.jpg` : ""].filter(Boolean);
+  for (const c of cands) {
+    try {
+      return await cargarImagenPDF(c);
+    } catch (e) {}
+  }
+  return null;
+}
+function cajaUtil(im) {
+  if (im._caja) return im._caja;
+  const iw = im.naturalWidth,
+    ih = im.naturalHeight;
+  let caja = {
+    x: 0,
+    y: 0,
+    w: iw,
+    h: ih
+  };
+  try {
+    const sw = Math.min(240, iw),
+      sh = Math.max(1, Math.round(ih * sw / iw));
+    const c = document.createElement("canvas");
+    c.width = sw;
+    c.height = sh;
+    const x = c.getContext("2d");
+    x.drawImage(im, 0, 0, sw, sh);
+    const d = x.getImageData(0, 0, sw, sh).data;
+    const lum = (px, py) => {
+      const k = (py * sw + px) * 4;
+      return 0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2];
+    };
+    const filaNegra = py => {
+      let claros = 0;
+      for (let px = 0; px < sw; px++) if (lum(px, py) > 34) claros++;
+      return claros <= sw * 0.02;
+    };
+    const colNegra = px => {
+      let claros = 0;
+      for (let py = 0; py < sh; py++) if (lum(px, py) > 34) claros++;
+      return claros <= sh * 0.02;
+    };
+    let t = 0,
+      b = 0,
+      l = 0,
+      r = 0;
+    while (t < sh * 0.3 && filaNegra(t)) t++;
+    while (b < sh * 0.3 && filaNegra(sh - 1 - b)) b++;
+    while (l < sw * 0.3 && colNegra(l)) l++;
+    while (r < sw * 0.3 && colNegra(sw - 1 - r)) r++;
+    if (t || b || l || r) {
+      const ex = iw / sw,
+        ey = ih / sh,
+        pad = 2;
+      const x0 = Math.min(iw - 1, (l ? l + pad : 0) * ex),
+        y0 = Math.min(ih - 1, (t ? t + pad : 0) * ey);
+      const x1 = Math.max(x0 + 1, iw - (r ? r + pad : 0) * ex),
+        y1 = Math.max(y0 + 1, ih - (b ? b + pad : 0) * ey);
+      if ((x1 - x0) * (y1 - y0) > iw * ih * 0.4) caja = {
+        x: x0,
+        y: y0,
+        w: x1 - x0,
+        h: y1 - y0
+      };
+    }
+  } catch (e) {}
+  im._caja = caja;
+  return caja;
+}
+function lienzoPDF(im, W, H, o) {
+  o = o || {};
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const x = c.getContext("2d");
+  x.fillStyle = o.fondo || "#0a0a0c";
+  x.fillRect(0, 0, W, H);
+  if (im) {
+    const k = cajaUtil(im);
+    const esc = Math.max(W / k.w, H / k.h);
+    const dw = k.w * esc,
+      dh = k.h * esc;
+    x.imageSmoothingQuality = "high";
+    x.drawImage(im, k.x, k.y, k.w, k.h, (W - dw) / 2, (H - dh) * (o.foco == null ? 0.4 : o.foco), dw, dh);
+  }
+  if (o.abajo) {
+    const g = x.createLinearGradient(0, H * (1 - o.abajo.alto), 0, H);
+    g.addColorStop(0, "rgba(10,10,12,0)");
+    g.addColorStop(0.5, "rgba(10,10,12," + o.abajo.fuerza * 0.72 + ")");
+    g.addColorStop(1, "rgba(10,10,12," + o.abajo.fuerza + ")");
+    x.fillStyle = g;
+    x.fillRect(0, 0, W, H);
+  }
+  if (o.arriba) {
+    const t = x.createLinearGradient(0, 0, 0, H * 0.24);
+    t.addColorStop(0, "rgba(10,10,12,.6)");
+    t.addColorStop(1, "rgba(10,10,12,0)");
+    x.fillStyle = t;
+    x.fillRect(0, 0, W, H * 0.24);
+  }
+  if (o.velo) {
+    x.fillStyle = "rgba(10,10,12," + o.velo + ")";
+    x.fillRect(0, 0, W, H);
+  }
+  return c.toDataURL("image/jpeg", o.calidad || 0.84);
+}
+const PDF_NUMEROS = ["", "Un", "Dos", "Tres", "Cuatro", "Cinco", "Seis", "Siete", "Ocho", "Nueve", "Diez", "Once", "Doce", "Trece", "Catorce", "Quince", "Dieciséis", "Diecisiete", "Dieciocho", "Diecinueve", "Veinte"];
+const pdfMiles = n => {
+  const t = String(Math.round(Number(n) || 0));
+  let r = "",
+    k = 0;
+  for (let i = t.length - 1; i >= 0; i--) {
+    r = t[i] + r;
+    if (++k % 3 === 0 && i > 0) r = "." + r;
+  }
+  return r;
+};
+async function armarPropuestaPDF(JsPDF, P, avisar) {
+  const cs = P.carteles || [],
+    cfg = P.cfg || {},
+    cli = P.cliente,
+    inc = P.inc || {};
+  const aviso = t => {
+    try {
+      avisar && avisar(t);
+    } catch (e) {}
+  };
+  const doc = new JsPDF({
+    orientation: "landscape",
+    unit: "pt",
+    format: "a4",
+    compress: true
+  });
+  const W = doc.internal.pageSize.getWidth(),
+    H = doc.internal.pageSize.getHeight(),
+    M = 44;
+  const NARANJA = "#e8590c",
+    TINTA = "#15233b",
+    CREMA = "#f4f1ea",
+    GRIS = "#6b7790",
+    CLARO = "#d7dbe3",
+    APAGADO = "#9ba1ac",
+    VERDE = "#1f9d57";
+  aviso("Preparando las letras…");
+  const fu = await bajarFuentesPDF().catch(() => null);
+  let conFuentes = false;
+  if (fu) {
+    try {
+      PDF_FUENTES.forEach(([a,, fam, est]) => {
+        doc.addFileToVFS(a, fu[a]);
+        doc.addFont(a, fam, est);
+      });
+      conFuentes = true;
+    } catch (e) {
+      conFuentes = false;
+    }
+  }
+  const TIT = conFuentes ? ["Anton", "normal"] : ["helvetica", "bold"];
+  const TXT = conFuentes ? ["Barlow", "normal"] : ["helvetica", "normal"];
+  const TXB = conFuentes ? ["Barlow", "bold"] : ["helvetica", "bold"];
+  const letra = (f, t, c, esp) => {
+    doc.setFont(f[0], f[1]);
+    doc.setFontSize(t);
+    doc.setTextColor(c);
+    doc.setCharSpace(esp || 0);
+  };
+  const texto = (s, x, y, f, t, c, o) => {
+    o = o || {};
+    letra(f, t, c, o.esp);
+    doc.text(String(s), x, y, {
+      baseline: "top",
+      align: o.al || "left"
+    });
+    doc.setCharSpace(0);
+  };
+  const ancho = (s, f, t, esp) => {
+    letra(f, t, "#000000", 0);
+    return doc.getTextWidth(String(s)) + (esp ? esp * Math.max(0, String(s).length - 1) : 0);
+  };
+  const partir = (s, f, t, w, max) => {
+    letra(f, t, "#000000");
+    let l = doc.splitTextToSize(String(s || ""), w);
+    if (max && l.length > max) {
+      l = l.slice(0, max);
+      l[max - 1] = l[max - 1].replace(/\s*\S*$/, "") + "…";
+    }
+    return l;
+  };
+  const titulo = (s, w, maxL, grande, chico) => {
+    for (let t = grande; t >= chico; t -= 2) {
+      const l = partir(s, TIT, t, w);
+      if (l.length <= maxL) return {
+        l,
+        t
+      };
+    }
+    return {
+      l: partir(s, TIT, chico, w, maxL),
+      t: chico
+    };
+  };
+  const rect = (x, y, w, h, c) => {
+    doc.setFillColor(c);
+    doc.rect(x, y, w, h, "F");
+  };
+  const etiqueta = (s, x, y, fondo, letraC, borde) => {
+    const t = String(s).toUpperCase(),
+      w = ancho(t, TXB, 7, 0.9) + 14;
+    if (borde) {
+      doc.setDrawColor(borde);
+      doc.setLineWidth(0.8);
+      doc.rect(x, y, w, 15, "S");
+    } else rect(x, y, w, 15, fondo);
+    texto(t, x + 7, y + 4.2, TXB, 7, letraC, {
+      esp: 0.9
+    });
+    return w;
+  };
+  const marca = (x, y, claro) => {
+    doc.setFillColor(NARANJA);
+    doc.roundedRect(x, y, 20, 20, 5, 5, "F");
+    doc.setFillColor("#ffffff");
+    doc.roundedRect(x + 6.5, y + 6.5, 7, 7, 1.6, 1.6, "F");
+    texto(String(cfg.empresa || "Masa Ideas").toUpperCase(), x + 28, y + 2.5, TXB, 8.5, claro ? "#ffffff" : TINTA, {
+      esp: 1.1
+    });
+    texto("Publicidad en vía pública", x + 28, y + 12.5, TXT, 6.8, claro ? "#b9bcc4" : GRIS);
+  };
+  const fotos = [];
+  for (let i = 0; i < cs.length; i++) {
+    aviso(`Preparando las fotos… ${i + 1} de ${cs.length}`);
+    fotos.push(await fotoParaPropuesta(cs[i]).catch(() => null));
+  }
+  const PX = 1600,
+    PY = Math.round(1600 * H / W);
+  const hoja = (im, o) => doc.addImage(lienzoPDF(im, PX, PY, o), "JPEG", 0, 0, W, H, undefined, "FAST");
+  const n = cs.length;
+  const conFoto = fotos.map((f, i) => f ? i : -1).filter(i => i > -1);
+  const fotoTapa = conFoto.length ? fotos[conFoto[conFoto.length >= 3 ? 1 : 0]] : null;
+  const fotoCierre = conFoto.length ? fotos[conFoto[conFoto.length - 1]] : null;
+  const nombreDe = b => tituloCorto(b.nombre) || "Cartel " + (b.codigo || "");
+  const zonaDe = b => zonaBonita(b.zona || (String(b.ubicacion || "").indexOf(",") > -1 ? String(b.ubicacion).split(",").pop().trim() : ""));
+  const luzDe = b => typeof b.iluminado === "boolean" ? b.iluminado ? "Sí" : "No" : b.luz ? /si|sí/i.test(String(b.luz)) ? "Sí" : "No" : "";
+  const fecha = new Date().toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+  const asesor = String(cfg.asesor || "Mónica").trim();
+  aviso("Armando la portada…");
+  hoja(fotoTapa, {
+    abajo: {
+      alto: 0.72,
+      fuerza: 0.93
+    },
+    arriba: true
+  });
+  marca(M, M - 6, true);
+  texto(fecha, W - M, M - 2, TXT, 8.5, CLARO, {
+    al: "right"
+  });
+  {
+    let y = H - M - 10;
+    texto(`Preparada por ${asesor} · Vigencia 15 días`, M, y, TXT, 9, "#b9bcc4");
+    y -= 18;
+    rect(M, y, 36, 2.2, NARANJA);
+    const sub = n === 1 ? "Un espacio en vía pública, elegido para tu marca." : `${PDF_NUMEROS[n] || n} espacios en vía pública, elegidos para tu marca.`;
+    y -= 26;
+    texto(sub, M, y, TXT, 13, "#ffffff");
+    const T = titulo(cli && cli.empresa ? cli.empresa : cfg.lema || "Tu marca en la calle", W * 0.72, 2, 68, 40);
+    const alto = T.t * 1.02;
+    y -= 10 + alto * T.l.length;
+    T.l.forEach((l, i) => texto(l, M - 2, y + i * alto, TIT, T.t, "#ffffff"));
+    texto(cli && cli.empresa ? "PROPUESTA PARA" : "PROPUESTA DE VÍA PÚBLICA", M, y - 18, TXB, 8.5, NARANJA, {
+      esp: 1.6
+    });
+  }
+  const POR_HOJA = 12;
+  for (let p = 0; n > 1 && p * POR_HOJA < n; p++) {
+    aviso("Armando el resumen…");
+    doc.addPage();
+    rect(0, 0, W, H, CREMA);
+    marca(M, M - 6, false);
+    texto("LAS OPCIONES", W - M, M + 2, TXB, 8, NARANJA, {
+      al: "right"
+    });
+    const tit = n === 1 ? "Un espacio para tu marca" : `${PDF_NUMEROS[n] || n} espacios para elegir` + (p > 0 ? " (sigue)" : "");
+    texto(tit, M - 1, 74, TIT, 30, TINTA);
+    if (n > 1) texto("Se pueden tomar de a uno o combinados. Armamos el circuito según el presupuesto y las zonas que prioricen.", M, 112, TXT, 10, GRIS);
+    const grupo = cs.slice(p * POR_HOJA, (p + 1) * POR_HOJA);
+    const m = grupo.length;
+    const cols = m <= 3 ? m : m === 4 ? 2 : m <= 6 ? 3 : 4;
+    const filas = Math.ceil(m / cols);
+    const gap = 16,
+      cw = (W - 2 * M - gap * (cols - 1)) / cols;
+    const y0 = n > 1 ? 136 : 112,
+      piso = H - 44;
+    const tx = grupo.map(b => ({
+      nl: partir(nombreDe(b), TXB, cols <= 2 ? 11.5 : 9.5, cw),
+      ml: partir([zonaDe(b), b.tipo, b.medidas].filter(Boolean).join(" · "), TXT, cols <= 2 ? 8.6 : 7.6, cw)
+    }));
+    const lh = cols <= 2 ? 13.5 : 11.5,
+      mh = cols <= 2 ? 10.5 : 9.5;
+    const altoTexto = k => 8 + tx[k].nl.length * lh + tx[k].ml.length * mh + (inc.precio ? 15 : 0);
+    const textoFila = [];
+    for (let r = 0; r < filas; r++) {
+      let mx = 0;
+      for (let k = r * cols; k < Math.min(m, (r + 1) * cols); k++) mx = Math.max(mx, altoTexto(k));
+      textoFila.push(mx);
+    }
+    const libre = piso - y0 - textoFila.reduce((a2, v) => a2 + v, 0) - 12 * (filas - 1);
+    const th = Math.max(70, Math.min(cw * 0.66, libre / filas));
+    let cy = y0;
+    for (let r = 0; r < filas; r++) {
+      for (let k = r * cols; k < Math.min(m, (r + 1) * cols); k++) {
+        const b = grupo[k],
+          i = p * POR_HOJA + k,
+          cx = M + k % cols * (cw + gap);
+        if (fotos[i]) doc.addImage(lienzoPDF(fotos[i], 720, Math.round(720 * th / cw), {
+          calidad: 0.8,
+          foco: 0.22
+        }), "JPEG", cx, cy, cw, th, undefined, "FAST");else {
+          rect(cx, cy, cw, th, TINTA);
+          if (b.codigo) texto(String(b.codigo), cx + cw - 8, cy + th * 0.12, TIT, Math.min(th * 0.8, 90), "#1d2e4d", {
+            al: "right"
+          });
+        }
+        if (b.codigo) etiqueta(b.codigo, cx + 7, cy + 7, NARANJA, "#ffffff");
+        let yy = cy + th + 8;
+        tx[k].nl.forEach(l => {
+          texto(l, cx, yy, TXB, cols <= 2 ? 11.5 : 9.5, TINTA);
+          yy += lh;
+        });
+        tx[k].ml.forEach(l => {
+          texto(l, cx, yy, TXT, cols <= 2 ? 8.6 : 7.6, GRIS);
+          yy += mh;
+        });
+        if (inc.precio) {
+          const pr = Number(b.precio) > 0,
+            tp = cols <= 2 ? 12 : 10;
+          texto(pr ? "$" + pdfMiles(b.precio) : "A consultar", cx, yy + 2, TXB, tp, pr ? NARANJA : TINTA);
+          if (pr) texto("por mes + IVA", cx + ancho("$" + pdfMiles(b.precio), TXB, tp) + 4, yy + 2 + tp * 0.28, TXT, 6.8, GRIS);
+        }
+      }
+      cy += th + textoFila[r] + 12;
+    }
+    const totalPaquete = cs.reduce((a, b) => a + (Number(b.precio) || 0) * (inc.precio ? 1 : 0) + (inc.prod ? Number(b.produccion) || 0 : 0) + (inc.coloc ? Number(b.colocacion) || 0 : 0), 0);
+    const nota = inc.total && totalPaquete > 0 ? `Total del paquete: $${pdfMiles(totalPaquete)} por mes + IVA.` : !inc.prod && !inc.coloc ? "Producción y colocación se cotizan aparte." : "";
+    if (nota && (p + 1) * POR_HOJA >= n) texto(nota, M, H - 30, inc.total ? TXB : TXT, inc.total ? 10.5 : 8, inc.total ? TINTA : GRIS);
+  }
+  const PANEL = 300;
+  const etiquetas = (b, x0, y0, wMax) => {
+    let ex = x0,
+      y = y0;
+    [[b.codigo, NARANJA, null], [b.tipo, null, "#ffffff"], [b.estado === "Disponible" ? "Disponible" : "", VERDE, null]].filter(t => t[0]).forEach(([s, fo, bo]) => {
+      const w = ancho(String(s).toUpperCase(), TXB, 7, 0.9) + 14;
+      if (ex > x0 && ex + w > x0 + wMax) {
+        ex = x0;
+        y += 21;
+      }
+      ex += etiqueta(s, ex, y, fo, "#ffffff", bo) + 6;
+    });
+    return y + 15;
+  };
+  cs.forEach((b, i) => {
+    aviso(`Armando las hojas… ${i + 1} de ${n}`);
+    doc.addPage();
+    const f = fotos[i],
+      k = f ? cajaUtil(f) : null;
+    const contador = String(i + 1).padStart(2, "0") + " / " + String(n).padStart(2, "0");
+    const ubic = [zonaDe(b), b.sentido].filter(Boolean).join(" · ");
+    const imp = P.impactosDe ? P.impactosDe(b) : 0;
+    const pr = Number(b.precio) > 0;
+    const extras = [inc.prod && "Producción " + precioTxt(b.produccion), inc.coloc && "Colocación " + precioTxt(b.colocacion)].filter(Boolean);
+    if (!(k && k.w / k.h >= 1.2)) {
+      rect(0, 0, W, H, TINTA);
+      const FX = PANEL,
+        FW = W - PANEL;
+      if (f) doc.addImage(lienzoPDF(f, 1200, Math.round(1200 * H / FW), {
+        foco: 0.5,
+        calidad: 0.86
+      }), "JPEG", FX, 0, FW, H, undefined, "FAST");else {
+        rect(FX, 0, FW, H, "#1b2b48");
+        if (b.codigo) texto(String(b.codigo), FX + FW / 2, H * 0.2, TIT, 190, "#223660", {
+          al: "center"
+        });
+        texto("Pedinos las fotos de este espacio:", FX + FW / 2, H * 0.66, TXT, 12, "#a9b8d3", {
+          al: "center"
+        });
+        texto("te las mandamos al toque.", FX + FW / 2, H * 0.66 + 16, TXT, 12, "#a9b8d3", {
+          al: "center"
+        });
+      }
+      const X = 32,
+        AW = PANEL - 2 * X;
+      marca(X, 30, true);
+      texto(contador, PANEL - X, 34, TXT, 8.5, CLARO, {
+        al: "right"
+      });
+      let y = etiquetas(b, X, 104, AW) + 16;
+      const T = titulo(nombreDe(b), AW, 4, 34, 20);
+      const alto = T.t * 1.06;
+      T.l.forEach((l, j) => texto(l, X - 1, y + j * alto, TIT, T.t, "#ffffff"));
+      y += alto * T.l.length + 10;
+      if (ubic) partir(ubic, TXT, 11, AW, 2).forEach(l => {
+        texto(l, X, y, TXT, 11, CLARO);
+        y += 14.5;
+      });
+      const linea = yy => {
+        doc.setDrawColor("#33466b");
+        doc.setLineWidth(0.6);
+        doc.line(X, yy, PANEL - X, yy);
+      };
+      let yb = H - 38;
+      if (extras.length) {
+        extras.slice().reverse().forEach(t => {
+          texto(t, X, yb - 11, TXT, 9, CLARO);
+          yb -= 14;
+        });
+        yb -= 6;
+      }
+      if (inc.precio) {
+        if (pr) {
+          texto("$" + pdfMiles(b.precio), X - 1, yb - 34, TIT, 29, NARANJA);
+          texto("VALOR MENSUAL + IVA", X, yb - 48, TXB, 6.8, APAGADO, {
+            esp: 1
+          });
+          yb -= 62;
+        } else {
+          texto("A consultar", X, yb - 20, TXB, 16, "#ffffff");
+          texto("VALOR MENSUAL", X, yb - 34, TXB, 6.8, APAGADO, {
+            esp: 1
+          });
+          yb -= 48;
+        }
+        linea(yb);
+        yb -= 14;
+      }
+      if (imp > 0) {
+        texto(pdfMiles(imp), X - 1, yb - 28, TIT, 23, "#ffffff");
+        texto("IMPACTOS POR SEMANA", X, yb - 42, TXB, 6.8, APAGADO, {
+          esp: 1
+        });
+        yb -= 56;
+        linea(yb);
+        yb -= 14;
+      }
+      const dd = [["Medidas", b.medidas], ["Iluminado", luzDe(b)]].filter(d => d[1]);
+      dd.forEach(([k2, v], j) => {
+        const dx = X + j * (AW / 2);
+        texto(k2.toUpperCase(), dx, yb - 32, TXB, 6.8, APAGADO, {
+          esp: 1
+        });
+        texto(String(v), dx, yb - 19, TXT, 12.5, "#ffffff");
+      });
+      if (dd.length) {
+        yb -= 46;
+        linea(yb);
+      }
+      return;
+    }
+    hoja(f, {
+      abajo: {
+        alto: 0.64,
+        fuerza: 0.95
+      },
+      arriba: true
+    });
+    marca(M, M - 6, true);
+    texto(contador, W - M, M - 1, TXT, 8.5, CLARO, {
+      al: "right"
+    });
+    const yv = H - M - 14,
+      yl = yv - 13;
+    const datos = [["Medidas", b.medidas], ["Tipo", b.tipo], ["Iluminado", luzDe(b)]].filter(d => d[1]);
+    let dx = M;
+    datos.forEach(([k, v]) => {
+      texto(k.toUpperCase(), dx, yl, TXB, 6.6, APAGADO, {
+        esp: 1
+      });
+      const vv = String(v);
+      texto(vv, dx, yv, TXT, 11, "#ffffff");
+      dx += Math.max(96, ancho(vv, TXT, 11) + 30);
+    });
+    let rx = W - M;
+    if (inc.precio) {
+      const v = pr ? "$" + pdfMiles(b.precio) : "A consultar";
+      const t = pr ? 24 : 16,
+        f2 = pr ? TIT : TXB;
+      texto(v, rx, yv - (pr ? 13 : 4), f2, t, "#ffffff", {
+        al: "right"
+      });
+      texto("VALOR MENSUAL" + (pr ? " + IVA" : ""), rx, yl - (pr ? 13 : 5), TXB, 6.6, APAGADO, {
+        al: "right"
+      });
+      rx -= Math.max(ancho(v, f2, t), 90) + 34;
+    }
+    if (imp > 0) {
+      texto(pdfMiles(imp), rx, yv - 13, TIT, 24, "#ffffff", {
+        al: "right"
+      });
+      texto("IMPACTOS POR SEMANA", rx, yl - 13, TXB, 6.6, APAGADO, {
+        al: "right"
+      });
+    }
+    if (extras.length) texto(extras.join("   ·   "), W - M, yv + 15, TXT, 8, CLARO, {
+      al: "right"
+    });
+    const yr = yl - 22;
+    doc.setDrawColor("#5a5f69");
+    doc.setLineWidth(0.6);
+    doc.line(M, yr, W - M, yr);
+    let y = yr - 24;
+    if (ubic) texto(ubic, M, y, TXT, 11.5, CLARO);
+    const T = titulo(nombreDe(b), W - 2 * M - 40, 2, 38, 26);
+    const alto = T.t * 1.04;
+    y -= 6 + alto * T.l.length;
+    T.l.forEach((l, j) => texto(l, M - 1, y + j * alto, TIT, T.t, "#ffffff"));
+    etiquetas(b, M, y - 22, W - 2 * M);
+  });
+  aviso("Terminando…");
+  doc.addPage();
+  hoja(fotoCierre, {
+    abajo: {
+      alto: 0.9,
+      fuerza: 0.96
+    },
+    arriba: true,
+    velo: 0.22
+  });
+  marca(M, M - 6, true);
+  {
+    let y = H * 0.38;
+    texto("SIGUIENTE PASO", M, y, TXB, 8.5, NARANJA, {
+      esp: 1.6
+    });
+    const T = titulo(`Llevemos ${cli && cli.empresa ? cli.empresa : "tu marca"} a la calle.`, W * 0.6, 2, 46, 30);
+    const alto = T.t * 1.02;
+    y += 16;
+    T.l.forEach((l, j) => texto(l, M - 1, y + j * alto, TIT, T.t, "#ffffff"));
+    y += alto * T.l.length + 14;
+    partir("Reservá los espacios que elijas: coordinamos la producción y el montaje, y te mandamos las fotos del cartel al aire.", TXT, 11.5, 420).forEach(l => {
+      texto(l, M, y, TXT, 11.5, CLARO);
+      y += 15;
+    });
+    if (P.obs) {
+      y += 6;
+      partir("Condiciones: " + P.obs, TXT, 9.5, 420, 4).forEach(l => {
+        texto(l, M, y, TXT, 9.5, "#b9bcc4");
+        y += 12.5;
+      });
+    }
+    y += 12;
+    rect(M, y, 36, 2.2, NARANJA);
+    y += 14;
+    texto(asesor.toUpperCase(), M, y, TXB, 12, "#ffffff", {
+      esp: 1
+    });
+    y += 17;
+    if (cfg.tel) {
+      texto("WhatsApp " + cfg.tel, M, y, TXT, 10, CLARO);
+      y += 13;
+    }
+    if (cfg.mail) {
+      texto(cfg.mail, M, y, TXT, 10, CLARO);
+      y += 13;
+    }
+    const link = PUB_BASE.replace("https://", "") + "/disponibles";
+    texto("Todo lo disponible: " + link, M, y, TXT, 10, CLARO);
+    doc.link(M, y - 2, ancho("Todo lo disponible: " + link, TXT, 10), 14, {
+      url: PUB_BASE + "/disponibles"
+    });
+  }
+  texto("Valores mensuales expresados en pesos argentinos más IVA. Disponibilidad sujeta a confirmación al momento de la reserva." + (!inc.prod && !inc.coloc ? " Producción y colocación se cotizan aparte." : ""), M, H - 24, TXT, 6.8, "#8b909a");
+  return doc;
+}
 function Propuestas({
   data,
   update
@@ -8280,8 +8895,22 @@ function Propuestas({
     porId[b.id] = b;
   });
   const precioDe = b => precios[b.id] !== undefined ? Number(precios[b.id]) || 0 : Number(b.precio) || 0;
+  const invPorCodigo = {};
+  (empresa || []).forEach(r => {
+    invPorCodigo[String(r.codigo)] = r;
+  });
+  const completar = b => {
+    const r = !b.deEmpresa && b.codigo ? invPorCodigo[String(b.codigo).trim()] : null;
+    if (!r) return b;
+    return {
+      ...b,
+      zona: b.zona || zonaBonita(r.zona),
+      sentido: b.sentido || r.sentido || "",
+      iluminado: typeof b.iluminado === "boolean" ? b.iluminado : b.luz ? undefined : !!r.iluminado
+    };
+  };
   const seleccionados = picks.map(id => porId[id]).filter(Boolean).map(b => ({
-    ...b,
+    ...completar(b),
     precio: precioDe(b)
   }));
   const sinPrecio = seleccionados.filter(b => !b.precio).length;
@@ -8299,8 +8928,10 @@ function Propuestas({
   const toggle = id => setPicks(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const [envioA, setEnvioA] = useState("");
   const [expBusy, setExpBusy] = useState(false);
+  const [avancePDF, setAvancePDF] = useState("");
   const descargarPDF = async () => {
     setExpBusy(true);
+    setAvancePDF("");
     try {
       const JsPDF = await loadJsPDF();
       const inc = {
@@ -8309,31 +8940,23 @@ function Propuestas({
         coloc: incluirColocacion,
         total: sumarTotal
       };
-      const md = new JsPDF({
-        unit: "px",
-        format: [794, 2000]
-      });
-      const chs = computeCardHeights(md, seleccionados, inc, impactosDe);
-      const fotos = await fotosToJpeg(seleccionados, fotoDe, chs);
-      const doc = buildProposalDoc(JsPDF, {
+      const doc = await armarPropuestaPDF(JsPDF, {
         carteles: seleccionados,
         cfg,
         cliente,
         inc,
-        dateStr: fmtDate(today()) + " · v46",
-        fotos,
-        chs,
+        obs: obs.trim(),
         impactosDe
-      });
+      }, setAvancePDF);
       const ahora = new Date(),
         dd = n => (n < 10 ? "0" : "") + n;
       const sello = `${dd(ahora.getDate())}-${dd(ahora.getMonth() + 1)} ${dd(ahora.getHours())}h${dd(ahora.getMinutes())}`;
       doc.save("Propuesta" + (cliente ? " - " + cliente.empresa : cfg.empresa ? " - " + cfg.empresa : "") + " (" + sello + ").pdf");
     } catch (e) {
-      alert("No pude generar el PDF automáticamente. Reviso que tengas internet y, si no, abro la opción de imprimir.");
-      window.print();
+      alert("No pude armar el PDF. Fijate que tengas internet y probá de nuevo. Si sigue sin andar, usá «Imprimir».");
     } finally {
       setExpBusy(false);
+      setAvancePDF("");
     }
   };
   const resumenTexto = () => {
@@ -8374,6 +8997,10 @@ function Propuestas({
   const buscando = qq || pTipo !== "Todos" || pEstado !== "Todos";
   const listaEmpresa = buscando ? deEmpresa.filter(pasa).slice(0, 60) : [];
   const tiposVistos = TIPOS.concat(deEmpresa.map(b => b.tipo)).filter((t, i, a) => t && a.indexOf(t) === i);
+  const datosCartel = b => {
+    const zona = zonaBonita(b.zona || (String(b.ubicacion || "").indexOf(",") > -1 ? String(b.ubicacion).split(",").pop().trim() : ""));
+    return [b.codigo && "COD " + b.codigo, zona, b.tipo, b.medidas].filter(Boolean).map(t => String(t).trim().replace(/\s+/g, "\u00a0")).join(" · ");
+  };
   const opcion = b => React.createElement("label", {
     className: "prop-pick" + (picks.includes(b.id) ? " on" : ""),
     key: b.id
@@ -8397,7 +9024,7 @@ function Propuestas({
     color: "#d98a00"
   })), React.createElement("div", {
     className: "cell-sub"
-  }, b.codigo ? "COD " + b.codigo + " · " : "", b.deEmpresa ? [b.zona, b.tipo, b.medidas].filter(Boolean).join(" · ") : [b.ubicacion, b.tipo].filter(Boolean).join(" · ")), React.createElement("div", {
+  }, datosCartel(b)), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -8684,7 +9311,7 @@ function Propuestas({
     onClick: descargarPDF
   }, React.createElement(Download, {
     size: 19
-  }), " ", expBusy ? "Armando el PDF…" : seleccionados.length ? `Descargar el PDF (${seleccionados.length} ${seleccionados.length === 1 ? "cartel" : "carteles"})` : "Elegí al menos un cartel"), React.createElement("div", {
+  }), " ", expBusy ? avancePDF || "Armando el PDF…" : seleccionados.length ? `Descargar el PDF (${seleccionados.length} ${seleccionados.length === 1 ? "cartel" : "carteles"})` : "Elegí al menos un cartel"), React.createElement("div", {
     className: "cell-sub",
     style: {
       marginTop: 8,
