@@ -21,6 +21,26 @@ async function claveValida(intento) {
   return sha256(intento) === filas[0].clave_hash;
 }
 
+// Las fotos nuevas de un cartel van al final de las que ya tiene.
+async function proximoOrden(codigo) {
+  const r = await sb(`/rest/v1/masa_fotos?codigo=eq.${encodeURIComponent(codigo)}&select=orden&order=orden.desc&limit=1`, { method: "GET" });
+  if (!r.ok) return 0;
+  const filas = await r.json();
+  return filas && filas.length ? (Number(filas[0].orden) || 0) + 1 : 0;
+}
+
+// Guarda una foto en el depósito y devuelve su dirección pública (o null si falló).
+async function guardarFoto(codigo, base64, i, prefijo) {
+  const limpio = String(base64 || "").replace(/^data:[^;]+;base64,/, "");
+  const bytes = Buffer.from(limpio, "base64");
+  if (!bytes.length || bytes.length > 6 * 1024 * 1024) return null;
+  const archivo = `${codigo}/${prefijo}-${Date.now()}-${i}.jpg`;
+  const r = await sb(`/storage/v1/object/${BUCKET}/${archivo}`, {
+    method: "POST", headers: { "Content-Type": "image/jpeg", "x-upsert": "true" }, body: bytes,
+  });
+  return r.ok ? `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${archivo}` : null;
+}
+
 function sb(ruta, opciones = {}) {
   const clave = process.env.SUPABASE_SERVICE_KEY;
   return fetch(SUPABASE_URL + ruta, {
@@ -209,10 +229,12 @@ export default async function handler(req, res) {
             mostrar_precio: false, publicado: true, origen: "catalogo", actualizado: new Date().toISOString(),
           }),
         });
-        // Se AGREGAN: nunca se borran las fotos que ya tenía el cartel.
+        // Se AGREGAN: nunca se borran las fotos que ya tenía el cartel,
+        // y van DESPUÉS de las que ya estaban (si no, se mezclaba el orden).
+        const desde = await proximoOrden(codigo);
         await sb("/rest/v1/masa_fotos", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(urls.map((u, i) => ({ codigo, url: u, orden: i, portada: false }))),
+          body: JSON.stringify(urls.map((u, i) => ({ codigo, url: u, orden: desde + i, portada: false }))),
         });
         await sb(`/rest/v1/masa_portal?codigo=eq.${encodeURIComponent(codigo)}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -270,6 +292,57 @@ export default async function handler(req, res) {
       if (!id) return res.status(400).json({ error: "Falta la foto" });
       const r = await sb(`/rest/v1/masa_fotos?id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!r.ok) return res.status(502).json({ error: "No se pudo borrar la foto" });
+      return res.status(200).json({ ok: true });
+    }
+
+    // -------- ¿La clave es la correcta? (lo usa el modo interno de las fichas) --------
+    if (accion === "clave-ok") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+      return res.status(200).json({ ok: true });
+    }
+
+    // -------- Agregar fotos a un cartel, sin tocar el resto de la ficha --------
+    if (accion === "agregar-fotos") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+      const codigo = String(body.codigo || "").replace(/[^0-9A-Za-z]/g, "");
+      const entran = Array.isArray(body.fotos) ? body.fotos.slice(0, 10) : [];
+      if (!codigo || !entran.length) return res.status(400).json({ error: "Faltan datos" });
+
+      let orden = await proximoOrden(codigo);
+      const nuevas = [];
+      for (let i = 0; i < entran.length; i++) {
+        const url = await guardarFoto(codigo, entran[i], i, "mano");
+        if (url) nuevas.push({ codigo, url, orden: orden++, portada: false });
+      }
+      if (!nuevas.length) return res.status(502).json({ error: "No se pudo guardar ninguna foto" });
+
+      const ri = await sb("/rest/v1/masa_fotos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify(nuevas),
+      });
+      if (!ri.ok) return res.status(502).json({ error: "No se pudieron guardar las fotos" });
+      await sb(`/rest/v1/masa_portal?codigo=eq.${encodeURIComponent(codigo)}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ con_ficha: true }),
+      });
+      return res.status(200).json({ ok: true, fotos: await ri.json() });
+    }
+
+    // -------- Cambiar el orden en que se ven las fotos --------
+    if (accion === "orden-fotos") {
+      if (!(await claveValida(body.clave)))
+        return res.status(401).json({ error: "Clave incorrecta" });
+      const items = (Array.isArray(body.orden) ? body.orden : []).filter((x) => x && x.id);
+      if (!items.length) return res.status(400).json({ error: "Falta el orden" });
+      for (const it of items) {
+        await sb(`/rest/v1/masa_fotos?id=eq.${encodeURIComponent(it.id)}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orden: Number(it.orden) || 0 }),
+        });
+      }
       return res.status(200).json({ ok: true });
     }
 

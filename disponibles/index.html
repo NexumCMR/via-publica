@@ -219,6 +219,7 @@
   </div>
 </div>
 
+<div class="wrap" id="intAviso" hidden></div>
 <main class="wrap"><div class="grid" id="grid"></div></main>
 <button class="mas" id="mas" style="display:none">Ver más espacios</button>
 
@@ -302,6 +303,20 @@
   // ---- link filtrado: /disponibles?zona=Pilar&formato=Top%20Wall ----
   function paramURL(n){ var m=new RegExp("[?&]"+n+"=([^&#]*)").exec(location.search);
     return m ? decodeURIComponent(m[1].replace(/\+/g," ")) : ""; }
+  // Modo interno: el portal se ve igual, pero cada cartel abre su ficha con los botones para arreglar las fotos.
+  var INTERNO = paramURL("interno")==="1";
+  (function(){
+    if(!INTERNO) return;
+    var a=document.getElementById("intAviso"); if(!a) return;
+    a.hidden=false;
+    a.innerHTML='<div style="margin-top:18px;border:1px solid rgba(10,10,12,.11);border-radius:16px;'+
+      'padding:14px 16px;background:#FFF;display:flex;gap:12px;align-items:center;flex-wrap:wrap">'+
+      '<span style="font-family:\'Space Mono\',monospace;font-size:10px;letter-spacing:.16em;color:#8A6A1A;'+
+      'background:#FBEFD4;padding:5px 10px;border-radius:999px">MODO INTERNO</span>'+
+      '<span style="font-size:14px;color:#6E7076;line-height:1.5;flex:1 1 240px;min-width:0">'+
+      'Tocá cualquier cartel para ver su ficha y arreglarle las fotos. El cliente ve esta misma página, sin estos botones.</span>'+
+      '<a href="/disponibles" style="font-size:14px;font-weight:700;color:#0A0A0C;text-decoration:underline">Salir</a></div>';
+  })();
   (function(){
     var pz=paramURL("zona"), pf=paramURL("formato"), pe=paramURL("estado");
     if(pz) zonaSel=zonaBonita(pz);
@@ -380,13 +395,15 @@
     if(MINI_EN_LINEA[d.c]) return MINI_EN_LINEA[d.c];
     return "/fotos/chicas/"+encodeURIComponent(d.c)+".jpg";
   }
+  // En modo interno todas las tarjetas llevan a la ficha, incluso las que todavía no tienen fotos.
+  function fichaURL(c){ return "/cartel/"+encodeURIComponent(c)+(INTERNO?"?interno=1":""); }
   function cabecera(d){
     var foto = (SIN_MINI[d.c] || !d.f) ? '' :
       '<img class="mini" src="'+esc(srcMini(d))+'" alt="" loading="lazy" decoding="async" data-c="'+esc(d.c)+'">';
     var dentro = DIBUJO + foto + '<span class="cod">'+esc(d.c)+'</span>' +
       (d.t?'<span class="fmt">'+esc(d.t)+'</span>':'') ;
-    return d.f
-      ? '<a class="cab '+claseFmt(d.t)+'" href="/cartel/'+encodeURIComponent(d.c)+'" aria-label="Ver las fotos del '+esc(d.c)+'">'+dentro+'</a>'
+    return (d.f||INTERNO)
+      ? '<a class="cab '+claseFmt(d.t)+'" href="'+fichaURL(d.c)+'" aria-label="Ver las fotos del '+esc(d.c)+'">'+dentro+'</a>'
       : '<div class="cab '+claseFmt(d.t)+'">'+dentro+'</div>';
   }
   function traerFotosEnLinea(){
@@ -438,7 +455,8 @@
           (d.st && d.st!==d.t?'<span class="dato">'+esc(d.st)+'</span>':'')+
         '</div>'+
         '<div class="pie">'+est+
-          (d.f ? '<a class="verf" href="/cartel/'+encodeURIComponent(d.c)+'">Ver fotos →</a>' : '')+
+          (d.f ? '<a class="verf" href="'+fichaURL(d.c)+'">Ver fotos →</a>'
+               : INTERNO ? '<a class="verf" href="'+fichaURL(d.c)+'">Poner fotos →</a>' : '')+
           '<a class="pedir" target="_blank" rel="noopener" href="https://wa.me/'+TEL+'?text='+encodeURIComponent(msg)+'">Consultar</a>'+
         '</div>'+
       '</div></article>';
