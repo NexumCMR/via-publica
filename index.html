@@ -1189,7 +1189,7 @@ function App() {
       borderRadius: 20,
       whiteSpace: "nowrap"
     }
-  }, "✓ Versión 48")), React.createElement("div", {
+  }, "✓ Versión 49")), React.createElement("div", {
     className: "content",
     key: tab
   }, !seVe("dashboard") && tab === VISIBLES[0] && React.createElement(AvisoCopia, {
@@ -5529,7 +5529,7 @@ function MensajesSeccion({
     }
   }, "Este cliente no tiene teléfono cargado, así que vas a elegir el contacto en WhatsApp."));
 }
-const AC_CATS = {
+var AC_CATS = {
   "ESPECTACULARES": "Espectacular",
   "TOP WALL": "Top Wall",
   "TOP SITE": "Top Site",
@@ -5538,88 +5538,161 @@ const AC_CATS = {
   "CENCOSUD": "Cencosud",
   "MURALES": "Mural"
 };
-const AC_ZONAS = {
+var AC_ZONAS = {
   "caba": "CABA",
-  "vte.lopez": "Vicente López",
+  "capital": "CABA",
+  "capital federal": "CABA",
   "vte lopez": "Vicente López",
   "vicente lopez": "Vicente López",
   "san martin": "San Martín",
   "moron": "Morón",
   "ramos mejia": "Ramos Mejía",
   "3 de febrero": "Tres de Febrero",
-  "san justo": "San Justo",
-  "avellaneda": "Avellaneda"
+  "tres de febrero": "Tres de Febrero",
+  "3 de february": "Tres de Febrero"
 };
-const acTexto = v => v === null || v === undefined ? "" : String(v).trim();
+function acTexto(v) {
+  return v === null || v === undefined ? "" : String(v).replace(/\s+/g, " ").trim();
+}
+function acNorm(v) {
+  var s = acTexto(v).toUpperCase();
+  return s.normalize ? s.normalize("NFD").replace(/[̀-ͯ]/g, "") : s;
+}
 function acNumero(v) {
   if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number") return Math.round(v);
-  let s = String(v).replace(/\$/g, "").replace(/\s/g, "");
+  if (typeof v === "number") return isFinite(v) ? Math.round(v) : null;
+  var s = String(v).replace(/\$/g, "").replace(/\s/g, "");
   if (/^\d+(\.\d+)?[eE]\d+$/.test(s)) return Math.round(parseFloat(s));
-  if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) s = s.replace(/\./g, "").replace(",", ".");else s = s.replace(/\./g, "").replace(/,/g, "");
-  const n = parseFloat(s);
+  if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) {
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");else s = s.replace(/,/g, "");
+  } else if (/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, "");else s = s.replace(",", ".");
+  var n = parseFloat(s);
   return isNaN(n) ? null : Math.round(n);
 }
 function acFecha(v) {
   if (!v) return null;
-  const d = v instanceof Date ? v : new Date(v);
-  if (isNaN(d.getTime())) return null;
-  const a = d.getFullYear();
+  var d = null;
+  if (v instanceof Date) d = v;else {
+    var s = acTexto(v),
+      m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(s);
+    if (m) d = new Date(+m[3] < 100 ? 2000 + +m[3] : +m[3], +m[2] - 1, +m[1], 12);else if (/^\d{4}-\d\d-\d\d/.test(s)) d = new Date(s.slice(0, 10) + "T12:00:00");
+  }
+  if (!d || isNaN(d.getTime())) return null;
+  var a = d.getFullYear();
   if (a < 2018 || a > 2035) return null;
-  return d.toISOString().slice(0, 10);
+  return a + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+}
+function acZonaDe(v) {
+  if (v instanceof Date) return v.getMonth() === 1 && v.getDate() === 3 ? "Tres de Febrero" : "";
+  var z = acTexto(v);
+  if (/^3\s*(de\s*)?feb/i.test(z)) return "Tres de Febrero";
+  if (/^\d{4}-\d\d-\d\d/.test(z) || /^[\d\/.\-\s]+$/.test(z) || /GMT/.test(z)) return "";
+  var k = acNorm(z).toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ").trim();
+  return AC_ZONAS[k] || z;
+}
+function acCodigoCelda(v) {
+  var s = acTexto(v).toUpperCase().replace(/\.0+$/, "");
+  return /^\d{2,6}[A-Z]{0,2}$/.test(s) ? s : "";
+}
+function acEstadoDe(exh) {
+  var e = acNorm(exh);
+  if (e.indexOf("DISPONIBLE") >= 0 || e.indexOf("OFRECER") >= 0) return "Disponible";
+  if (!e) return "A confirmar";
+  if (e === "BN" || e.indexOf("BANDA NEG") === 0) return "Banda negativa";
+  return "Ocupado";
 }
 function acPartirDireccion(d) {
-  const t = String(d || "");
-  let sen = "";
-  const m = t.match(/tr[áa]nsito\s+(?:hacia|a|al)?\s*([^)]{2,40})/i);
-  if (m) sen = m[1].replace(/[.)\s]+$/, "").trim();
-  const base = t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig, " ").replace(/\b(tr[áa]nsito|sentido)\s+(hacia|a|al)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig, "").replace(/\s{2,}/g, " ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g, "");
-  if (sen) {
-    const l = sen.toLowerCase();
-    if (/caba|capital/.test(l)) sen = "Hacia CABA";else if (/provincia|prov/.test(l)) sen = "Hacia Provincia";else sen = "Hacia " + sen.charAt(0).toUpperCase() + sen.slice(1);
+  var t = String(d || ""),
+    sen = "";
+  var m = t.match(/tr[áa]nsito\s+(?:(hacia|al|a)\s+)?([^)]{2,60})/i);
+  if (m) {
+    sen = (m[1] && m[1].toLowerCase() === "al" ? "el " : "") + m[2].replace(/[.)\s,]+$/, "").trim();
+    var l = sen.toLowerCase();
+    if (/^(caba|capital|cap)\b/.test(l)) sen = "Hacia CABA";else if (/^(provincia|prov)\b/.test(l)) sen = "Hacia Provincia";else if (/^por\s/.test(l)) sen = "Por " + sen.slice(4);else if (/^(el|la|los|las)\s/.test(l)) sen = "Hacia " + sen.charAt(0).toLowerCase() + sen.slice(1);else sen = "Hacia " + sen.charAt(0).toUpperCase() + sen.slice(1);
   }
+  var base = t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig, " ").replace(/,?\s*\b(tr[áa]nsito|sentido)\s+(hacia|al|a)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig, "").replace(/\(\s*,?\s*\)/g, "").replace(/\(([^)]*?)[,\s]+\)/g, "($1)").replace(/\s{2,}/g, " ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g, "");
   return {
-    base,
+    base: base,
     sentido: sen
   };
 }
-function acLeerPortal(hoja) {
-  const filas = XLSX.utils.sheet_to_json(hoja, {
+function acColumnas(filas) {
+  var h = 0,
+    k,
+    i;
+  for (k = 0; k < Math.min(filas.length, 12); k++) {
+    if ((filas[k] || []).map(acNorm).indexOf("DIRECCION") >= 0) {
+      h = k;
+      break;
+    }
+  }
+  var enc = (filas[h] || []).map(acNorm);
+  function busca(re, def) {
+    for (i = 0; i < enc.length; i++) if (re.test(enc[i])) return i;
+    return def;
+  }
+  var C = {
+    fila: h,
+    cod: busca(/^COD/, 0),
+    luz: busca(/^LUZ$/, 1),
+    dir: busca(/^DIRECCION$/, 5),
+    tipo: busca(/^TIPO$/, 6),
+    zona: busca(/^ZONA$/, 7),
+    med: busca(/^MEDIDAS$/, 12),
+    prodcoloc: busca(/^PRODUCCION/, 14),
+    coloc: busca(/^COLOCACION$/, 15),
+    exh: busca(/^EXHIBICION$/, 19),
+    disp: busca(/^DISPONIBILIDAD$/, 18)
+  };
+  var anio = new Date().getFullYear(),
+    tar = [],
+    pre = [];
+  enc.forEach(function (v, i) {
+    var m = /^TARIFA\s*(\d{4})?/.exec(v);
+    if (m) tar.push({
+      i: i,
+      a: m[1] ? +m[1] : anio,
+      n: acTexto(filas[h][i])
+    });
+    if (/^PRECIO/.test(v)) pre.push(i);
+  });
+  if (tar.length) {
+    var lejos = function (t) {
+      return t.a <= anio ? anio - t.a : 100 + t.a - anio;
+    };
+    tar.sort(function (x, y) {
+      return lejos(x) - lejos(y);
+    });
+    C.precio = tar[0].i;
+    C.precioNombre = tar[0].n;
+  } else {
+    C.precio = pre.length > 1 ? pre[1] : pre.length ? pre[0] : 11;
+    C.precioNombre = acTexto((filas[h] || [])[C.precio]) || "PRECIO";
+  }
+  return C;
+}
+function acLeerListado(XLSX, hoja) {
+  var filas = XLSX.utils.sheet_to_json(hoja, {
     header: 1,
-    raw: false,
-    cellDates: true,
+    raw: true,
     defval: ""
   });
-  if (!filas.length) return [];
-  const enc = filas[0].map(x => String(x || "").trim().toUpperCase());
-  const col = (nombre, def) => {
-    const i = enc.indexOf(nombre);
-    return i >= 0 ? i : def;
+  if (!filas.length) return {
+    carteles: [],
+    filas: [],
+    repetidos: [],
+    precioNombre: ""
   };
-  const C = {
-    cod: col("COD.", 0),
-    luz: col("LUZ", 1),
-    dir: col("DIRECCION", 5),
-    tipo: col("TIPO", 6),
-    zona: col("ZONA", 7),
-    med: col("MEDIDAS", 12),
-    exh: col("EXHIBICION", 19),
-    disp: col("DISPONIBILIDAD", 18)
-  };
-  const precios = [];
-  enc.forEach((v, i) => {
-    if (v.indexOf("PRECIO") === 0) precios.push(i);
-  });
-  C.precio = precios.length > 1 ? precios[1] : precios[0] !== undefined ? precios[0] : 11;
-  let cat = "",
-    orden = 0;
-  const out = [];
-  for (let i = 1; i < filas.length; i++) {
-    const f = filas[i] || [];
-    const cod = acTexto(f[C.cod]);
-    if (cod === "" || isNaN(parseFloat(cod))) {
-      const todo = f.map(x => String(x || "").trim().toUpperCase());
-      for (const k in AC_CATS) {
+  var C = acColumnas(filas),
+    cat = "",
+    todas = [];
+  var viejo = acFecha(new Date(Date.now() - 31 * 864e5));
+  for (var i = C.fila + 1; i < filas.length; i++) {
+    var f = filas[i] || [],
+      cod = acCodigoCelda(f[C.cod]);
+    if (!cod) {
+      var todo = f.map(acNorm);
+      for (var k in AC_CATS) {
         if (todo.indexOf(k) >= 0) {
           cat = AC_CATS[k];
           break;
@@ -5627,39 +5700,82 @@ function acLeerPortal(hoja) {
       }
       continue;
     }
-    const exh = acTexto(f[C.exh]).toUpperCase();
-    const estado = exh.indexOf("DISPONIBLE") >= 0 ? "Disponible" : exh === "" ? "A confirmar" : exh === "BN" ? "Banda negativa" : "Ocupado";
-    let z = acTexto(f[C.zona]);
-    if (/^\d{4}-\d\d-\d\d/.test(z) || /^\d+$/.test(z)) z = "";
-    z = zonaBonita(AC_ZONAS[z.toLowerCase()] || z);
-    const dd = acPartirDireccion(acTexto(f[C.dir]));
-    out.push({
-      codigo: String(Math.round(parseFloat(cod))),
-      direccion: acTexto(f[C.dir]),
+    var dir = acTexto(f[C.dir]);
+    if (!dir) continue;
+    var z = acZonaDe(f[C.zona]),
+      dd = acPartirDireccion(dir),
+      exh = acTexto(f[C.exh]);
+    var pc = acNumero(f[C.prodcoloc]) || 0,
+      co = acNumero(f[C.coloc]) || 0;
+    todas.push({
+      codigo: cod,
+      direccion: dir,
       sentido: dd.sentido,
       ubicacion: (dd.base + " · " + z).toLowerCase(),
       zona: z,
       formato: cat || acTexto(f[C.tipo]),
       tipo: acTexto(f[C.tipo]),
-      medidas: acTexto(f[C.med]).replace(/ X /gi, " x "),
-      iluminado: acTexto(f[C.luz]).toLowerCase().charAt(0) === "s",
-      estado,
+      medidas: acTexto(f[C.med]).replace(/(\d)\s*[xX×]\s*(\d)/g, "$1 x $2"),
+      iluminado: acNorm(f[C.luz]).charAt(0) === "S",
+      estado: acEstadoDe(exh),
       precio: acNumero(f[C.precio]),
-      libre_desde: acFecha(f[C.disp]),
-      orden: orden++
+      libre_desde: function (x) {
+        return x && x >= viejo ? x : null;
+      }(acFecha(f[C.disp])),
+      exhibicion: exh,
+      produccion: Math.max(0, pc - co),
+      colocacion: co
     });
   }
-  return out;
-}
-function acLeerLista(rows) {
-  const num = v => {
-    if (v === null || v === undefined || v === "") return 0;
-    if (typeof v === "number") return Math.round(v);
-    let s = String(v).trim();
-    if (/^[\d.,]+e[+-]?\d+$/i.test(s.replace(/\s/g, ""))) return Math.round(parseFloat(s.replace(",", ".")));
-    s = s.replace(/[^\d.,]/g, "");
-    return Number(s.replace(/[.,]/g, "")) || 0;
+  var porCod = {},
+    orden = [],
+    repetidos = [];
+  todas.forEach(function (r) {
+    var ya = porCod[r.codigo];
+    if (!ya) {
+      porCod[r.codigo] = r;
+      orden.push(r.codigo);
+      return;
+    }
+    if (acNorm(ya.direccion) !== acNorm(r.direccion)) {
+      var rep = null;
+      repetidos.forEach(function (x) {
+        if (x.codigo === r.codigo) rep = x;
+      });
+      if (!rep) repetidos.push(rep = {
+        codigo: r.codigo,
+        direcciones: [ya.direccion]
+      });
+      rep.direcciones.push(r.direccion);
+    }
+    porCod[r.codigo] = r;
+  });
+  var carteles = orden.map(function (c, n) {
+    var r = porCod[c];
+    return {
+      codigo: r.codigo,
+      direccion: r.direccion,
+      sentido: r.sentido,
+      ubicacion: r.ubicacion,
+      zona: r.zona,
+      formato: r.formato,
+      tipo: r.tipo,
+      medidas: r.medidas,
+      iluminado: r.iluminado,
+      estado: r.estado,
+      precio: r.precio,
+      libre_desde: r.libre_desde,
+      orden: n
+    };
+  });
+  return {
+    carteles: carteles,
+    filas: todas,
+    repetidos: repetidos,
+    precioNombre: C.precioNombre
   };
+}
+function acLeerLista(filas) {
   const tipo = t => {
     const x = String(t || "").trim().toLowerCase();
     const found = TIPOS.find(T => T.toLowerCase() === x);
@@ -5670,34 +5786,15 @@ function acLeerLista(rows) {
     if (x.includes("led") || x.includes("pantalla")) return "Pantalla LED";
     return "Cartel";
   };
-  const C = {
-    cod: 0,
-    direccion: 5,
-    tipo: 6,
-    precio: 11,
-    medidas: 12,
-    prodcoloc: 14,
-    coloc: 15,
-    exhibicion: 19
-  };
-  const out = [];
-  for (const r of rows) {
-    const cod = String(r[C.cod] ?? "").replace(/\.0+$/, "").trim();
-    if (!/^\d{2,}$/.test(cod) || !String(r[C.direccion] ?? "").trim()) continue;
-    const prodcoloc = num(r[C.prodcoloc]),
-      coloc = num(r[C.coloc]);
-    const exhib = String(r[C.exhibicion] ?? "").trim();
-    out.push({
-      codigo: cod,
-      tipo: tipo(r[C.tipo]),
-      medidas: String(r[C.medidas] ?? "").trim(),
-      precio: num(r[C.precio]),
-      produccion: Math.max(0, prodcoloc - coloc),
-      colocacion: coloc,
-      estado: !exhib || /disponible/i.test(exhib) ? "Disponible" : "Ocupado"
-    });
-  }
-  return out;
+  return (filas || []).map(r => ({
+    codigo: r.codigo,
+    tipo: tipo(r.tipo),
+    medidas: r.medidas,
+    precio: r.precio || 0,
+    produccion: r.produccion || 0,
+    colocacion: r.colocacion || 0,
+    estado: !r.exhibicion || r.estado === "Disponible" ? "Disponible" : "Ocupado"
+  }));
 }
 function acSincronizarLista(billboards, registros) {
   const porCod = {};
@@ -5877,17 +5974,14 @@ function ActualizarSeccion({
       });
       const hoja = wb.SheetNames.indexOf("Listado") >= 0 ? "Listado" : wb.SheetNames[0];
       const ws = wb.Sheets[hoja];
-      const portal = acLeerPortal(ws);
+      const L = acLeerListado(XLSX, ws),
+        portal = L.carteles;
       if (!portal.length) {
         setExErr("No encontré carteles en ese archivo. ¿Es el Listado de disponibles?");
         setExBusy("");
         return;
       }
-      const lista = acLeerLista(XLSX.utils.sheet_to_json(ws, {
-        header: 1,
-        raw: true,
-        defval: ""
-      }));
+      const lista = acLeerLista(L.filas);
       const unicos = {};
       portal.forEach(f => {
         unicos[f.codigo] = f;
@@ -5918,7 +6012,9 @@ function ActualizarSeccion({
         cambian,
         publicados: (inv || []).length,
         mios: sinc.cambiados,
-        alertas: sinc.alertas
+        alertas: sinc.alertas,
+        repetidos: L.repetidos,
+        precioNombre: L.precioNombre
       });
     } catch (e) {
       setExErr("No pude leer el archivo. Fijate que sea el Excel (.xlsx) del listado.");
@@ -6237,7 +6333,18 @@ function ActualizarSeccion({
     size: 20
   }), React.createElement("span", null, "Ojo: este Excel tiene ", React.createElement("b", null, "muchos menos carteles"), " que los publicados (", ex.total, " contra ", ex.publicados, "). Si lo publicás, el portal va a mostrar sólo ", ex.total, ". ¿Es el listado completo?")), ex.mios > 0 && React.createElement("div", {
     className: "act-cambios"
-  }, "También se actualizan el precio y la disponibilidad de ", React.createElement("b", null, ex.mios), " ", ex.mios === 1 ? "cartel" : "carteles", " de tu lista."), ex.alertas.length > 0 && React.createElement("div", {
+  }, "También se actualizan el precio y la disponibilidad de ", React.createElement("b", null, ex.mios), " ", ex.mios === 1 ? "cartel" : "carteles", " de tu lista (el precio sale de la columna «", ex.precioNombre, "»)."), ex.repetidos.length > 0 && React.createElement("div", {
+    className: "alert a act-aviso",
+    style: {
+      alignItems: "flex-start"
+    }
+  }, React.createElement(AlertTriangle, {
+    size: 20,
+    style: {
+      flex: "0 0 auto",
+      marginTop: 2
+    }
+  }), React.createElement("span", null, "En el Excel hay ", ex.repetidos.length === 1 ? "un código usado" : `${ex.repetidos.length} códigos usados`, " en carteles distintos: ", React.createElement("b", null, ex.repetidos.map(r => r.codigo).join(", ")), ". En el portal queda el último de cada uno; conviene pedir en la empresa que les cambien el número.")), ex.alertas.length > 0 && React.createElement("div", {
     className: "alert a act-aviso",
     style: {
       alignItems: "flex-start"
@@ -7426,47 +7533,23 @@ function Inventario({
     if (x.includes("led") || x.includes("pantalla")) return "Pantalla LED";
     return "Cartel";
   };
-  const COL = {
-    cod: 0,
-    direccion: 5,
-    tipo: 6,
-    zona: 7,
-    precio: 11,
-    medidas: 12,
-    prodcoloc: 14,
-    coloc: 15,
-    exhibicion: 19
-  };
-  const excelACarteles = rows => {
-    const out = [];
-    for (const r of rows) {
-      const cod = String(r[COL.cod] ?? "").replace(/\.0+$/, "").trim();
-      if (!/^\d{2,}$/.test(cod)) continue;
-      const direccion = String(r[COL.direccion] ?? "").trim();
-      if (!direccion) continue;
-      const zona = String(r[COL.zona] ?? "").trim();
-      const precio = aNumero(r[COL.precio]);
-      const prodcoloc = aNumero(r[COL.prodcoloc]);
-      const coloc = aNumero(r[COL.coloc]);
-      const exhib = String(r[COL.exhibicion] ?? "").trim();
-      const disponible = !exhib || /disponible/i.test(exhib);
-      out.push({
-        codigo: cod,
-        nombre: `${cod} — ${direccion}`,
-        ubicacion: direccion + (zona ? `, ${zona}` : ""),
-        tipo: normTipo(r[COL.tipo]),
-        zona,
-        medidas: String(r[COL.medidas] ?? "").trim(),
-        precio,
-        produccion: Math.max(0, prodcoloc - coloc),
-        colocacion: coloc,
-        estado: disponible ? "Disponible" : "Ocupado",
-        impactos: IMPACTOS[cod] || 0,
-        obs: `Cód. ${cod}${zona ? " · " + zona : ""}${!disponible && exhib ? " · Hoy: " + exhib : ""}`
-      });
-    }
-    return out;
-  };
+  const excelACarteles = ws => acLeerListado(XLSX, ws).filas.map(r => {
+    const disponible = !r.exhibicion || r.estado === "Disponible";
+    return {
+      codigo: r.codigo,
+      nombre: `${r.codigo} — ${r.direccion}`,
+      ubicacion: r.direccion + (r.zona ? `, ${r.zona}` : ""),
+      tipo: normTipo(r.tipo),
+      zona: r.zona,
+      medidas: r.medidas,
+      precio: r.precio || 0,
+      produccion: r.produccion,
+      colocacion: r.colocacion,
+      estado: disponible ? "Disponible" : "Ocupado",
+      impactos: IMPACTOS[r.codigo] || 0,
+      obs: `Cód. ${r.codigo}${r.zona ? " · " + r.zona : ""}${!disponible && r.exhibicion ? " · Hoy: " + r.exhibicion : ""}`
+    };
+  });
   const analizar = records => {
     const byCod = {};
     billboards.forEach(b => {
@@ -7517,15 +7600,11 @@ function Inventario({
     try {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, {
-        type: "array"
+        type: "array",
+        cellDates: true
       });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {
-        header: 1,
-        raw: true,
-        defval: ""
-      });
-      const records = excelACarteles(rows);
+      const ws = wb.Sheets[wb.SheetNames.indexOf("Listado") >= 0 ? "Listado" : wb.SheetNames[0]];
+      const records = excelACarteles(ws);
       if (!records.length) {
         alert("No encontré carteles en el Excel. Asegurate de que sea la planilla de disponibles.");
         setExcelBusy(false);

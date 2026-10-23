@@ -31,19 +31,31 @@
 
   /* ---------- portada ---------- */
   .nav{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
-       max-width:640px;margin:0 auto;padding:22px 24px}
+       width:100%;max-width:640px;margin:0 auto;padding:16px 24px 18px}
   .logo{display:flex;align-items:center;gap:10px;color:#fff}
   .logo i{width:32px;height:32px;border-radius:9px;background:var(--oro);display:grid;place-items:center;flex:0 0 32px}
   .logo i::before{content:"";width:16px;height:10px;background:var(--negro);border-radius:2px;box-shadow:0 7px 0 -3px var(--negro)}
   .logo b{font-family:var(--disp);font-weight:800;font-size:15px;letter-spacing:-.01em;display:block;line-height:1}
   .logo s{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--oro);text-decoration:none;margin-top:3px}
 
-  .hero{position:relative;min-height:auto;display:flex;align-items:flex-end;overflow:hidden;background:var(--negro);
+  .hero{position:relative;min-height:auto;display:flex;flex-direction:column;overflow:hidden;background:var(--negro);
     padding-top:8px}
   .hero::before{content:"";position:absolute;top:-140px;right:-110px;width:340px;height:340px;border-radius:50%;
     background:radial-gradient(circle,rgba(232,169,60,.20),transparent 68%);pointer-events:none}
-  
-  
+  /* la foto del cartel: SIEMPRE entera. El alto sale de la propia foto (sin recortes);
+     si es muy alta, se ve completa y a los costados va la misma foto desenfocada. */
+  .hero-foto{position:relative;width:100%;height:70vw;max-height:520px;overflow:hidden;background:#0d0d10;
+    transition:height .35s ease}
+  .hero-foto .fondo{position:absolute;inset:-40px;background-size:cover;background-position:center;
+    filter:blur(30px) brightness(.42) saturate(1.15);transform:scale(1.08);opacity:0;transition:opacity .5s ease}
+  .hero-foto img{position:relative;display:block;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .5s ease}
+  .hero-foto.lista img,.hero-foto.lista .fondo{opacity:1}
+  .hero-foto::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16%;pointer-events:none;
+    background:linear-gradient(180deg,rgba(10,10,12,0),var(--negro))}
+  .hero-foto.zoom{cursor:zoom-in}
+  .hero-foto .lupa{z-index:2;right:max(13px,calc(50% - 307px))}
+  .hero-foto+.hero-in{padding-top:6px}
+
   .hero-in{position:relative;z-index:2;width:100%;max-width:640px;margin:0 auto;padding:22px 24px 42px;color:#fff}
   .kick{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;
         background:var(--oro);color:#1B1206;padding:8px 13px;border-radius:999px;letter-spacing:.14em}
@@ -241,12 +253,26 @@
     return { titulo: t || String(n||""), extras: extras };
   }
   function medidaTitulo(t){
-    var L=(t||"").length;
-    if(L>52) return "clamp(23px,6.4vw,32px)";
-    if(L>38) return "clamp(27px,7.6vw,38px)";
-    if(L>26) return "clamp(33px,9.6vw,48px)";
-    if(L>15) return "clamp(42px,12.5vw,64px)";
-    return "clamp(50px,16vw,86px)";
+    var L=(t||"").length, base;
+    if(L>52) base="clamp(23px,6.4vw,32px)";
+    else if(L>38) base="clamp(27px,7.6vw,38px)";
+    else if(L>26) base="clamp(33px,9.6vw,48px)";
+    else if(L>15) base="clamp(42px,12.5vw,64px)";
+    else base="clamp(50px,16vw,86px)";
+    // que la palabra más larga entre en una línea (mayúsculas anchas: ~0,74 del tamaño por letra)
+    var larga=0; String(t||"").split(/\s+/).forEach(function(p){ if(p.length>larga) larga=p.length; });
+    if(larga<6) return base;
+    return "min("+base+", calc((min(100vw, 640px) - 50px) / "+(larga*0.74).toFixed(2)+"))";
+  }
+  // la zona escrita siempre igual («Vte.Lopez» y «3 de February» vienen así del Excel)
+  function zonaBonita(z){
+    var t=String(z==null?"":z).replace(/^\s+|\s+$/g,"");
+    var k=t.toLowerCase().replace(/\./g," ").replace(/\s+/g," ").replace(/^\s|\s$/g,"");
+    if(k.normalize) k=k.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    var m={"vte lopez":"Vicente López","vicente lopez":"Vicente López","3 de february":"Tres de Febrero",
+           "3 de febrero":"Tres de Febrero","tres de febrero":"Tres de Febrero","caba":"CABA","san martin":"San Martín",
+           "moron":"Morón","ramos mejia":"Ramos Mejía"};
+    return m[k]||t;
   }
 
   function pedir(r){ return fetch(API+r,{headers:{apikey:LLAVE,Authorization:"Bearer "+LLAVE}})
@@ -291,14 +317,28 @@
     app.innerHTML='<div class="cargando">No se pudo cargar la ficha. Probá de nuevo en un momento.</div>';
   });
 
+  // La foto de arriba: la del catálogo (la más prolija); si no hay, el encuadre que ella eligió
+  // al publicar (la «portada»: arriba la foto, abajo negro); si no, la primera de la galería.
+  function fotoDeArriba(fotos){
+    var lote=fotos.filter(function(f){ return !f.portada && /\/lote-/.test(f.url); })[0];
+    if(lote) return { url:lote.url, tipo:"lote" };
+    var p=fotos.filter(function(f){ return f.portada; })[0];
+    if(p) return { url:p.url, tipo:"portada" };
+    var g=fotos[0];
+    return g ? { url:g.url, tipo:"foto" } : null;
+  }
+
   function dibujar(c,fotos){
     document.title=(c.nombre||("Cartel "+c.codigo))+" — Masa Ideas";
-    var fp=fotos.filter(function(f){return f.portada;})[0];
-    var portada=(fp||fotos[0]||{}).url||"";
+    c.localidad=zonaBonita(c.localidad);
+    var arriba=fotoDeArriba(fotos);
     var galeria=fotos.filter(function(f){return !f.portada;});
     if(!galeria.length) galeria=fotos;
+    var enGaleria=arriba?galeria.map(function(f){return f.url;}).indexOf(arriba.url):-1;
 
-    var libre=c.estado!=="Ocupado";
+    // Disponible / ocupado / a confirmar (lo que dice el Excel de la empresa)
+    var libre=c.estado==="Disponible"||!c.estado;
+    var consultar=!libre&&c.estado!=="Ocupado";
     var dias=c.disponible_desde?Math.max(0,Math.ceil((new Date(c.disponible_desde)-new Date())/86400000)):0;
     var imp=Number(c.impactos)||0;
     var impMes=Math.round(imp*4.345);
@@ -314,13 +354,19 @@
 
     var cap=1, capN=function(){ return ("0"+(cap++)).slice(-2); };
 
-    var h='<header class="nav"><div class="logo"><i></i><div><b>Masa Ideas</b><s>Espectaculares</s></div></div></header>';
+    var h='';
 
-    // ---- portada ----
+    // ---- portada (el logo va adentro, sobre el fondo oscuro) ----
     h+='<section class="hero">'+
+      '<header class="nav"><div class="logo"><i></i><div><b>Masa Ideas</b><s>Espectaculares</s></div></div></header>'+
+      (arriba?'<div class="hero-foto'+(enGaleria>=0?' zoom':'')+'" id="heroFoto" data-src="'+esc(arriba.url)+'" data-tipo="'+arriba.tipo+'"'+
+        (enGaleria>=0?' data-i="'+enGaleria+'" role="button" aria-label="Ampliar la foto"':'')+'>'+
+        '<div class="fondo"></div><img alt="'+esc(c.nombre||("Cartel "+c.codigo))+'">'+
+        (enGaleria>=0?'<span class="lupa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"/></svg></span>':'')+
+        '</div>':'')+
       '<div class="hero-in">'+
-      (!libre&&c.disponible_desde?'<span class="kick">◆ Se libera el '+esc(fecha(c.disponible_desde))+'</span>':
-       (libre?'<span class="kick">◆ Disponible ahora</span>':''))+
+      (!libre&&c.estado==="Ocupado"&&c.disponible_desde?'<span class="kick">◆ Se libera el '+esc(fecha(c.disponible_desde))+'</span>':
+       (libre?'<span class="kick">◆ Disponible ahora</span>':(consultar?'<span class="kick">◆ Consultá disponibilidad</span>':'')))+
       '<h1 style="font-size:'+medidaTitulo(tit.titulo)+'">'+esc(tit.titulo)+'</h1>'+
       (bajoTitulo?'<p class="dir">'+esc(bajoTitulo)+'</p>':'')+
       '<dl class="hero-datos">'+
@@ -391,10 +437,11 @@
     // ---- disponibilidad + precio ----
     h+='<section class="rev" style="padding-top:56px">'+
       '<p class="cap" style="color:var(--oro)">'+capN()+' · Disponibilidad</p>'+
-      '<h2>'+(libre?"Está libre ahora":"Reservalo antes<br>de que lo tomen")+'</h2>'+
-      '<div class="libera"><span class="est"><i></i> '+(libre?"Libre":"Ocupado hoy")+'</span>'+
-      (!libre&&c.disponible_desde?'<h3>Queda libre el <b>'+esc(fecha(c.disponible_desde))+'</b></h3>':'<h3>Se puede tomar <b>ya mismo</b></h3>')+
-      (dias>0?'<div class="cuenta"><div><b>'+dias+'</b><span>días</span></div>'+
+      '<h2>'+(libre?"Está libre ahora":(consultar?"Consultanos<br>las fechas":"Reservalo antes<br>de que lo tomen"))+'</h2>'+
+      '<div class="libera"><span class="est"><i></i> '+(libre?"Libre":(consultar?"A confirmar":"Ocupado hoy"))+'</span>'+
+      (!libre&&!consultar&&c.disponible_desde?'<h3>Queda libre el <b>'+esc(fecha(c.disponible_desde))+'</b></h3>':
+       (consultar?'<h3>Te confirmamos <b>en el día</b></h3>':(libre?'<h3>Se puede tomar <b>ya mismo</b></h3>':'<h3>Dejalo <b>reservado</b></h3>')))+
+      (dias>0&&!libre&&!consultar?'<div class="cuenta"><div><b>'+dias+'</b><span>días</span></div>'+
         '<div><b>'+Math.round(dias/7)+'</b><span>semanas</span></div>'+
         '<div><b>1</b><span>disponible</span></div></div>':'')+
       '<p>Los espacios sobre autopista se reservan con anticipación. Podés dejarlo tomado desde ahora.</p></div>'+
@@ -429,8 +476,74 @@
     app.innerHTML=h;
   }
 
+  // ---- la foto de arriba ----
+  // Se muestra ENTERA: el alto del recuadro sale de la proporción de la foto, así nunca se corta el cartel.
+  // A las del catálogo (y a la portada) se les sacan los bordes negros antes de mostrarlas.
+  function cajaUtil(px,w,h){
+    function oscura(i){ return px[i]<26&&px[i+1]<26&&px[i+2]<26; }
+    function fila(y){ var n=0; for(var x=0;x<w;x++) if(oscura((y*w+x)*4)) n++; return n/w>0.94; }
+    function col(x,y0,y1){ var n=0; for(var y=y0;y<=y1;y++) if(oscura((y*w+x)*4)) n++; return n/(y1-y0+1)>0.94; }
+    var t=0,b=h-1,l=0,r=w-1;
+    while(t<b&&fila(t)) t++;
+    while(b>t&&fila(b)) b--;
+    while(l<r&&col(l,t,b)) l++;
+    while(r>l&&col(r,t,b)) r--;
+    return {x:l,y:t,w:r-l+1,h:b-t+1};
+  }
+  function ponerFotoDeArriba(){
+    var box=document.getElementById("heroFoto"); if(!box) return;
+    var src=box.getAttribute("data-src"), tipo=box.getAttribute("data-tipo");
+    var img=box.querySelector("img"), fondo=box.querySelector(".fondo"), asp=1, anchoVisto=0;
+    function medir(){
+      var W=box.clientWidth||window.innerWidth, H=window.innerHeight||700;
+      if(W===anchoVisto) return; anchoVisto=W;
+      // entera: si es muy alta para la pantalla, se ve completa y a los costados va desenfocada
+      box.style.maxHeight="none";
+      // en la compu la foto ocupa menos alto, para que el título se vea sin bajar
+      box.style.height=Math.round(Math.min(W/asp, H*(W>700?0.56:(asp<0.8?0.62:0.7))))+"px";
+    }
+    function poner(url,w,h){
+      asp=w/h; anchoVisto=0; medir();
+      img.onload=function(){ box.classList.add("lista"); };
+      img.src=url; fondo.style.backgroundImage='url("'+url+'")';
+    }
+    window.addEventListener("resize",medir);
+    var im=new Image(); im.crossOrigin="anonymous";
+    im.onload=function(){
+      var W=im.naturalWidth, H=im.naturalHeight, caja={x:0,y:0,w:W,h:H};
+      if(tipo!=="foto"){
+        try{
+          var k=Math.min(1,240/Math.max(W,H)), cw=Math.max(2,Math.round(W*k)), ch=Math.max(2,Math.round(H*k));
+          var c=document.createElement("canvas"); c.width=cw; c.height=ch;
+          var x=c.getContext("2d"); x.drawImage(im,0,0,cw,ch);
+          var u=cajaUtil(x.getImageData(0,0,cw,ch).data,cw,ch);
+          c.width=c.height=0;
+          // un pelito más adentro, para que no quede un filo oscuro
+          var x0=u.x>0?u.x+1:0, y0=u.y>0?u.y+1:0, x1=u.x+u.w<cw?u.x+u.w-1:cw, y1=u.y+u.h<ch?u.y+u.h-1:ch;
+          var r={x:Math.round(x0/k), y:Math.round(y0/k), w:Math.round((x1-x0)/k), h:Math.round((y1-y0)/k)};
+          r.w=Math.min(r.w,W-r.x); r.h=Math.min(r.h,H-r.y);
+          if(r.w*r.h>W*H*0.3 && (r.w<W-3||r.h<H-3)) caja=r;   // si casi no queda foto, mejor entera
+        }catch(e){}
+      }
+      if(caja.w===W&&caja.h===H){ poner(src,W,H); return; }
+      var c2=document.createElement("canvas"); c2.width=caja.w; c2.height=caja.h;
+      c2.getContext("2d").drawImage(im,caja.x,caja.y,caja.w,caja.h,0,0,caja.w,caja.h);
+      var fin=function(b){ c2.width=c2.height=0; poner(b?URL.createObjectURL(b):src,caja.w,caja.h); };
+      if(c2.toBlob) c2.toBlob(fin,"image/jpeg",0.9); else fin(null);
+    };
+    im.onerror=function(){
+      // si no se puede leer la foto, igual se muestra entera (sin sacarle los bordes)
+      var i2=new Image();
+      i2.onload=function(){ poner(src,i2.naturalWidth,i2.naturalHeight); };
+      i2.onerror=function(){ if(box.parentNode) box.parentNode.removeChild(box); };
+      i2.src=src;
+    };
+    im.src=src;
+  }
+
   function prender(c){
-    var heroImg=document.querySelector(".hero>img"), prog=document.getElementById("prog"), tick=false;
+    var prog=document.getElementById("prog"), tick=false;
+    ponerFotoDeArriba();
     function alScrollear(){
       var y=window.scrollY||0;
         if(prog){ var alto=document.body.scrollHeight-window.innerHeight;
@@ -479,6 +592,8 @@
       function cerrar(){ visor.classList.remove("abierto"); document.body.style.overflow=""; }
 
       figs.forEach(function(f,i){ f.addEventListener("click",function(){ abrir(i); }); });
+      var hf=document.getElementById("heroFoto");
+      if(hf&&hf.hasAttribute("data-i")) hf.addEventListener("click",function(){ abrir(Number(hf.getAttribute("data-i"))||0); });
       document.getElementById("visorX").addEventListener("click",cerrar);
       document.getElementById("visorIzq").addEventListener("click",function(e){ e.stopPropagation(); mostrar(act-1); });
       document.getElementById("visorDer").addEventListener("click",function(e){ e.stopPropagation(); mostrar(act+1); });

@@ -158,6 +158,7 @@
   var $=function(id){return document.getElementById(id);};
   var clave="", listos=null;
 
+  function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
   function aviso(el,txt,tipo){ el.className="estado "+(tipo||"info"); el.innerHTML=txt; }
 
   // ---------- acceso ----------
@@ -171,81 +172,171 @@
   });
   $("clave").addEventListener("keydown", function(e){ if(e.key==="Enter") $("entrar").click(); });
 
-  // ---------- lectura del Excel ----------
-  var CATS={"ESPECTACULARES":"Espectacular","TOP WALL":"Top Wall","TOP SITE":"Top Site",
-            "PANTALLAS LED":"Pantalla LED","PANTALLA LED":"Pantalla LED","CENCOSUD":"Cencosud","MURALES":"Mural"};
-  var ZONAS={"caba":"CABA","vte.lopez":"Vicente López","vte lopez":"Vicente López","vicente lopez":"Vicente López",
-             "san martin":"San Martín","moron":"Morón","ramos mejia":"Ramos Mejía","3 de febrero":"Tres de Febrero",
-             "san justo":"San Justo","avellaneda":"Avellaneda"};
-
-  function aNumero(v){
-    if(v===null||v===undefined||v==="") return null;
-    if(typeof v==="number") return Math.round(v);
-    var s=String(v).replace(/\$/g,"").replace(/\s/g,"");
-    if(/^\d+(\.\d+)?[eE]\d+$/.test(s)) return Math.round(parseFloat(s));
-    if(s.indexOf(",")>=0 && s.indexOf(".")>=0) s=s.replace(/\./g,"").replace(",",".");
-    else s=s.replace(/\./g,"").replace(/,/g,"");
-    var n=parseFloat(s); return isNaN(n)?null:Math.round(n);
+  // ---------- lectura del Excel (el mismo código que usa la app) ----------
+  /* ===== Lectura del «Listado de disponibles» (v49) =====
+     Lo usan la app (sección «Subir Excel y fotos») y la página /actualizar: el mismo código en los dos lados.
+     · Las columnas se buscan por su NOMBRE: en la empresa agregan columnas (TARIFA 2026, TARIFA 2027…)
+       y nada se corre de lugar.
+     · El precio de venta es la TARIFA del año en curso (si no está, la más cercana);
+       en el formato viejo, la 2ª columna PRECIO.
+     · «OFRECER» (las pantallas LED, que se venden por spots) cuenta como disponible.
+     · «3 de Febrero» que Excel convirtió en fecha vuelve a ser la zona.
+     · Si un código está repetido para carteles distintos, queda la última fila (como siempre) y se avisa. */
+  var AC_CATS = { "ESPECTACULARES": "Espectacular", "TOP WALL": "Top Wall", "TOP SITE": "Top Site",
+    "PANTALLAS LED": "Pantalla LED", "PANTALLA LED": "Pantalla LED", "CENCOSUD": "Cencosud", "MURALES": "Mural" };
+  var AC_ZONAS = { "caba": "CABA", "capital": "CABA", "capital federal": "CABA", "vte lopez": "Vicente López",
+    "vicente lopez": "Vicente López", "san martin": "San Martín", "moron": "Morón", "ramos mejia": "Ramos Mejía",
+    "3 de febrero": "Tres de Febrero", "tres de febrero": "Tres de Febrero", "3 de february": "Tres de Febrero" };
+  function acTexto(v) { return v === null || v === undefined ? "" : String(v).replace(/\s+/g, " ").trim(); }
+  function acNorm(v) {
+    var s = acTexto(v).toUpperCase();
+    return s.normalize ? s.normalize("NFD").replace(/[̀-ͯ]/g, "") : s;
   }
-  function aFecha(v){
-    if(!v) return null;
-    var d = (v instanceof Date) ? v : new Date(v);
-    if(isNaN(d.getTime())) return null;
-    var a=d.getFullYear(); if(a<2018||a>2035) return null;
-    return d.toISOString().slice(0,10);
+  function acNumero(v) {
+    if (v === null || v === undefined || v === "") return null;
+    if (typeof v === "number") return isFinite(v) ? Math.round(v) : null;
+    var s = String(v).replace(/\$/g, "").replace(/\s/g, "");
+    if (/^\d+(\.\d+)?[eE]\d+$/.test(s)) return Math.round(parseFloat(s));
+    if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) {
+      // 1.300.000,50 (nuestro) o 1,300,000.50 (inglés): manda el último separador
+      if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
+      else s = s.replace(/,/g, "");
+    } else if (/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g, "");
+    else s = s.replace(",", ".");
+    var n = parseFloat(s); return isNaN(n) ? null : Math.round(n);
   }
-  function texto(v){ return v===null||v===undefined ? "" : String(v).trim(); }
-
-  function leerExcel(hoja){
-    var filas=XLSX.utils.sheet_to_json(hoja,{header:1,raw:false,cellDates:true,defval:""});
-    if(!filas.length) return [];
-    // ubicar las columnas por su nombre en la fila de encabezado
-    var enc=filas[0].map(function(x){ return String(x||"").trim().toUpperCase(); });
-    function col(nombre,porDefecto){
-      var i=enc.indexOf(nombre); return i>=0?i:porDefecto;
+  // Fechas: el Excel trae fechas de verdad, o texto «31/10/2026»
+  function acFecha(v) {
+    if (!v) return null;
+    var d = null;
+    if (v instanceof Date) d = v;
+    else {
+      var s = acTexto(v), m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(s);
+      if (m) d = new Date(+m[3] < 100 ? 2000 + +m[3] : +m[3], +m[2] - 1, +m[1], 12);
+      else if (/^\d{4}-\d\d-\d\d/.test(s)) d = new Date(s.slice(0, 10) + "T12:00:00");
     }
-    var C={cod:col("COD.",0),luz:col("LUZ",1),dir:col("DIRECCION",5),tipo:col("TIPO",6),zona:col("ZONA",7),
-           med:col("MEDIDAS",12),exh:col("EXHIBICION",19),disp:col("DISPONIBILIDAD",18)};
-    // el precio de venta es la SEGUNDA columna llamada PRECIO
-    var precios=[]; enc.forEach(function(v,i){ if(v.indexOf("PRECIO")===0) precios.push(i); });
-    C.precio = precios.length>1 ? precios[1] : (precios[0]!==undefined?precios[0]:11);
-
-    var cat="", out=[], orden=0;
-    for(var i=1;i<filas.length;i++){
-      var f=filas[i]||[];
-      var cod=texto(f[C.cod]);
-      var esNum = cod!=="" && !isNaN(parseFloat(cod));
-      if(!esNum){
-        var todo=f.map(function(x){return String(x||"").trim().toUpperCase();});
-        for(var k in CATS){ if(todo.indexOf(k)>=0){ cat=CATS[k]; break; } }
+    if (!d || isNaN(d.getTime())) return null;
+    var a = d.getFullYear(); if (a < 2018 || a > 2035) return null;
+    return a + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+  function acZonaDe(v) {
+    // Excel convierte «3 de Febrero» en la fecha 3/2: se recupera
+    if (v instanceof Date) return v.getMonth() === 1 && v.getDate() === 3 ? "Tres de Febrero" : "";
+    var z = acTexto(v);
+    if (/^3\s*(de\s*)?feb/i.test(z)) return "Tres de Febrero";
+    if (/^\d{4}-\d\d-\d\d/.test(z) || /^[\d\/.\-\s]+$/.test(z) || /GMT/.test(z)) return "";
+    var k = acNorm(z).toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ").trim();
+    return AC_ZONAS[k] || z;
+  }
+  function acCodigoCelda(v) {
+    var s = acTexto(v).toUpperCase().replace(/\.0+$/, "");
+    return /^\d{2,6}[A-Z]{0,2}$/.test(s) ? s : "";
+  }
+  function acEstadoDe(exh) {
+    var e = acNorm(exh);
+    if (e.indexOf("DISPONIBLE") >= 0 || e.indexOf("OFRECER") >= 0) return "Disponible";
+    if (!e) return "A confirmar";
+    if (e === "BN" || e.indexOf("BANDA NEG") === 0) return "Banda negativa";
+    return "Ocupado";
+  }
+  // «Panamericana Km 39 (Tránsito hacia CABA)» → ubicación + sentido («Hacia CABA», «Hacia el Centro», «Por Gral Paz hacia…»)
+  function acPartirDireccion(d) {
+    var t = String(d || ""), sen = "";
+    var m = t.match(/tr[áa]nsito\s+(?:(hacia|al|a)\s+)?([^)]{2,60})/i);
+    if (m) {
+      sen = (m[1] && m[1].toLowerCase() === "al" ? "el " : "") + m[2].replace(/[.)\s,]+$/, "").trim();
+      var l = sen.toLowerCase();
+      if (/^(caba|capital|cap)\b/.test(l)) sen = "Hacia CABA";
+      else if (/^(provincia|prov)\b/.test(l)) sen = "Hacia Provincia";
+      else if (/^por\s/.test(l)) sen = "Por " + sen.slice(4);
+      else if (/^(el|la|los|las)\s/.test(l)) sen = "Hacia " + sen.charAt(0).toLowerCase() + sen.slice(1);
+      else sen = "Hacia " + sen.charAt(0).toUpperCase() + sen.slice(1);
+    }
+    var base = t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig, " ")
+      .replace(/,?\s*\b(tr[áa]nsito|sentido)\s+(hacia|al|a)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig, "")
+      .replace(/\(\s*,?\s*\)/g, "").replace(/\(([^)]*?)[,\s]+\)/g, "($1)")
+      .replace(/\s{2,}/g, " ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g, "");
+    return { base: base, sentido: sen };
+  }
+  // dónde está cada dato (por el nombre de la columna)
+  function acColumnas(filas) {
+    var h = 0, k, i;
+    for (k = 0; k < Math.min(filas.length, 12); k++) {
+      if ((filas[k] || []).map(acNorm).indexOf("DIRECCION") >= 0) { h = k; break; }
+    }
+    var enc = (filas[h] || []).map(acNorm);
+    function busca(re, def) { for (i = 0; i < enc.length; i++) if (re.test(enc[i])) return i; return def; }
+    var C = { fila: h, cod: busca(/^COD/, 0), luz: busca(/^LUZ$/, 1), dir: busca(/^DIRECCION$/, 5),
+      tipo: busca(/^TIPO$/, 6), zona: busca(/^ZONA$/, 7), med: busca(/^MEDIDAS$/, 12),
+      prodcoloc: busca(/^PRODUCCION/, 14), coloc: busca(/^COLOCACION$/, 15),
+      exh: busca(/^EXHIBICION$/, 19), disp: busca(/^DISPONIBILIDAD$/, 18) };
+    var anio = new Date().getFullYear(), tar = [], pre = [];
+    enc.forEach(function (v, i) {
+      var m = /^TARIFA\s*(\d{4})?/.exec(v);
+      if (m) tar.push({ i: i, a: m[1] ? +m[1] : anio, n: acTexto(filas[h][i]) });
+      if (/^PRECIO/.test(v)) pre.push(i);
+    });
+    if (tar.length) {
+      // el año en curso; si no está, el último que ya pasó; si no, el próximo
+      var lejos = function (t) { return t.a <= anio ? anio - t.a : 100 + t.a - anio; };
+      tar.sort(function (x, y) { return lejos(x) - lejos(y); });
+      C.precio = tar[0].i; C.precioNombre = tar[0].n;
+    } else {
+      C.precio = pre.length > 1 ? pre[1] : (pre.length ? pre[0] : 11);
+      C.precioNombre = acTexto((filas[h] || [])[C.precio]) || "PRECIO";
+    }
+    return C;
+  }
+  // Lee la hoja entera. Devuelve:
+  //   carteles  → lo que va al portal (sin repetidos; el servidor le saca el precio)
+  //   filas     → todas las filas con datos (para poner al día SU lista: producción, colocación…)
+  //   repetidos → códigos que aparecen en carteles distintos (para avisarle a la empresa)
+  function acLeerListado(XLSX, hoja) {
+    var filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: "" });
+    if (!filas.length) return { carteles: [], filas: [], repetidos: [], precioNombre: "" };
+    var C = acColumnas(filas), cat = "", todas = [];
+    // una fecha de «se libera» que ya pasó hace rato es un dato viejo: no se muestra
+    var viejo = acFecha(new Date(Date.now() - 31 * 864e5));
+    for (var i = C.fila + 1; i < filas.length; i++) {
+      var f = filas[i] || [], cod = acCodigoCelda(f[C.cod]);
+      if (!cod) {
+        var todo = f.map(acNorm);
+        for (var k in AC_CATS) { if (todo.indexOf(k) >= 0) { cat = AC_CATS[k]; break; } }
         continue;
       }
-      var exh=texto(f[C.exh]).toUpperCase();
-      var estado = exh.indexOf("DISPONIBLE")>=0 ? "Disponible"
-                 : (exh==="" ? "A confirmar" : (exh==="BN" ? "Banda negativa" : "Ocupado"));
-      var z=texto(f[C.zona]);
-      if(/^\d{4}-\d\d-\d\d/.test(z) || /^\d+$/.test(z)) z="";
-      var zl=z.toLowerCase(); if(ZONAS[zl]) z=ZONAS[zl];
-      var luz=texto(f[C.luz]).toLowerCase();
-
-      var dd=partirDireccion(texto(f[C.dir]));
-      out.push({
-        codigo: String(Math.round(parseFloat(cod))),
-        direccion: texto(f[C.dir]),
-        sentido: dd.sentido,
-        ubicacion: (dd.base + " · " + z).toLowerCase(),
-        zona: z,
-        formato: cat || texto(f[C.tipo]),
-        tipo: texto(f[C.tipo]),
-        medidas: texto(f[C.med]).replace(/ X /gi," x "),
-        iluminado: luz.charAt(0)==="s",
-        estado: estado,
-        precio: aNumero(f[C.precio]),
-        libre_desde: aFecha(f[C.disp]),
-        orden: orden++
+      var dir = acTexto(f[C.dir]);
+      if (!dir) continue;
+      var z = acZonaDe(f[C.zona]), dd = acPartirDireccion(dir), exh = acTexto(f[C.exh]);
+      var pc = acNumero(f[C.prodcoloc]) || 0, co = acNumero(f[C.coloc]) || 0;
+      todas.push({
+        codigo: cod, direccion: dir, sentido: dd.sentido, ubicacion: (dd.base + " · " + z).toLowerCase(), zona: z,
+        formato: cat || acTexto(f[C.tipo]), tipo: acTexto(f[C.tipo]),
+        medidas: acTexto(f[C.med]).replace(/(\d)\s*[xX×]\s*(\d)/g, "$1 x $2"),
+        iluminado: acNorm(f[C.luz]).charAt(0) === "S", estado: acEstadoDe(exh),
+        precio: acNumero(f[C.precio]), libre_desde: (function (x) { return x && x >= viejo ? x : null; })(acFecha(f[C.disp])),
+        exhibicion: exh, produccion: Math.max(0, pc - co), colocacion: co,
       });
     }
-    return out;
+    // un código por cartel: si está repetido queda la última fila (como siempre: así coincide con su ficha y sus fotos)
+    // y se avisa, para que en la empresa le cambien el código a uno de los dos
+    var porCod = {}, orden = [], repetidos = [];
+    todas.forEach(function (r) {
+      var ya = porCod[r.codigo];
+      if (!ya) { porCod[r.codigo] = r; orden.push(r.codigo); return; }
+      if (acNorm(ya.direccion) !== acNorm(r.direccion)) {
+        var rep = null; repetidos.forEach(function (x) { if (x.codigo === r.codigo) rep = x; });
+        if (!rep) repetidos.push(rep = { codigo: r.codigo, direcciones: [ya.direccion] });
+        rep.direcciones.push(r.direccion);
+      }
+      porCod[r.codigo] = r;
+    });
+    var carteles = orden.map(function (c, n) {
+      var r = porCod[c];
+      return { codigo: r.codigo, direccion: r.direccion, sentido: r.sentido, ubicacion: r.ubicacion, zona: r.zona,
+        formato: r.formato, tipo: r.tipo, medidas: r.medidas, iluminado: r.iluminado, estado: r.estado,
+        precio: r.precio, libre_desde: r.libre_desde, orden: n };
+    });
+    return { carteles: carteles, filas: todas, repetidos: repetidos, precioNombre: C.precioNombre };
   }
 
   $("elegir").addEventListener("click", function(){ $("archivo").click(); });
@@ -259,14 +350,17 @@
       try{
         var wb=XLSX.read(fr.result,{type:"array",cellDates:true});
         var nombre = wb.SheetNames.indexOf("Listado")>=0 ? "Listado" : wb.SheetNames[0];
-        var datos=leerExcel(wb.Sheets[nombre]);
+        var L=acLeerListado(XLSX, wb.Sheets[nombre]), datos=L.carteles;
         if(!datos.length){ aviso($("msg"),"No encontré carteles en ese archivo. ¿Es el listado de disponibles?","mal"); return; }
         listos=datos;
         var disp=datos.filter(function(d){return d.estado==="Disponible";}).length;
         var zs=[]; datos.forEach(function(d){ if(d.zona && zs.indexOf(d.zona)<0) zs.push(d.zona); });
         $("rTot").textContent=datos.length; $("rDisp").textContent=disp; $("rZonas").textContent=zs.length;
         $("resumen").className="";
-        aviso($("msg"),"Archivo leído: <b>"+datos.length+" espacios</b> (hoja «"+nombre+"»). Revisá los números y publicá.","ok");
+        var extra="<br><small>El precio (para las bandas $, $$, $$$) sale de la columna «"+esc(L.precioNombre)+"».</small>";
+        if(L.repetidos.length) extra+="<br><small><b>Ojo:</b> hay "+L.repetidos.length+" códigos usados en carteles distintos ("+
+          L.repetidos.map(function(r){ return esc(r.codigo); }).join(", ")+"). Se publica el último de cada uno; conviene pedir que les cambien el número.</small>";
+        aviso($("msg"),"Archivo leído: <b>"+datos.length+" espacios</b> (hoja «"+esc(nombre)+"»). Revisá los números y publicá."+extra,"ok");
       }catch(e){ aviso($("msg"),"No se pudo leer el archivo. Fijate que sea un Excel (.xlsx).","mal"); }
     };
     fr.onerror=function(){ aviso($("msg"),"No se pudo abrir el archivo.","mal"); };
@@ -335,24 +429,6 @@
       fr.readAsDataURL(file);
     });
   }
-  // "Panamericana Km 39 (Tránsito hacia CABA)" → ubicación + sentido
-  function partirDireccion(d){
-    var t=String(d||"");
-    var sen="";
-    var m=t.match(/tr[áa]nsito\s+(?:hacia|a|al)?\s*([^)]{2,40})/i);
-    if(m) sen=m[1].replace(/[.)\s]+$/,"").trim();
-    var base=t.replace(/\s*\((?:tr[áa]nsito|visual)[^)]*\)\s*/ig," ")
-               .replace(/\b(tr[áa]nsito|sentido)\s+(hacia|a|al)?\s*(caba|capital|provincia|prov\.?|centro)\b/ig,"")
-               .replace(/\s{2,}/g," ").replace(/^[\s\-–—,]+|[\s\-–—,]+$/g,"");
-    if(sen){
-      var l=sen.toLowerCase();
-      if(/caba|capital/.test(l)) sen="Hacia CABA";
-      else if(/provincia|prov/.test(l)) sen="Hacia Provincia";
-      else sen="Hacia "+sen.charAt(0).toUpperCase()+sen.slice(1);
-    }
-    return { base: base, sentido: sen };
-  }
-
   function codigoDe(nombre){
     var n=String(nombre||"").replace(/\.[a-z0-9]+$/i,"");
     var m=n.match(/(?:^|[^0-9])(\d{3,6})(?:[^0-9]|$)/);
